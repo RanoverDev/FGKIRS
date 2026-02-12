@@ -1,0 +1,38 @@
+# Dependency directories
+vendor/
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.log
+*.tmp
+*.cache
+
+# Upload directories (keep structure but ignore content)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Backup files
+*.bak
+*.backup
+
+# Debug scripts (temporary user creation scripts)
+create_president.php
+public/create_president*.php
+public/test_php.php

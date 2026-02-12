@@ -1,0 +1,49 @@
+# ============================================
+# FGKIRS - Root .htaccess
+# Front Controller Pattern & URL Cleanup
+# ============================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 1. Externally Redirect /public/index.php to / (Clean root)
+    RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /public/index\.php\ HTTP/ [NC]
+    RewriteRule ^public/index\.php$ / [R=301,L]
+
+    # 2. Externally Redirect /public/ANYTHING to /ANYTHING (Clean URL)
+    RewriteCond %{THE_REQUEST} ^[A-Z]{3,9}\ /public/(.*)\ HTTP/ [NC]
+    RewriteRule ^public/(.*)$ /$1 [R=301,L]
+
+    # 3. Externally Redirect extension .php to Clean URL (e.g. /home.php -> /home)
+    # We use %{THE_REQUEST} to avoid internal rewrite loops
+    RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s/+(.*?)\.php[\s?] [NC]
+    RewriteRule ^ %1 [L,R=301]
+
+    # 4. Internally route to public directory transparently
+    # If it's an existing file or directory in the public folder, serve it
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f [OR]
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -d
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # 5. If not a real file/dir in public, send to public/index.php (Front Controller)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/index.php [QSA,L]
+</IfModule>
+
+# Block access to Core/Helpers/Views folders directly
+RewriteRule ^(app|config|database|brain)/ - [F,L]
+
+# Prevent directory browsing
+Options -Indexes
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Default charset
+AddDefaultCharset UTF-8
