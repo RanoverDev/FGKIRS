@@ -92,7 +92,7 @@ HTML;
     echo "<h1>Homepage Sincronizada!</h1><p>O conteúdo real foi injetado. Acesse a Home agora.</p>";
 });
 
-$router->add('GET', '/', 'HomeController@index');
+$router->add('GET', '/', 'HomeController@underConstruction');
 $router->add('GET', '/home', 'HomeController@index');
 
 // =====================================================

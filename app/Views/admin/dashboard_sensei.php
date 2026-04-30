@@ -2,62 +2,78 @@
 use Helpers\Auth;
 use Core\Database;
 
-// Redirect if not sensei
-if (!Auth::isSensei()) {
-    header('Location: /admin/dashboard');
+if (!Auth::isSensei() && !Auth::isAdmin()) {
+    header('Location: /fgkirs-admin');
     exit;
 }
 
-$db = Database::getInstance();
-$dojoId = Auth::dojoId();
+$dojo = ['name' => '—'];
+$students = [];
+$gradDistribution = [];
+$recentPromotions = [];
 
-// Get dojo info
-$dojo = $db->query("SELECT * FROM dojos WHERE id = :id", ['id' => $dojoId])->fetch();
+try {
+    $db = Database::getInstance();
+    $dojoId = Auth::dojoId();
 
-// Get students from this dojo
-$students = $db->query("
-    SELECT u.*, sp.status as student_status, g.belt_name, g.belt_color, g.order_rank,
-           mas.name as style_name
-    FROM users u
-    LEFT JOIN student_profiles sp ON u.id = sp.user_id
-    LEFT JOIN graduations g ON sp.current_graduation_id = g.id
-    LEFT JOIN martial_arts_styles mas ON sp.style_id = mas.id
-    WHERE u.dojo_id = :dojo_id AND u.role IN ('student', 'aluno')
-    ORDER BY sp.status, g.order_rank DESC, u.name
-", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_ASSOC);
+    $dojo = $db->query("SELECT * FROM dojos WHERE id = :id", ['id' => $dojoId])->fetch() ?: $dojo;
 
-// Student stats
+    try {
+        $students = $db->query("
+            SELECT u.*, sp.status as student_status, g.belt_name, g.belt_color, g.order_rank,
+                   mas.name as style_name
+            FROM users u
+            LEFT JOIN student_profiles sp ON u.id = sp.user_id
+            LEFT JOIN graduations g ON sp.current_graduation_id = g.id
+            LEFT JOIN martial_arts_styles mas ON sp.style_id = mas.id
+            WHERE u.dojo_id = :dojo_id AND u.role IN ('student', 'aluno')
+            ORDER BY sp.status, g.order_rank DESC, u.name
+        ", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Exception $e) {
+        error_log('sensei students: ' . $e->getMessage());
+    }
+
+    try {
+        $gradDistribution = $db->query("
+            SELECT g.belt_name, g.belt_color, COUNT(sp.id) as count
+            FROM graduations g
+            LEFT JOIN student_profiles sp ON g.id = sp.current_graduation_id
+                AND sp.id IN (SELECT sp2.id FROM student_profiles sp2
+                              JOIN users u2 ON sp2.user_id = u2.id
+                              WHERE u2.dojo_id = :dojo_id)
+            WHERE g.style_id = 1
+            GROUP BY g.id
+            ORDER BY g.order_rank
+        ", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Exception $e) {
+        error_log('sensei grad dist: ' . $e->getMessage());
+    }
+
+    try {
+        $recentPromotions = $db->query("
+            SELECT u.name, g.belt_name, gh.promotion_date
+            FROM graduation_history gh
+            JOIN student_profiles sp ON gh.student_profile_id = sp.id
+            JOIN users u ON sp.user_id = u.id
+            JOIN graduations g ON gh.graduation_id = g.id
+            WHERE u.dojo_id = :dojo_id
+            ORDER BY gh.promotion_date DESC
+            LIMIT 5
+        ", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_ASSOC);
+    } catch (\Exception $e) {
+        error_log('sensei promotions: ' . $e->getMessage());
+    }
+
+} catch (\Exception $e) {
+    error_log('dashboard_sensei DB error: ' . $e->getMessage());
+}
+
 $totalStudents = count($students);
 $activeStudents = count(array_filter($students, fn($s) => $s['student_status'] === 'active'));
 $inactiveStudents = count(array_filter($students, fn($s) => $s['student_status'] === 'inactive'));
 
-// Graduation distribution for this dojo
-$gradDistribution = $db->query("
-    SELECT g.belt_name, g.belt_color, COUNT(sp.id) as count
-    FROM graduations g
-    LEFT JOIN student_profiles sp ON g.id = sp.current_graduation_id 
-        AND sp.id IN (SELECT sp2.id FROM student_profiles sp2 
-                      JOIN users u2 ON sp2.user_id = u2.id 
-                      WHERE u2.dojo_id = :dojo_id)
-    WHERE g.style_id = 1
-    GROUP BY g.id
-    ORDER BY g.order_rank
-", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_ASSOC);
-
-// Recent promotions in this dojo
-$recentPromotions = $db->query("
-    SELECT u.name, g.belt_name, gh.promotion_date
-    FROM graduation_history gh
-    JOIN student_profiles sp ON gh.student_profile_id = sp.id
-    JOIN users u ON sp.user_id = u.id
-    JOIN graduations g ON gh.graduation_id = g.id
-    WHERE u.dojo_id = :dojo_id
-    ORDER BY gh.promotion_date DESC
-    LIMIT 5
-", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_ASSOC);
-
 $pageTitle = 'Dashboard - Sensei';
-require_once __DIR__ . '/../layout/header.php';
+require_once __DIR__ . '/layout/header.php';
 ?>
 
 <!-- Page Header -->
@@ -308,4 +324,4 @@ require_once __DIR__ . '/../layout/header.php';
     }
 </script>
 
-<?php require_once __DIR__ . '/../layout/footer.php'; ?>
+<?php require_once __DIR__ . '/layout/footer.php'; ?>
