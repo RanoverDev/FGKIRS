@@ -12,7 +12,7 @@ require_once __DIR__ . '/../layout/header.php';
         <p class="text-gray-600 mt-1">Gerenciar comunicações e agenda</p>
     </div>
     <?php if (Auth::authorize(['admin', 'sensei', 'colaborador'])): ?>
-        <a href="/admin/posts/create"
+        <a href="/fgkirs-admin/posts/create"
             class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-6 rounded uppercase border-2 border-slate-900 shadow-lg transition">
             + Nova Postagem
         </a>
@@ -87,14 +87,14 @@ require_once __DIR__ . '/../layout/header.php';
                     <!-- Actions -->
                     <div class="flex gap-2">
                         <?php if ($post['author_id'] === Auth::id() || Auth::authorize(['admin', 'sensei'])): ?>
-                            <a href="/admin/posts/edit/<?= $post['id'] ?>"
+                            <a href="/fgkirs-admin/posts/edit/<?= $post['id'] ?>"
                                 class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-2 px-3 rounded text-xs uppercase transition">
                                 ✏️ Editar
                             </a>
                         <?php endif; ?>
 
                         <?php if (Auth::authorize(['admin', 'sensei']) || $post['author_id'] === Auth::id()): ?>
-                            <form action="/admin/posts/delete/<?= $post['id'] ?>" method="POST" class="flex-1"
+                            <form action="/fgkirs-admin/posts/delete/<?= $post['id'] ?>" method="POST" class="flex-1"
                                 onsubmit="return confirm('Confirma exclusão?')">
                                 <button type="submit"
                                     class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded text-xs uppercase transition">

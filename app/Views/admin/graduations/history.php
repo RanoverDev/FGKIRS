@@ -39,7 +39,7 @@ require_once __DIR__ . '/../layout/header.php';
 <!-- Actions -->
 <?php if (Auth::isAdmin() || (Auth::isSensei() && $student['dojo_id'] === Auth::dojoId())): ?>
     <div class="mb-6">
-        <a href="/admin/graduations/promote/<?= $student['id'] ?>"
+        <a href="/fgkirs-admin/graduations/promote/<?= $student['id'] ?>"
             class="inline-block bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-6 rounded uppercase transition border-2 border-slate-900 shadow-lg">
             🥋 Promover Aluno
         </a>

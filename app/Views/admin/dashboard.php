@@ -3,9 +3,9 @@ use Helpers\Auth;
 
 // Redirect based on role
 if (Auth::isAdmin()) {
-    header('Location: /admin/dashboard/president');
+    header('Location: /fgkirs-admin/dashboard/president');
 } elseif (Auth::isSensei()) {
-    header('Location: /admin/dashboard/sensei');
+    header('Location: /fgkirs-admin/dashboard/sensei');
 } else {
     // Student/Colaborador - show basic dashboard
     $pageTitle = 'Dashboard';

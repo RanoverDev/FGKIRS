@@ -246,13 +246,13 @@ require_once __DIR__ . '/layout/header.php';
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex justify-center gap-2">
-                                <a href="/admin/graduations/history/<?= $student['id'] ?>"
+                                <a href="/fgkirs-admin/graduations/history/<?= $student['id'] ?>"
                                     class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-bold uppercase"
                                     title="Histórico">
                                     📜
                                 </a>
                                 <?php if ($student['belt_name']): ?>
-                                    <a href="/admin/graduations/promote/<?= $student['id'] ?>"
+                                    <a href="/fgkirs-admin/graduations/promote/<?= $student['id'] ?>"
                                         class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded text-xs font-bold uppercase"
                                         title="Promover">
                                         ⬆️
@@ -305,7 +305,7 @@ require_once __DIR__ . '/layout/header.php';
         const nextStatus = statusOptions[(currentIndex + 1) % statusOptions.length];
 
         // Send AJAX request
-        fetch(`/admin/users/toggle-status/${userId}`, {
+        fetch(`/fgkirs-admin/users/toggle-status/${userId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: nextStatus })

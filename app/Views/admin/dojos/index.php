@@ -9,7 +9,7 @@ require_once __DIR__ . '/../layout/header.php';
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
     <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Gerenciar Dojos</h1>
     <?php if (Auth::isAdmin()): ?>
-    <a href="/admin/dojos/create" class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">
+    <a href="/fgkirs-admin/dojos/create" class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">
         + Novo Dojo
     </a>
     <?php endif; ?>
@@ -53,12 +53,12 @@ require_once __DIR__ . '/../layout/header.php';
 
             <!-- Actions -->
             <div class="flex gap-2 pt-4 border-t">
-                <a href="/admin/dojos/edit/<?= $dojo['id'] ?>" 
+                <a href="/fgkirs-admin/dojos/edit/<?= $dojo['id'] ?>" 
                    class="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition text-sm">
                     Editar
                 </a>
                 <?php if (Auth::isAdmin()): ?>
-                <a href="/admin/dojos/delete/<?= $dojo['id'] ?>" 
+                <a href="/fgkirs-admin/dojos/delete/<?= $dojo['id'] ?>" 
                    data-confirm-delete 
                    class="flex-1 text-center bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition text-sm">
                     Excluir

@@ -40,7 +40,7 @@ require_once __DIR__ . '/../layout/header.php';
             <p>Este aluno já atingiu a graduação máxima disponível neste estilo.</p>
         </div>
     <?php else: ?>
-        <form action="/admin/graduations/promote" method="POST">
+        <form action="/fgkirs-admin/graduations/promote" method="POST">
             <input type="hidden" name="user_id" value="<?= $student['id'] ?>">
 
             <!-- Graduation Selection -->
@@ -90,7 +90,7 @@ require_once __DIR__ . '/../layout/header.php';
                     class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-6 rounded uppercase transition border-2 border-slate-900 shadow-lg">
                     ✓ Confirmar Promoção
                 </button>
-                <a href="/admin/graduations/history/<?= $student['id'] ?>"
+                <a href="/fgkirs-admin/graduations/history/<?= $student['id'] ?>"
                     class="text-center bg-gray-200 hover:bg-gray-300 text-slate-900 font-bold py-3 px-6 rounded uppercase transition border-2 border-slate-900">
                     Cancelar
                 </a>

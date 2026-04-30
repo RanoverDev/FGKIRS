@@ -38,7 +38,7 @@ class PostController
         $stmt = $this->db->query($sql);
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/posts/index.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/posts/index.php';
     }
 
     /**
@@ -48,11 +48,11 @@ class PostController
     {
         // Colaborador, Sensei, and Admin can create
         if (!Auth::authorize(['admin', 'sensei', 'colaborador'])) {
-            header('Location: /admin/dashboard');
+            header('Location: /fgkirs-admin/dashboard');
             exit;
         }
 
-        require_once __DIR__ . '/../../Views/admin/posts/form.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/posts/form.php';
     }
 
     /**
@@ -61,7 +61,7 @@ class PostController
     public function store(): void
     {
         if (!Auth::authorize(['admin', 'sensei', 'colaborador'])) {
-            header('Location: /admin/dashboard');
+            header('Location: /fgkirs-admin/dashboard');
             exit;
         }
 
@@ -74,7 +74,7 @@ class PostController
         // Validate
         if (empty($title) || empty($content)) {
             $_SESSION['error'] = 'Título e conteúdo são obrigatórios.';
-            header('Location: /admin/posts/create');
+            header('Location: /fgkirs-admin/posts/create');
             exit;
         }
 
@@ -103,7 +103,7 @@ class PostController
         ]);
 
         $_SESSION['success'] = 'Post criado com sucesso!';
-        header('Location: /admin/posts');
+        header('Location: /fgkirs-admin/posts');
         exit;
     }
 
@@ -122,18 +122,18 @@ class PostController
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
-            header('Location: /admin/posts');
+            header('Location: /fgkirs-admin/posts');
             exit;
         }
 
         // Check permission: Only Admin/Sensei can edit others' posts
         if ($post['author_id'] !== Auth::id() && !Auth::authorize(['admin', 'sensei'])) {
             $_SESSION['error'] = 'Você não tem permissão para editar este post.';
-            header('Location: /admin/posts');
+            header('Location: /fgkirs-admin/posts');
             exit;
         }
 
-        require_once __DIR__ . '/../../Views/admin/posts/form.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/posts/form.php';
     }
 
     /**
@@ -152,14 +152,14 @@ class PostController
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
-            header('Location: /admin/posts');
+            header('Location: /fgkirs-admin/posts');
             exit;
         }
 
         // Check permission
         if ($post['author_id'] !== Auth::id() && !Auth::authorize(['admin', 'sensei'])) {
             $_SESSION['error'] = 'Você não tem permissão para editar este post.';
-            header('Location: /admin/posts');
+            header('Location: /fgkirs-admin/posts');
             exit;
         }
 
@@ -172,7 +172,7 @@ class PostController
         // Validate
         if (empty($title) || empty($content)) {
             $_SESSION['error'] = 'Título e conteúdo são obrigatórios.';
-            header("Location: /admin/posts/edit/$id");
+            header("Location: /fgkirs-admin/posts/edit/$id");
             exit;
         }
 
@@ -208,7 +208,7 @@ class PostController
         ]);
 
         $_SESSION['success'] = 'Post atualizado com sucesso!';
-        header('Location: /admin/posts');
+        header('Location: /fgkirs-admin/posts');
         exit;
     }
 
@@ -228,7 +228,7 @@ class PostController
         $post = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$post) {
-            header('Location: /admin/posts');
+            header('Location: /fgkirs-admin/posts');
             exit;
         }
 
@@ -237,7 +237,7 @@ class PostController
             // Others can only delete their own
             if ($post['author_id'] !== Auth::id()) {
                 $_SESSION['error'] = 'Você não tem permissão para deletar este post.';
-                header('Location: /admin/posts');
+                header('Location: /fgkirs-admin/posts');
                 exit;
             }
         }
@@ -255,7 +255,7 @@ class PostController
         $this->db->query($sql, ['id' => $id]);
 
         $_SESSION['success'] = 'Post deletado com sucesso!';
-        header('Location: /admin/posts');
+        header('Location: /fgkirs-admin/posts');
         exit;
     }
 }

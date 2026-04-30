@@ -15,7 +15,7 @@ require_once __DIR__ . '/../layout/header.php';
 
 <!-- Dojo Form -->
 <div class="bg-white rounded-lg shadow p-6 sm:p-8 max-w-2xl">
-    <form action="<?= $isEdit ? "/admin/dojos/update/{$dojo['id']}" : '/admin/dojos/store' ?>"
+    <form action="<?= $isEdit ? "/fgkirs-admin/dojos/update/{$dojo['id']}" : '/fgkirs-admin/dojos/store' ?>"
         method="POST"
         enctype="multipart/form-data">
 
@@ -87,7 +87,7 @@ require_once __DIR__ . '/../layout/header.php';
                 class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">
                 <?= $isEdit ? 'Atualizar' : 'Cadastrar' ?>
             </button>
-            <a href="/admin/dojos"
+            <a href="/fgkirs-admin/dojos"
                 class="text-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition">
                 Cancelar
             </a>

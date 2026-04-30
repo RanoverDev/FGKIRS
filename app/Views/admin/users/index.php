@@ -9,7 +9,7 @@ require_once __DIR__ . '/../layout/header.php';
 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
     <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">Gerenciar Usuários</h1>
     <?php if (Auth::authorize(['admin', 'sensei'])): ?>
-        <a href="/admin/users/create"
+        <a href="/fgkirs-admin/users/create"
             class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">
             + Novo Usuário
         </a>
@@ -77,9 +77,9 @@ require_once __DIR__ . '/../layout/header.php';
                                 <?= htmlspecialchars($user['dojo_name'] ?? '-') ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                <a href="/admin/users/edit/<?= $user['id'] ?>"
+                                <a href="/fgkirs-admin/users/edit/<?= $user['id'] ?>"
                                     class="text-blue-600 hover:text-blue-900">Editar</a>
-                                <a href="/admin/users/delete/<?= $user['id'] ?>" data-confirm-delete
+                                <a href="/fgkirs-admin/users/delete/<?= $user['id'] ?>" data-confirm-delete
                                     class="text-red-600 hover:text-red-900">Excluir</a>
                             </td>
                         </tr>

@@ -49,7 +49,7 @@ class DojoController
         $dojos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Load view
-        require_once __DIR__ . '/../../Views/admin/dojos/index.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/dojos/index.php';
     }
 
     /**
@@ -59,7 +59,7 @@ class DojoController
     {
         // Only admin can create dojos
         if (!Auth::authorize(['admin'])) {
-            header('Location: /admin/dojos');
+            header('Location: /fgkirs-admin/dojos');
             exit;
         }
 
@@ -68,7 +68,7 @@ class DojoController
 
         // Load view
         $dojo = null; // New dojo
-        require_once __DIR__ . '/../../Views/admin/dojos/form.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/dojos/form.php';
     }
 
     /**
@@ -77,7 +77,7 @@ class DojoController
     public function store(): void
     {
         if (!Auth::authorize(['admin'])) {
-            header('Location: /admin/dojos');
+            header('Location: /fgkirs-admin/dojos');
             exit;
         }
 
@@ -109,7 +109,7 @@ class DojoController
 
         $this->db->query($sql, $params);
 
-        header('Location: /admin/dojos');
+        header('Location: /fgkirs-admin/dojos');
         exit;
     }
 
@@ -129,7 +129,7 @@ class DojoController
 
         // Business rule: Sensei can only edit their dojo
         if (Auth::isSensei() && $id !== Auth::dojoId()) {
-            header('Location: /admin/dojos');
+            header('Location: /fgkirs-admin/dojos');
             exit;
         }
 
@@ -137,7 +137,7 @@ class DojoController
         $dojo = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$dojo) {
-            header('Location: /admin/dojos');
+            header('Location: /fgkirs-admin/dojos');
             exit;
         }
 
@@ -145,7 +145,7 @@ class DojoController
         $senseis = Auth::isAdmin() ? $this->getSenseis() : [];
 
         // Load view
-        require_once __DIR__ . '/../../Views/admin/dojos/form.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/dojos/form.php';
     }
 
     /**
@@ -160,7 +160,7 @@ class DojoController
 
         // Business rule: Sensei can only update their dojo
         if (Auth::isSensei() && $id !== Auth::dojoId()) {
-            header('Location: /admin/dojos');
+            header('Location: /fgkirs-admin/dojos');
             exit;
         }
 
@@ -169,7 +169,7 @@ class DojoController
         $dojo = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$dojo) {
-            header('Location: /admin/dojos');
+            header('Location: /fgkirs-admin/dojos');
             exit;
         }
 
@@ -217,7 +217,7 @@ class DojoController
 
         $this->db->query($sql, $params);
 
-        header('Location: /admin/dojos');
+        header('Location: /fgkirs-admin/dojos');
         exit;
     }
 
@@ -228,7 +228,7 @@ class DojoController
     {
         // Only admin can delete dojos
         if (!Auth::authorize(['admin'])) {
-            header('Location: /admin/dojos');
+            header('Location: /fgkirs-admin/dojos');
             exit;
         }
 
@@ -247,7 +247,7 @@ class DojoController
             $this->db->query("DELETE FROM dojos WHERE id = :id", ['id' => $id]);
         }
 
-        header('Location: /admin/dojos');
+        header('Location: /fgkirs-admin/dojos');
         exit;
     }
 

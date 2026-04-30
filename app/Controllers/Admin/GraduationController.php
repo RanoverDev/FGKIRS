@@ -48,7 +48,7 @@ class GraduationController
         $stmt = $this->db->query($sql);
         $graduations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/index.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/index.php';
     }
 
     /**
@@ -74,17 +74,17 @@ class GraduationController
         $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$student) {
-            header('Location: /admin/users');
+            header('Location: /fgkirs-admin/users');
             exit;
         }
 
         //Check authorization: admin, sensei (only own dojo), or self
         if (!Auth::isAdmin()) {
             if (Auth::isSensei() && $student['dojo_id'] !== Auth::dojoId()) {
-                header('Location: /admin/users');
+                header('Location: /fgkirs-admin/users');
                 exit;
             } elseif ($userId !== Auth::id() && !Auth::isSensei()) {
-                header('Location: /admin/users');
+                header('Location: /fgkirs-admin/users');
                 exit;
             }
         }
@@ -102,7 +102,7 @@ class GraduationController
         $stmt = $this->db->query($sql, ['user_id' => $userId]);
         $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/history.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/history.php';
     }
 
     /**
@@ -112,7 +112,7 @@ class GraduationController
     {
         // Only President or Sensei can promote
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /admin/users');
+            header('Location: /fgkirs-admin/users');
             exit;
         }
 
@@ -129,13 +129,13 @@ class GraduationController
         $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$student) {
-            header('Location: /admin/users');
+            header('Location: /fgkirs-admin/users');
             exit;
         }
 
         // Verify authorization: Sensei can only promote students from their dojo
         if (Auth::isSensei() && $student['dojo_id'] !== Auth::dojoId()) {
-            header('Location: /admin/users');
+            header('Location: /fgkirs-admin/users');
             exit;
         }
 
@@ -150,7 +150,7 @@ class GraduationController
         ]);
         $availableGraduations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/promote.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/promote.php';
     }
 
     /**
@@ -165,7 +165,7 @@ class GraduationController
     {
         // Only President or Sensei can promote
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /admin/users');
+            header('Location: /fgkirs-admin/users');
             exit;
         }
 
@@ -187,14 +187,14 @@ class GraduationController
 
         if (!$profile) {
             $_SESSION['error'] = 'Perfil de estudante não encontrado.';
-            header("Location: /admin/users/edit/$userId");
+            header("Location: /fgkirs-admin/users/edit/$userId");
             exit;
         }
 
         // Authorization: Sensei can only promote students from their dojo
         if (Auth::isSensei() && $profile['dojo_id'] !== Auth::dojoId()) {
             $_SESSION['error'] = 'Você só pode promover alunos do seu dojo.';
-            header("Location: /admin/users");
+            header("Location: /fgkirs-admin/users");
             exit;
         }
 
@@ -208,14 +208,14 @@ class GraduationController
 
         if (!$newGraduation) {
             $_SESSION['error'] = 'Graduação inválida.';
-            header("Location: /admin/graduations/promote/$userId");
+            header("Location: /fgkirs-admin/graduations/promote/$userId");
             exit;
         }
 
         // Validate progression (must be next level)
         if ($newGraduation['order_rank'] <= $profile['current_rank']) {
             $_SESSION['error'] = 'A nova graduação deve ser superior à atual.';
-            header("Location: /admin/graduations/promote/$userId");
+            header("Location: /fgkirs-admin/graduations/promote/$userId");
             exit;
         }
 
@@ -250,14 +250,14 @@ class GraduationController
             $this->db->commit();
 
             $_SESSION['success'] = 'Aluno promovido com sucesso!';
-            header("Location: /admin/graduations/history/$userId");
+            header("Location: /fgkirs-admin/graduations/history/$userId");
             exit;
 
         } catch (\Exception $e) {
             $this->db->rollback();
             error_log('Promotion error: ' . $e->getMessage());
             $_SESSION['error'] = 'Erro ao promover aluno. Tente novamente.';
-            header("Location: /admin/graduations/promote/$userId");
+            header("Location: /fgkirs-admin/graduations/promote/$userId");
             exit;
         }
     }
@@ -308,6 +308,6 @@ class GraduationController
         $stmt = $this->db->query($sql, $params);
         $readyStudents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/ready.php';
+        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/ready.php';
     }
 }

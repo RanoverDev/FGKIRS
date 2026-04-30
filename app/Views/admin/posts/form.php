@@ -14,7 +14,7 @@ require_once __DIR__ . '/../layout/header.php';
 </div>
 
 <div class="bg-white rounded border-2 border-slate-900 shadow-lg p-6">
-    <form action="<?= $isEdit ? "/admin/posts/update/{$post['id']}" : '/admin/posts/store' ?>"
+    <form action="<?= $isEdit ? "/fgkirs-admin/posts/update/{$post['id']}" : '/fgkirs-admin/posts/store' ?>"
         method="POST"
         enctype="multipart/form-data">
 
@@ -84,7 +84,7 @@ require_once __DIR__ . '/../layout/header.php';
                 class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-6 rounded uppercase transition border-2 border-slate-900 shadow-lg">
                 <?= $isEdit ? '💾 Atualizar' : '✓ Publicar' ?>
             </button>
-            <a href="/admin/posts"
+            <a href="/fgkirs-admin/posts"
                 class="text-center bg-gray-200 hover:bg-gray-300 text-slate-900 font-bold py-3 px-6 rounded uppercase transition border-2 border-slate-900">
                 Cancelar
             </a>
