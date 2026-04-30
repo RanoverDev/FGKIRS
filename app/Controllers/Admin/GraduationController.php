@@ -48,7 +48,7 @@ class GraduationController
         $stmt = $this->db->query($sql);
         $graduations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/index.php';
+        require_once __DIR__ . '/../../Views/admin/graduations/index.php';
     }
 
     /**
@@ -102,7 +102,7 @@ class GraduationController
         $stmt = $this->db->query($sql, ['user_id' => $userId]);
         $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/history.php';
+        require_once __DIR__ . '/../../Views/admin/graduations/history.php';
     }
 
     /**
@@ -150,7 +150,7 @@ class GraduationController
         ]);
         $availableGraduations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/promote.php';
+        require_once __DIR__ . '/../../Views/admin/graduations/promote.php';
     }
 
     /**
@@ -308,6 +308,6 @@ class GraduationController
         $stmt = $this->db->query($sql, $params);
         $readyStudents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/fgkirs-admin/graduations/ready.php';
+        require_once __DIR__ . '/../../Views/admin/graduations/ready.php';
     }
 }

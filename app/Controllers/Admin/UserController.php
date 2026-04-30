@@ -51,7 +51,7 @@ class UserController extends Controller
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Load view
-        require_once __DIR__ . '/../../Views/fgkirs-admin/users/index.php';
+        require_once __DIR__ . '/../../Views/admin/users/index.php';
     }
 
     /**
@@ -69,7 +69,7 @@ class UserController extends Controller
 
         // Load view
         $user = null; // New user
-        require_once __DIR__ . '/../../Views/fgkirs-admin/users/form.php';
+        require_once __DIR__ . '/../../Views/admin/users/form.php';
     }
 
     /**
@@ -156,7 +156,7 @@ class UserController extends Controller
         $dojos = $this->getDojos();
 
         // Load view
-        require_once __DIR__ . '/../../Views/fgkirs-admin/users/form.php';
+        require_once __DIR__ . '/../../Views/admin/users/form.php';
     }
 
     /**

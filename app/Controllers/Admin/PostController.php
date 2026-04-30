@@ -38,7 +38,7 @@ class PostController
         $stmt = $this->db->query($sql);
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/fgkirs-admin/posts/index.php';
+        require_once __DIR__ . '/../../Views/admin/posts/index.php';
     }
 
     /**
@@ -52,7 +52,7 @@ class PostController
             exit;
         }
 
-        require_once __DIR__ . '/../../Views/fgkirs-admin/posts/form.php';
+        require_once __DIR__ . '/../../Views/admin/posts/form.php';
     }
 
     /**
@@ -133,7 +133,7 @@ class PostController
             exit;
         }
 
-        require_once __DIR__ . '/../../Views/fgkirs-admin/posts/form.php';
+        require_once __DIR__ . '/../../Views/admin/posts/form.php';
     }
 
     /**

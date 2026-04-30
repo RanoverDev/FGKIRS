@@ -49,7 +49,7 @@ class DojoController
         $dojos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Load view
-        require_once __DIR__ . '/../../Views/fgkirs-admin/dojos/index.php';
+        require_once __DIR__ . '/../../Views/admin/dojos/index.php';
     }
 
     /**
@@ -68,7 +68,7 @@ class DojoController
 
         // Load view
         $dojo = null; // New dojo
-        require_once __DIR__ . '/../../Views/fgkirs-admin/dojos/form.php';
+        require_once __DIR__ . '/../../Views/admin/dojos/form.php';
     }
 
     /**
@@ -145,7 +145,7 @@ class DojoController
         $senseis = Auth::isAdmin() ? $this->getSenseis() : [];
 
         // Load view
-        require_once __DIR__ . '/../../Views/fgkirs-admin/dojos/form.php';
+        require_once __DIR__ . '/../../Views/admin/dojos/form.php';
     }
 
     /**
