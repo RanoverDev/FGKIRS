@@ -2,6 +2,7 @@
 
 namespace Controllers\Admin;
 
+use Controllers\Controller;
 use Core\Database;
 use Helpers\Auth;
 use PDO;
@@ -10,7 +11,7 @@ use PDO;
  * GraduationController - Belt Progression Management
  * Handles student promotions and graduation history
  */
-class GraduationController
+class GraduationController extends Controller
 {
     private Database $db;
 
@@ -25,30 +26,126 @@ class GraduationController
     public function index(): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login.php');
+            header('Location: /login');
             exit;
         }
 
-        // Get all styles with graduation counts
-        $sql = "SELECT s.*, COUNT(g.id) as graduation_count 
-                FROM martial_arts_styles s 
-                LEFT JOIN graduations g ON s.id = g.style_id 
-                GROUP BY s.id 
-                ORDER BY s.name";
-
-        $stmt = $this->db->query($sql);
-        $styles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Get all graduations grouped by style
-        $sql = "SELECT g.*, s.name as style_name 
-                FROM graduations g 
-                JOIN martial_arts_styles s ON g.style_id = s.id 
-                ORDER BY s.name, g.order_rank";
-
-        $stmt = $this->db->query($sql);
+        $stmt = $this->db->query(
+            "SELECT g.*, s.name as style_name
+             FROM graduations g
+             JOIN martial_arts_styles s ON g.style_id = s.id
+             ORDER BY s.name, g.order_rank"
+        );
         $graduations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/index.php';
+        $this->view("admin/graduations/index", ["graduations" => $graduations]);
+    }
+
+    public function create(): void
+    {
+        if (!Auth::authorize(['admin'])) {
+            header('Location: /fgkirs-admin/graduations');
+            exit;
+        }
+
+        $stmt = $this->db->query("SELECT id, name FROM martial_arts_styles ORDER BY name ASC");
+        $styles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view("admin/graduations/form", ["graduation" => null, "styles" => $styles]);
+    }
+
+    public function store(): void
+    {
+        if (!Auth::authorize(['admin'])) {
+            header('Location: /fgkirs-admin/graduations');
+            exit;
+        }
+
+        $styleId   = (int) ($_POST['style_id'] ?? 0);
+        $beltName  = trim($_POST['belt_name'] ?? '');
+        $beltColor = trim($_POST['belt_color'] ?? '#000000');
+        $desc      = trim($_POST['requirements'] ?? '');
+
+        $stmt = $this->db->query(
+            "SELECT COALESCE(MAX(order_rank), -1) + 1 as next_rank
+             FROM graduations WHERE style_id = :style_id",
+            ['style_id' => $styleId]
+        );
+        $nextRank = (int) $stmt->fetchColumn();
+
+        $this->db->query(
+            "INSERT INTO graduations (style_id, belt_name, belt_color, order_rank, requirements, created_at, updated_at)
+             VALUES (:style_id, :belt_name, :belt_color, :order_rank, :requirements, NOW(), NOW())",
+            [
+                'style_id'     => $styleId,
+                'belt_name'    => $beltName,
+                'belt_color'   => $beltColor,
+                'order_rank'   => $nextRank,
+                'requirements' => $desc,
+            ]
+        );
+
+        header('Location: /fgkirs-admin/graduations');
+        exit;
+    }
+
+    public function edit(int $id): void
+    {
+        if (!Auth::authorize(['admin'])) {
+            header('Location: /login');
+            exit;
+        }
+
+        $stmt = $this->db->query("SELECT * FROM graduations WHERE id = :id", ['id' => $id]);
+        $graduation = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$graduation) {
+            header('Location: /fgkirs-admin/graduations');
+            exit;
+        }
+
+        $stmt = $this->db->query("SELECT id, name FROM martial_arts_styles ORDER BY name ASC");
+        $styles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view("admin/graduations/form", ["graduation" => $graduation, "styles" => $styles]);
+    }
+
+    public function update(int $id): void
+    {
+        if (!Auth::authorize(['admin'])) {
+            header('Location: /fgkirs-admin/graduations');
+            exit;
+        }
+
+        $this->db->query(
+            "UPDATE graduations
+             SET style_id = :style_id, belt_name = :belt_name, belt_color = :belt_color,
+                 requirements = :requirements, updated_at = NOW()
+             WHERE id = :id",
+            [
+                'style_id'     => (int) ($_POST['style_id'] ?? 0),
+                'belt_name'    => trim($_POST['belt_name'] ?? ''),
+                'belt_color'   => trim($_POST['belt_color'] ?? '#000000'),
+                'requirements' => trim($_POST['requirements'] ?? ''),
+                'id'           => $id,
+            ]
+        );
+
+        header('Location: /fgkirs-admin/graduations');
+        exit;
+    }
+
+    public function delete(int $id): void
+    {
+        if (!Auth::authorize(['admin'])) {
+            header('Location: /fgkirs-admin/graduations');
+            exit;
+        }
+
+        $this->db->query("DELETE FROM graduations WHERE id = :id", ['id' => $id]);
+
+        header('Location: /fgkirs-admin/graduations');
+        exit;
     }
 
     /**
@@ -102,7 +199,7 @@ class GraduationController
         $stmt = $this->db->query($sql, ['user_id' => $userId]);
         $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/history.php';
+        $this->view("admin/graduations/history", ["student" => $student, "history" => $history]);
     }
 
     /**
@@ -150,7 +247,7 @@ class GraduationController
         ]);
         $availableGraduations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/promote.php';
+        $this->view("admin/graduations/promote", ["student" => $student, "availableGraduations" => $availableGraduations]);
     }
 
     /**
@@ -308,6 +405,6 @@ class GraduationController
         $stmt = $this->db->query($sql, $params);
         $readyStudents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/graduations/ready.php';
+        $this->view("admin/graduations/ready", ["readyStudents" => $readyStudents]);
     }
 }

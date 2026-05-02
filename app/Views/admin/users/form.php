@@ -86,7 +86,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </div>
             <?php endif; ?>
 
-            <input type="file" id="photo" name="photo" accept="image/*"
+            <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,image/jpeg"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
             <p class="text-xs text-gray-500 mt-1">Será convertida para JPG (1200px, qualidade 55)</p>
         </div>

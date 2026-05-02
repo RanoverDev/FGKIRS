@@ -53,6 +53,7 @@ class Router
         }
 
         // Try dynamic routes (with parameters)
+        $params = [];
         foreach ($this->routes[$method] as $route => $handler) {
             if ($this->matchRoute($route, $uri, $params)) {
                 $this->handleRoute($handler, $params);

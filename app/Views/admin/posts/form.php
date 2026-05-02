@@ -69,7 +69,7 @@ require_once __DIR__ . '/../layout/header.php';
                         class="w-48 h-32 object-cover rounded border-2 border-slate-900">
                 </div>
             <?php endif; ?>
-            <input type="file" id="featured_image" name="featured_image" accept="image/*" onchange="previewImage(this)"
+            <input type="file" id="featured_image" name="featured_image" accept=".jpg,.jpeg,image/jpeg" onchange="previewImage(this)"
                 class="w-full px-4 py-2 border-2 border-gray-300 rounded focus:border-rose-600 focus:outline-none">
             <p class="text-xs text-gray-500 mt-1">Será automaticamente convertida para JPG, redimensionada e otimizada
             </p>

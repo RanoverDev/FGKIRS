@@ -51,7 +51,7 @@ class UserController extends Controller
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Load view
-        require_once __DIR__ . '/../../Views/admin/users/index.php';
+        $this->view("admin/users/index", ["users" => $users]);
     }
 
     /**
@@ -86,7 +86,7 @@ class UserController extends Controller
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
         $role = $_POST['role'] ?? 'aluno';
-        $dojoId = $_POST['dojo_id'] ?? null;
+        $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
 
         // Business rule: Sensei can only assign their own dojo
         if (Auth::isSensei()) {
@@ -190,7 +190,7 @@ class UserController extends Controller
         $name = $_POST['name'] ?? '';
         $email = $_POST['email'] ?? '';
         $role = $_POST['role'] ?? 'aluno';
-        $dojoId = $_POST['dojo_id'] ?? null;
+        $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
 
         // Business rule: Sensei can only assign their own dojo
         if (Auth::isSensei()) {

@@ -2,6 +2,7 @@
 
 namespace Controllers\Admin;
 
+use Controllers\Controller;
 use Core\Database;
 use Helpers\Auth;
 use Helpers\ImageProcessor;
@@ -11,7 +12,7 @@ use PDO;
  * PostController - News & Events Management
  * Handles creation and management of posts
  */
-class PostController
+class PostController extends Controller
 {
     private Database $db;
 
@@ -38,7 +39,7 @@ class PostController
         $stmt = $this->db->query($sql);
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        require_once __DIR__ . '/../../Views/admin/posts/index.php';
+        $this->view("admin/posts/index", ["posts" => $posts]);
     }
 
     /**
@@ -52,7 +53,7 @@ class PostController
             exit;
         }
 
-        require_once __DIR__ . '/../../Views/admin/posts/form.php';
+        $this->view("admin/posts/form");
     }
 
     /**
@@ -133,7 +134,7 @@ class PostController
             exit;
         }
 
-        require_once __DIR__ . '/../../Views/admin/posts/form.php';
+        $this->view("admin/posts/form", ["post" => $post]);
     }
 
     /**

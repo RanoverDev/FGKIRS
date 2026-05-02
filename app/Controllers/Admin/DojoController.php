@@ -11,7 +11,7 @@ use PDO;
  * DojoController - Dojo Management
  * Handles CRUD operations for dojos with admin/sensei access control
  */
-class DojoController
+class DojoController extends \Controllers\Controller
 {
     private Database $db;
 
@@ -49,7 +49,7 @@ class DojoController
         $dojos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Load view
-        require_once __DIR__ . '/../../Views/admin/dojos/index.php';
+        $this->view("admin/dojos/index", ["dojos" => $dojos]);
     }
 
     /**

@@ -16,8 +16,7 @@ require_once __DIR__ . '/../layout/header.php';
 <!-- Dojo Form -->
 <div class="bg-white rounded-lg shadow p-6 sm:p-8 max-w-2xl">
     <form action="<?= $isEdit ? "/fgkirs-admin/dojos/update/{$dojo['id']}" : '/fgkirs-admin/dojos/store' ?>"
-        method="POST"
-        enctype="multipart/form-data">
+        method="POST" enctype="multipart/form-data">
 
         <!-- Nome do Dojo -->
         <div class="mb-4">
@@ -49,17 +48,22 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
 
         <!-- Sensei Responsável (somente admin) -->
-        <?php if (Auth::isAdmin() && !empty($senseis)): ?>
+        <!-- Sensei Responsável (somente admin) -->
+        <?php if (Auth::isAdmin()): ?>
             <div class="mb-4">
-                <label for="sensei_id" class="block text-sm font-medium text-gray-700 mb-2">Sensei Responsável</label>
-                <select id="sensei_id" name="sensei_id"
+                <label for="sensei_id" class="block text-sm font-medium text-gray-700 mb-2">Sensei Responsável *</label>
+                <select id="sensei_id" name="sensei_id" required
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                    <option value="">Nenhum</option>
-                    <?php foreach ($senseis as $sensei): ?>
-                        <option value="<?= $sensei['id'] ?>" <?= ($dojo['sensei_id'] ?? '') == $sensei['id'] ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($sensei['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
+                    <option value="">Selecione um Sensei</option>
+                    <?php if (!empty($senseis)): ?>
+                        <?php foreach ($senseis as $sensei): ?>
+                            <option value="<?= $sensei['id'] ?>" <?= ($dojo['sensei_id'] ?? '') == $sensei['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($sensei['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <option value="" disabled>Nenhum sensei cadastrado</option>
+                    <?php endif; ?>
                 </select>
             </div>
         <?php endif; ?>
@@ -76,7 +80,7 @@ require_once __DIR__ . '/../layout/header.php';
                 </div>
             <?php endif; ?>
 
-            <input type="file" id="logo" name="logo" accept="image/*"
+            <input type="file" id="logo" name="logo" accept=".jpg,.jpeg,image/jpeg"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
             <p class="text-xs text-gray-500 mt-1">Será convertida para JPG (1200px, qualidade 55)</p>
         </div>

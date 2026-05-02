@@ -4,6 +4,11 @@
  * Single entry point for all requests
  */
 
+// Temporary: show errors for debugging - REMOVE AFTER FIX
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Start session
 session_start();
 
@@ -135,10 +140,26 @@ $router->add('POST', '/fgkirs-admin/dojos/update/{id}', 'Admin\DojoController@up
 $router->add('GET', '/fgkirs-admin/dojos/delete/{id}', 'Admin\DojoController@delete');
 
 // =====================================================
+// ADMIN - STYLES
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/styles', 'Admin\StyleController@index');
+$router->add('GET', '/fgkirs-admin/styles/create', 'Admin\StyleController@create');
+$router->add('POST', '/fgkirs-admin/styles/store', 'Admin\StyleController@store');
+$router->add('GET', '/fgkirs-admin/styles/edit/{id}', 'Admin\StyleController@edit');
+$router->add('POST', '/fgkirs-admin/styles/update/{id}', 'Admin\StyleController@update');
+$router->add('GET', '/fgkirs-admin/styles/delete/{id}', 'Admin\StyleController@delete');
+
+// =====================================================
 // ADMIN - GRADUATIONS
 // =====================================================
 
 $router->add('GET', '/fgkirs-admin/graduations', 'Admin\GraduationController@index');
+$router->add('GET', '/fgkirs-admin/graduations/create', 'Admin\GraduationController@create');
+$router->add('POST', '/fgkirs-admin/graduations/store', 'Admin\GraduationController@store');
+$router->add('GET', '/fgkirs-admin/graduations/edit/{id}', 'Admin\GraduationController@edit');
+$router->add('POST', '/fgkirs-admin/graduations/update/{id}', 'Admin\GraduationController@update');
+$router->add('GET', '/fgkirs-admin/graduations/delete/{id}', 'Admin\GraduationController@delete');
 $router->add('GET', '/fgkirs-admin/graduations/history/{id}', 'Admin\GraduationController@history');
 $router->add('GET', '/fgkirs-admin/graduations/promote/{id}', 'Admin\GraduationController@promoteForm');
 $router->add('POST', '/fgkirs-admin/graduations/promote', 'Admin\GraduationController@promoteStudent');
