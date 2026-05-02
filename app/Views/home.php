@@ -36,15 +36,47 @@
         .news-card { transition: transform .3s ease, box-shadow .3s ease; }
         .news-card:hover { transform: scale(1.02); box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); }
 
-        .hero-bg {
-            background-color: #0f172a;
-            background-image:
-                radial-gradient(ellipse 80% 50% at 50% 0%, rgba(238,48,47,.18) 0%, transparent 60%),
-                radial-gradient(ellipse 40% 60% at 80% 80%, rgba(0,171,78,.12) 0%, transparent 55%);
-        }
-
         .event-item { border-left: 3px solid #FFCB04; }
         .dojo-card  { border-left: 4px solid #EE302F; }
+
+        /* ── Hero Slider ── */
+        @keyframes kenburns {
+            from { transform: scale(1)    translate(0,    0); }
+            to   { transform: scale(1.18) translate(-2%, -1%); }
+        }
+        .hero-slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .hero-slide.is-active { opacity: 1; }
+
+        .ken-bg {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            transform-origin: center center;
+            will-change: transform;
+        }
+        .ken-bg.playing {
+            animation: kenburns 9s ease-out forwards;
+        }
+
+        .hero-dot {
+            height: 3px;
+            border-radius: 9999px;
+            transition: width .4s ease, background-color .4s ease;
+            cursor: pointer;
+            border: none;
+            padding: 0;
+            display: block;
+        }
+
+        #heroTitle, #heroExcerpt, #heroTag {
+            transition: opacity .4s ease;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased">
@@ -58,10 +90,6 @@
 
             <div class="flex items-center gap-4">
                 <img src="/assets/images/logo-fgkirs-white.png" alt="FGKIRS" class="h-10 w-auto">
-                <div class="hidden md:block leading-tight">
-                    <p class="text-[10px] uppercase tracking-[.2em] text-slate-400">Federação Gaúcha de Karatê</p>
-                    <p class="text-sm font-semibold">Interestilos Rio-Grandense</p>
-                </div>
             </div>
 
             <nav class="hidden md:flex items-center gap-6 text-sm text-slate-300">
@@ -82,41 +110,78 @@
         </div>
     </header>
 
-    <!-- ═══════════════════════════════════ HERO ════════════════════════════ -->
-    <section class="hero-bg text-white relative overflow-hidden min-h-[88vh] flex items-center">
+    <!-- ═══════════════════════════════════ HERO SLIDER ═══════════════════════ -->
+    <section class="relative overflow-hidden" style="min-height: 92vh;">
 
-        <!-- Decorative vertical stripes -->
-        <div class="absolute left-0 inset-y-0 w-1.5 opacity-70"
-             style="background: linear-gradient(to bottom, #00AB4E, #EE302F, #FFCB04)"></div>
-        <div class="absolute right-0 inset-y-0 w-1 bg-slate-700 opacity-40"></div>
+        <!-- ── Slides (background layers) ── -->
+        <?php if (!empty($news)): ?>
+            <?php foreach ($news as $i => $post): ?>
+            <div class="hero-slide<?= $i === 0 ? ' is-active' : '' ?>" data-idx="<?= $i ?>">
+                <div class="ken-bg<?= $i === 0 ? ' playing' : '' ?>"
+                     style="background-image: <?= !empty($post['featured_image'])
+                         ? "url('/uploads/posts/" . htmlspecialchars($post['featured_image']) . "')"
+                         : 'linear-gradient(135deg,#0f172a 0%,#7f1d1d 100%)' ?>;"></div>
+                <div class="absolute inset-0"
+                     style="background: linear-gradient(to top, rgba(0,0,0,.90) 0%, rgba(0,0,0,.55) 38%, rgba(0,0,0,.18) 100%),
+                                        linear-gradient(to right, rgba(0,0,0,.72) 0%, transparent 58%);"></div>
+            </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="hero-slide is-active">
+                <div class="ken-bg playing"
+                     style="background: linear-gradient(135deg,#0f172a 0%,#450a0a 100%);"></div>
+            </div>
+        <?php endif; ?>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-24 w-full">
-            <div class="max-w-3xl">
+        <!-- ── Content overlay ── -->
+        <div class="relative z-10 flex flex-col justify-between" style="min-height: 92vh; padding: 2.5rem 1.5rem 2rem;">
+            <div class="max-w-7xl mx-auto w-full"><!-- spacer top --></div>
 
-                <!-- Colored accent bars -->
-                <div class="flex gap-2 mb-8">
-                    <span class="h-1 w-10 rounded-full bg-rs-green"></span>
-                    <span class="h-1 w-10 rounded-full bg-rs-red"></span>
-                    <span class="h-1 w-10 rounded-full bg-rs-yellow"></span>
+            <!-- Bottom content block -->
+            <div class="max-w-7xl mx-auto w-full">
+
+                <!-- Accent bars -->
+                <div class="flex gap-2 mb-5">
+                    <span class="h-0.5 w-7 rounded-full" style="background:#00AB4E;opacity:.75;"></span>
+                    <span class="h-0.5 w-7 rounded-full" style="background:#EE302F;opacity:.75;"></span>
+                    <span class="h-0.5 w-7 rounded-full" style="background:#FFCB04;opacity:.75;"></span>
                 </div>
 
-                <h1 class="text-6xl sm:text-7xl md:text-8xl font-bold leading-none mb-4">
-                    FGKIRS
-                </h1>
-                <p class="text-2xl sm:text-3xl font-semibold text-slate-200 mb-4">
-                    A Força do Karatê Gaúcho
-                </p>
-                <p class="text-base sm:text-lg text-slate-400 mb-10 max-w-xl leading-relaxed">
-                    Unindo tradição, técnica e espírito esportivo em todo o
-                    Rio Grande do Sul desde 1985.
+                <!-- Tag -->
+                <p id="heroTag"
+                   class="text-xs font-bold uppercase tracking-[.22em] mb-2"
+                   style="color:#FFCB04;">
+                    <?= !empty($news) ? ($news[0]['type'] === 'event' ? 'Evento' : 'Notícia') : 'FGKIRS' ?>
                 </p>
 
-                <div class="flex flex-col sm:flex-row gap-4">
+                <!-- Title -->
+                <h1 id="heroTitle"
+                    class="font-black text-white leading-tight mb-3 max-w-3xl drop-shadow-2xl"
+                    style="font-size: clamp(2rem, 5vw, 3.75rem); font-family: 'Oswald', sans-serif; letter-spacing: .03em;">
+                    <?= !empty($news) ? htmlspecialchars($news[0]['title']) : 'A Força do Karatê Gaúcho' ?>
+                </h1>
+
+                <!-- Excerpt (first 15 words) -->
+                <p id="heroExcerpt"
+                   class="text-sm sm:text-base max-w-xl mb-7 leading-relaxed drop-shadow"
+                   style="color:rgba(255,255,255,.65);">
+                    <?php
+                    if (!empty($news)) {
+                        $w = array_slice(explode(' ', strip_tags($news[0]['content'])), 0, 15);
+                        echo htmlspecialchars(implode(' ', $w)) . '…';
+                    } else {
+                        echo 'Unindo tradição, técnica e espírito esportivo em todo o Rio Grande do Sul desde 1985.';
+                    }
+                    ?>
+                </p>
+
+                <!-- Buttons (smaller, discreet) -->
+                <div class="flex flex-wrap items-center gap-3 mb-8">
                     <a href="#dojos"
-                       class="inline-flex items-center justify-center gap-2 bg-rs-red hover:bg-red-700
-                              text-white font-bold py-4 px-8 rounded-lg text-lg transition-all duration-200
-                              shadow-lg hover:shadow-rs-red/30">
-                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="inline-flex items-center gap-1.5 text-white font-semibold py-2 px-5 rounded-lg text-sm transition-all duration-200 shadow-lg"
+                       style="background:rgba(238,48,47,.85);"
+                       onmouseover="this.style.background='#EE302F'" onmouseout="this.style.background='rgba(238,48,47,.85)'">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -125,30 +190,113 @@
                         Encontre um Dojo
                     </a>
                     <a href="#noticias"
-                       class="inline-flex items-center justify-center gap-2 border-2 border-slate-600
-                              hover:border-slate-300 text-slate-300 hover:text-white font-semibold
-                              py-4 px-8 rounded-lg text-lg transition-all duration-200">
+                       class="inline-flex items-center gap-1.5 font-medium py-2 px-5 rounded-lg text-sm transition-all duration-200"
+                       style="border:1px solid rgba(255,255,255,.28); color:rgba(255,255,255,.65);"
+                       onmouseover="this.style.borderColor='rgba(255,255,255,.65)';this.style.color='#fff'"
+                       onmouseout="this.style.borderColor='rgba(255,255,255,.28)';this.style.color='rgba(255,255,255,.65)'">
                         Últimas Notícias
                     </a>
                 </div>
 
+                <!-- Slide dots -->
+                <?php if (count($news) > 1): ?>
+                <div id="heroDots" class="flex items-center gap-2">
+                    <?php foreach ($news as $i => $_): ?>
+                    <button class="hero-dot"
+                            onclick="heroGoTo(<?= $i ?>)"
+                            style="width:<?= $i === 0 ? '2rem' : '.75rem' ?>;background:<?= $i === 0 ? '#fff' : 'rgba(255,255,255,.3)' ?>;">
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
             </div>
         </div>
 
-        <!-- Stats badges (bottom-right) -->
-        <?php if (!empty($dojos)): ?>
-        <div class="absolute bottom-8 right-6 hidden lg:flex gap-4">
-            <div class="bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl px-5 py-3 text-center">
-                <p class="text-3xl font-black text-rs-green"><?= count($dojos) ?></p>
-                <p class="text-xs text-slate-400 uppercase tracking-widest mt-0.5">Dojos</p>
+    </section>
+
+    <!-- ══════════════════════════ CTA ════════════════════════════════════════ -->
+    <section class="py-16 bg-white text-center">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6">
+            <p class="text-xs font-bold uppercase tracking-[.22em] mb-3" style="color:#EE302F;">
+                Federação Gaúcha de Karatê Interestilos
+            </p>
+            <h2 class="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 leading-tight">
+                Karatê de alto nível no<br class="hidden sm:block"> Rio Grande do Sul
+            </h2>
+            <p class="text-slate-500 text-sm leading-relaxed mb-8">
+                A FGKIRS reúne dojos, senseis e atletas de todo o estado, promovendo competições,
+                graduações e o crescimento do karatê como esporte e arte marcial.
+            </p>
+            <a href="/login"
+               class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-700 text-white
+                      font-semibold py-3 px-8 rounded-lg text-sm transition-all duration-200 shadow-md">
+                Acessar o Sistema
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- ══════════════════════ PRESS RELEASE ══════════════════════════════════ -->
+    <section class="py-16 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+
+            <div class="text-center mb-10">
+                <div class="flex justify-center gap-2 mb-4">
+                    <span class="h-0.5 w-8 rounded-full bg-rs-green"></span>
+                    <span class="h-0.5 w-8 rounded-full bg-rs-red"></span>
+                    <span class="h-0.5 w-8 rounded-full bg-rs-yellow"></span>
+                </div>
+                <p class="text-xs font-bold uppercase tracking-[.22em] text-rs-red mb-2">Quem Somos</p>
+                <h2 class="text-3xl font-bold text-slate-900">Sobre a FGKIRS</h2>
             </div>
-            <div class="bg-slate-800/80 backdrop-blur border border-slate-700 rounded-xl px-5 py-3 text-center">
-                <p class="text-3xl font-black text-rs-yellow"><?= count($events) ?></p>
-                <p class="text-xs text-slate-400 uppercase tracking-widest mt-0.5">Eventos</p>
+
+            <div class="grid md:grid-cols-2 gap-10 text-slate-600 text-sm leading-relaxed">
+
+                <!-- Col 1: História -->
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+                        <span class="inline-block h-5 w-1 rounded-full bg-rs-red"></span>
+                        Constituição
+                    </h3>
+                    <p class="mb-4">
+                        A FGKIRS – Federação Gaúcha de Karatê Interestilos, fundada em
+                        <strong class="text-slate-800">17 de dezembro de 2017</strong>, é uma entidade regional
+                        de administração do desporto, constituindo-se em uma Sociedade Civil de Direito Privado
+                        de natureza civil sem fins lucrativos, regulada pelos preceitos emanados na Lei nº 9.615
+                        de 24 de março de 1998 e Decreto nº 2.574 de 29 de abril de 1998, representada em todos
+                        os seus atos pelo seu Presidente.
+                    </p>
+                    <p>
+                        De acordo com a Constituição Federal e a Lei 9.615/98, a FGKIRS goza de autonomia
+                        administrativa quanto à sua organização e funcionamento, regendo-se pelas normas legais
+                        vigentes no País e pelas disposições de seu Estatuto.
+                    </p>
+                </div>
+
+                <!-- Col 2: Objetivos -->
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 mb-3 flex items-center gap-2">
+                        <span class="inline-block h-5 w-1 rounded-full bg-rs-green"></span>
+                        Objetivos
+                    </h3>
+                    <p class="mb-4">
+                        Promover, organizar e fiscalizar Campeonatos, Torneios e Competições de Karatê
+                        Interestilos em todas as categorias em nível estadual. Promover Cursos, Congressos,
+                        Palestras e outros eventos relacionados ao Karatê.
+                    </p>
+                    <p>
+                        Cumprir e fazer cumprir as determinações das Atas Extraordinárias das Entidades e
+                        Organismos Internacionais a que esteja filiada, bem como as expedidas pelos Órgãos e
+                        Autoridades do Poder Público. O Estatuto da FGKIRS rege as obrigações, normas e
+                        diretrizes da federação.
+                    </p>
+                </div>
+
             </div>
         </div>
-        <?php endif; ?>
-
     </section>
 
     <!-- ═══════════════════ NEWS GRID + EVENTS SIDEBAR ═══════════════════════ -->
@@ -167,15 +315,13 @@
                     <?php if (!empty($news)): ?>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <?php foreach ($news as $post):
-                            $img  = !empty($post['featured_image'])
-                                    ? htmlspecialchars($post['featured_image'])
-                                    : null;
-                            $date = date('d/m/Y', strtotime($post['published_at'] ?? $post['created_at']));
+                            $img     = !empty($post['featured_image'])
+                                       ? '/uploads/posts/' . htmlspecialchars($post['featured_image'])
+                                       : null;
+                            $date    = date('d/m/Y', strtotime($post['published_at'] ?? $post['created_at']));
                             $excerpt = mb_substr(strip_tags($post['content']), 0, 100);
                         ?>
                         <article class="news-card bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 flex flex-col">
-
-                            <!-- Image -->
                             <div class="aspect-video overflow-hidden bg-slate-800">
                                 <?php if ($img): ?>
                                 <img src="<?= $img ?>"
@@ -191,14 +337,7 @@
                                 </div>
                                 <?php endif; ?>
                             </div>
-
-                            <!-- Body -->
                             <div class="p-5 flex flex-col flex-1">
-                                <?php if (!empty($post['category_name'])): ?>
-                                <span class="text-xs font-semibold uppercase tracking-widest text-rs-red mb-1">
-                                    <?= htmlspecialchars($post['category_name']) ?>
-                                </span>
-                                <?php endif; ?>
                                 <time class="text-xs text-slate-400 mb-2"><?= $date ?></time>
                                 <h3 class="text-base font-bold text-slate-900 leading-snug mb-2 line-clamp-2">
                                     <?= htmlspecialchars($post['title']) ?>
@@ -207,7 +346,6 @@
                                     <?= htmlspecialchars($excerpt) ?>…
                                 </p>
                             </div>
-
                         </article>
                         <?php endforeach; ?>
                     </div>
@@ -226,21 +364,16 @@
                     <?php if (!empty($events)): ?>
                     <div class="space-y-4">
                         <?php foreach ($events as $evt):
-                            $evtDate = date('d/m/Y', strtotime($evt['event_date']));
-                            $evtDay  = date('d', strtotime($evt['event_date']));
-                            $evtMonth = strtoupper(strftime('%b', strtotime($evt['event_date'])));
-                            // fallback for PHP 8.1+ where strftime is deprecated
+                            $evtDay   = date('d', strtotime($evt['event_date']));
                             $evtMonth = mb_strtoupper(date('M', strtotime($evt['event_date'])));
                         ?>
                         <div class="event-item bg-white rounded-lg p-4 shadow-sm border border-slate-100 flex gap-4 items-start">
-                            <!-- Date badge -->
                             <div class="shrink-0 bg-slate-900 text-white rounded-lg w-12 text-center py-2 leading-tight">
                                 <span class="block text-xl font-black"><?= $evtDay ?></span>
                                 <span class="block text-[10px] font-semibold uppercase tracking-wide text-rs-yellow">
                                     <?= $evtMonth ?>
                                 </span>
                             </div>
-                            <!-- Info -->
                             <div class="min-w-0">
                                 <h4 class="text-sm font-bold text-slate-900 leading-snug mb-1 line-clamp-2">
                                     <?= htmlspecialchars($evt['title']) ?>
@@ -273,7 +406,6 @@
     <section id="dojos" class="py-20 bg-slate-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
 
-            <!-- Section header -->
             <div class="text-center mb-12">
                 <div class="flex justify-center gap-2 mb-4">
                     <span class="h-1 w-8 rounded-full bg-rs-green"></span>
@@ -286,7 +418,6 @@
 
             <?php if (!empty($dojos)): ?>
 
-            <!-- Search -->
             <div class="max-w-md mx-auto mb-10 relative">
                 <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -300,14 +431,12 @@
                               text-sm shadow-sm">
             </div>
 
-            <!-- Grid -->
             <div id="dojoGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach ($dojos as $dojo): ?>
                 <div class="dojo-card bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200"
                      data-search="<?= strtolower(htmlspecialchars($dojo['name'] . ' ' . ($dojo['city'] ?? ''))) ?>">
 
                     <div class="flex items-start gap-4 mb-4">
-                        <!-- Logo / placeholder -->
                         <div class="shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center">
                             <?php if (!empty($dojo['logo'])): ?>
                             <img src="<?= htmlspecialchars($dojo['logo']) ?>"
@@ -320,7 +449,6 @@
                             </svg>
                             <?php endif; ?>
                         </div>
-
                         <div class="min-w-0">
                             <h3 class="text-base font-bold text-slate-900 leading-snug">
                                 <?= htmlspecialchars($dojo['name']) ?>
@@ -342,7 +470,6 @@
                             <span><strong class="text-slate-700">Sensei:</strong> <?= htmlspecialchars($dojo['sensei_name']) ?></span>
                         </p>
                         <?php endif; ?>
-
                         <?php if (!empty($dojo['address'])): ?>
                         <p class="flex items-start gap-2">
                             <svg class="w-4 h-4 text-slate-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,7 +481,6 @@
                             <span><?= htmlspecialchars($dojo['address']) ?></span>
                         </p>
                         <?php endif; ?>
-
                         <?php if (!empty($dojo['phone'])): ?>
                         <p class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,15 +507,12 @@
                 <?php endforeach; ?>
             </div>
 
-            <!-- Empty-state after search -->
             <p id="dojoEmpty" class="hidden text-center text-slate-400 text-sm mt-8 italic">
                 Nenhum dojo encontrado para esta busca.
             </p>
 
             <?php else: ?>
-            <p class="text-center text-slate-400 text-sm italic">
-                Nenhum dojo cadastrado no momento.
-            </p>
+            <p class="text-center text-slate-400 text-sm italic">Nenhum dojo cadastrado no momento.</p>
             <?php endif; ?>
 
         </div>
@@ -401,7 +524,6 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
 
-                <!-- Brand -->
                 <div>
                     <img src="/assets/images/logo-fgkirs-white.png" alt="FGKIRS" class="h-14 mb-4">
                     <p class="text-slate-400 text-sm leading-relaxed max-w-xs">
@@ -409,9 +531,7 @@
                         em todo o Rio Grande do Sul, promovendo a excelência técnica e
                         o espírito esportivo do Karatê.
                     </p>
-                    <!-- RS flag stripe -->
                     <div class="rs-bar h-1 rounded-full mt-5 w-24 opacity-70"></div>
-                    <!-- Affiliations -->
                     <div class="mt-5 flex items-center gap-4">
                         <img src="/assets/images/logo-wukf.png"
                              alt="WUKF – World Union of Karate-Do Federations"
@@ -424,7 +544,6 @@
                     </div>
                 </div>
 
-                <!-- Links -->
                 <div>
                     <h4 class="text-sm font-bold uppercase tracking-widest text-slate-300 mb-4">Navegação</h4>
                     <ul class="space-y-2 text-slate-400 text-sm">
@@ -435,26 +554,80 @@
                     </ul>
                 </div>
 
-                <!-- Contact -->
+                <?php $fp = $profile ?? []; ?>
                 <div>
                     <h4 class="text-sm font-bold uppercase tracking-widest text-slate-300 mb-4">Contato</h4>
                     <ul class="space-y-2 text-slate-400 text-sm">
+
+                        <?php if (!empty($fp['email'])): ?>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                             </svg>
-                            contato@fgkirs.com.br
+                            <a href="mailto:<?= htmlspecialchars($fp['email']) ?>" class="hover:text-white transition">
+                                <?= htmlspecialchars($fp['email']) ?>
+                            </a>
                         </li>
+                        <?php endif; ?>
+
+                        <?php if (!empty($fp['whatsapp'])): ?>
                         <li class="flex items-center gap-2">
                             <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            <?= htmlspecialchars($fp['whatsapp']) ?>
+                        </li>
+                        <?php endif; ?>
+
+                        <?php if (!empty($fp['phone'])): ?>
+                        <li class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498A1 1 0 0121 15.72V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                            </svg>
+                            <?= htmlspecialchars($fp['phone']) ?>
+                        </li>
+                        <?php endif; ?>
+
+                        <?php if (!empty($fp['city'])): ?>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-4 h-4 text-slate-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                       d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
-                            Rio Grande do Sul, Brasil
+                            <span>
+                                <?= htmlspecialchars($fp['city']) ?>
+                                <?= !empty($fp['state']) ? '– ' . htmlspecialchars($fp['state']) : '' ?>
+                                <?= !empty($fp['zip_code']) ? '<br><span class="text-xs">' . htmlspecialchars($fp['zip_code']) . '</span>' : '' ?>
+                            </span>
                         </li>
+                        <?php endif; ?>
+
+                        <?php if (!empty($fp['facebook']) || !empty($fp['instagram'])): ?>
+                        <li class="flex items-center gap-3 pt-1">
+                            <?php if (!empty($fp['facebook'])): ?>
+                            <a href="<?= htmlspecialchars($fp['facebook']) ?>" target="_blank" rel="noopener"
+                               class="text-slate-400 hover:text-white transition" title="Facebook">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.884v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                                </svg>
+                            </a>
+                            <?php endif; ?>
+                            <?php if (!empty($fp['instagram'])): ?>
+                            <a href="<?= htmlspecialchars($fp['instagram']) ?>" target="_blank" rel="noopener"
+                               class="text-slate-400 hover:text-white transition" title="Instagram">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                </svg>
+                            </a>
+                            <?php endif; ?>
+                        </li>
+                        <?php endif; ?>
+
                     </ul>
                 </div>
 
@@ -471,24 +644,83 @@
 
     <!-- ══════════════════════════ SCRIPTS ══════════════════════════════════ -->
     <script>
-        const searchInput = document.getElementById('dojoSearch');
-        const dojoEmpty   = document.getElementById('dojoEmpty');
+    // ── Hero Slider ──────────────────────────────────────────────────────────
+    (function () {
+        const slides = document.querySelectorAll('.hero-slide');
+        const dots   = document.querySelectorAll('.hero-dot');
+        if (!slides.length) return;
 
-        if (searchInput) {
-            searchInput.addEventListener('input', function () {
-                const term  = this.value.toLowerCase().trim();
-                const cards = document.querySelectorAll('#dojoGrid [data-search]');
-                let visible = 0;
+        const heroNews = <?= !empty($news) ? json_encode(array_map(function ($p) {
+            $words = array_slice(explode(' ', strip_tags($p['content'])), 0, 15);
+            return [
+                'title'   => $p['title'],
+                'excerpt' => implode(' ', $words) . '…',
+                'type'    => $p['type'],
+            ];
+        }, $news), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) : '[]' ?>;
 
-                cards.forEach(card => {
-                    const match = card.dataset.search.includes(term);
-                    card.style.display = match ? '' : 'none';
-                    if (match) visible++;
-                });
+        let cur = 0;
 
-                dojoEmpty.classList.toggle('hidden', visible > 0 || term === '');
-            });
+        function activate(idx) {
+            // hide current
+            slides[cur].classList.remove('is-active');
+            if (dots[cur]) { dots[cur].style.width = '.75rem'; dots[cur].style.background = 'rgba(255,255,255,.3)'; }
+
+            cur = ((idx % slides.length) + slides.length) % slides.length;
+
+            // show next
+            slides[cur].classList.add('is-active');
+            if (dots[cur]) { dots[cur].style.width = '2rem'; dots[cur].style.background = '#fff'; }
+
+            // restart ken burns on the newly active slide's background
+            const bg = slides[cur].querySelector('.ken-bg');
+            if (bg) {
+                bg.classList.remove('playing');
+                void bg.offsetWidth; // force reflow to restart animation
+                bg.classList.add('playing');
+            }
+
+            // update text content
+            const n = heroNews[cur];
+            if (n) {
+                const el = {
+                    title:   document.getElementById('heroTitle'),
+                    excerpt: document.getElementById('heroExcerpt'),
+                    tag:     document.getElementById('heroTag'),
+                };
+                if (el.title)   el.title.textContent   = n.title;
+                if (el.excerpt) el.excerpt.textContent = n.excerpt;
+                if (el.tag)     el.tag.textContent     = n.type === 'event' ? 'Evento' : 'Notícia';
+            }
         }
+
+        window.heroGoTo = activate;
+
+        if (slides.length > 1) {
+            setInterval(function () { activate(cur + 1); }, 3000);
+        }
+    })();
+
+    // ── Dojo search ──────────────────────────────────────────────────────────
+    (function () {
+        const input = document.getElementById('dojoSearch');
+        const empty = document.getElementById('dojoEmpty');
+        if (!input) return;
+
+        input.addEventListener('input', function () {
+            const term  = this.value.toLowerCase().trim();
+            const cards = document.querySelectorAll('#dojoGrid [data-search]');
+            let visible = 0;
+
+            cards.forEach(function (card) {
+                const match = card.dataset.search.includes(term);
+                card.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+
+            if (empty) empty.classList.toggle('hidden', visible > 0 || term === '');
+        });
+    })();
     </script>
 
 </body>

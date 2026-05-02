@@ -136,6 +136,7 @@ class Database
             "ALTER TABLE graduations ADD COLUMN requirements TEXT",
             "ALTER TABLE graduations ADD COLUMN minimum_time_months INT DEFAULT 0",
             "ALTER TABLE martial_arts_styles ADD COLUMN symbol VARCHAR(50)",
+            "ALTER TABLE posts ADD COLUMN status ENUM('draft','published') DEFAULT 'published'",
             "ALTER TABLE student_profiles ADD COLUMN registration_number VARCHAR(50)",
             "ALTER TABLE student_profiles ADD COLUMN birth_date DATE",
             "ALTER TABLE student_profiles ADD COLUMN status ENUM('active', 'inactive', 'absent') DEFAULT 'active'",
@@ -260,6 +261,32 @@ class Database
                 INDEX idx_published_at (published_at),
                 INDEX idx_event_date (event_date),
                 FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS post_images (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                post_id INT NOT NULL,
+                filename VARCHAR(255) NOT NULL,
+                is_featured TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_post_id (post_id),
+                INDEX idx_featured (is_featured),
+                FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS federation_profile (
+                id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                whatsapp VARCHAR(20),
+                phone VARCHAR(20),
+                email VARCHAR(100),
+                address VARCHAR(500),
+                city VARCHAR(100),
+                state VARCHAR(2),
+                zip_code VARCHAR(9),
+                facebook VARCHAR(255),
+                instagram VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 

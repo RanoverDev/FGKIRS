@@ -113,7 +113,7 @@ class Router
     {
         // If handler is callable, execute it
         if (is_callable($handler)) {
-            call_user_func_array($handler, $params);
+            call_user_func_array($handler, array_values($params));
             return;
         }
 
@@ -140,8 +140,8 @@ class Router
                 return;
             }
 
-            // Call controller method with params
-            call_user_func_array([$controller, $method], $params);
+            // array_values: strip associative keys so PHP 8 does not treat them as named arguments
+            call_user_func_array([$controller, $method], array_values($params));
             return;
         }
 

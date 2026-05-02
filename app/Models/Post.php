@@ -10,16 +10,14 @@ class Post
     public static function getLatest(int $limit = 3): array
     {
         try {
-            $db  = Database::getInstance();
-            $sql = "SELECT p.id, p.title, p.content, p.featured_image,
-                           p.published_at, p.created_at,
-                           c.name AS category_name
-                    FROM posts p
-                    LEFT JOIN categories c ON c.id = p.category_id
-                    WHERE p.type = 'news'
-                      AND p.published_at IS NOT NULL
-                      AND p.published_at <= NOW()
-                    ORDER BY p.published_at DESC
+            $db = Database::getInstance();
+            $sql = "SELECT id, title, content, type, featured_image, published_at, created_at
+                    FROM posts
+                    WHERE type = 'news'
+                      AND status = 'published'
+                      AND published_at IS NOT NULL
+                      AND published_at <= NOW()
+                    ORDER BY published_at DESC
                     LIMIT :limit";
 
             $stmt = $db->getConnection()->prepare($sql);

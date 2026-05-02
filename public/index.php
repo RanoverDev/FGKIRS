@@ -174,6 +174,16 @@ $router->add('POST', '/fgkirs-admin/posts/store', 'Admin\PostController@store');
 $router->add('GET', '/fgkirs-admin/posts/edit/{id}', 'Admin\PostController@edit');
 $router->add('POST', '/fgkirs-admin/posts/update/{id}', 'Admin\PostController@update');
 $router->add('GET', '/fgkirs-admin/posts/delete/{id}', 'Admin\PostController@delete');
+$router->add('POST', '/fgkirs-admin/posts/add-image/{id}', 'Admin\PostController@addImage');
+$router->add('GET', '/fgkirs-admin/posts/remove-image/{id}', 'Admin\PostController@removeImage');
+$router->add('GET', '/fgkirs-admin/posts/set-featured/{id}', 'Admin\PostController@setFeatured');
+
+// =====================================================
+// ADMIN - FEDERATION PROFILE
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/federation-profile', 'Admin\FederationProfileController@edit');
+$router->add('POST', '/fgkirs-admin/federation-profile/update', 'Admin\FederationProfileController@update');
 
 // =====================================================
 // DISPATCH ROUTER
