@@ -17,13 +17,13 @@ require_once __DIR__ . '/../layout/header.php';
         <div class="grid sm:grid-cols-2 gap-4 mb-4">
             <div>
                 <label for="whatsapp" class="block text-sm font-medium text-gray-700 mb-2">WhatsApp</label>
-                <input type="text" id="whatsapp" name="whatsapp" value="<?= htmlspecialchars($p['whatsapp'] ?? '') ?>"
+                <input type="text" id="whatsapp" name="whatsapp" data-mask="phone" value="<?= htmlspecialchars($p['whatsapp'] ?? '') ?>"
                     placeholder="(51) 99999-9999"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
             </div>
             <div>
                 <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Fone Fixo</label>
-                <input type="text" id="phone" name="phone" value="<?= htmlspecialchars($p['phone'] ?? '') ?>"
+                <input type="text" id="phone" name="phone" data-mask="phone" value="<?= htmlspecialchars($p['phone'] ?? '') ?>"
                     placeholder="(51) 3333-3333"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
             </div>
@@ -61,7 +61,7 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
             <div>
                 <label for="zip_code" class="block text-sm font-medium text-gray-700 mb-2">CEP</label>
-                <input type="text" id="zip_code" name="zip_code" maxlength="9"
+                <input type="text" id="zip_code" name="zip_code" data-mask="cep" maxlength="9"
                     value="<?= htmlspecialchars($p['zip_code'] ?? '') ?>" placeholder="90000-000"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
             </div>

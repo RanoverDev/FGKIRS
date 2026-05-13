@@ -99,6 +99,18 @@ HTML;
 
 $router->add('GET', '/', 'HomeController@underConstruction');
 $router->add('GET', '/home', 'HomeController@index');
+$router->add('GET', '/a-fgkirs', 'HomeController@about');
+$router->add('GET', '/dojos', 'HomeController@dojos');
+$router->add('GET', '/contato', 'HomeController@contact');
+$router->add('POST', '/contato/enviar', 'HomeController@sendContact');
+
+$router->add('GET', '/noticias', 'HomeController@newsIndex');
+$router->add('GET', '/noticias/load', 'HomeController@newsLoadMore');
+$router->add('GET', '/noticia/{id}', 'HomeController@showNews');
+
+$router->add('GET', '/eventos', 'HomeController@eventsIndex');
+$router->add('GET', '/eventos/load', 'HomeController@eventsLoadMore');
+$router->add('GET', '/evento/{id}', 'HomeController@showEvent');
 
 // =====================================================
 // AUTHENTICATION ROUTES
@@ -177,6 +189,20 @@ $router->add('GET', '/fgkirs-admin/posts/delete/{id}', 'Admin\PostController@del
 $router->add('POST', '/fgkirs-admin/posts/add-image/{id}', 'Admin\PostController@addImage');
 $router->add('GET', '/fgkirs-admin/posts/remove-image/{id}', 'Admin\PostController@removeImage');
 $router->add('GET', '/fgkirs-admin/posts/set-featured/{id}', 'Admin\PostController@setFeatured');
+
+// =====================================================
+// ADMIN - GALLERIES
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/galleries', 'Admin\GalleryController@index');
+$router->add('GET', '/fgkirs-admin/galleries/create', 'Admin\GalleryController@create');
+$router->add('POST', '/fgkirs-admin/galleries/store', 'Admin\GalleryController@store');
+$router->add('GET', '/fgkirs-admin/galleries/edit/{id}', 'Admin\GalleryController@edit');
+$router->add('POST', '/fgkirs-admin/galleries/update/{id}', 'Admin\GalleryController@update');
+$router->add('GET', '/fgkirs-admin/galleries/delete/{id}', 'Admin\GalleryController@delete');
+$router->add('POST', '/fgkirs-admin/galleries/upload-zip/{id}', 'Admin\GalleryController@uploadZip');
+$router->add('GET', '/fgkirs-admin/galleries/remove-image/{id}', 'Admin\GalleryController@removeImage');
+$router->add('GET', '/fgkirs-admin/galleries/set-cover/{id}', 'Admin\GalleryController@setCover');
 
 // =====================================================
 // ADMIN - FEDERATION PROFILE

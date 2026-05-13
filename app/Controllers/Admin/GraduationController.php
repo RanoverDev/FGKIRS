@@ -25,8 +25,8 @@ class GraduationController extends Controller
      */
     public function index(): void
     {
-        if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login');
+        if (!Auth::authorize(['admin'])) {
+            header('Location: /fgkirs-admin');
             exit;
         }
 
@@ -61,10 +61,10 @@ class GraduationController extends Controller
             exit;
         }
 
-        $styleId   = (int) ($_POST['style_id'] ?? 0);
-        $beltName  = trim($_POST['belt_name'] ?? '');
+        $styleId = (int) ($_POST['style_id'] ?? 0);
+        $beltName = trim($_POST['belt_name'] ?? '');
         $beltColor = trim($_POST['belt_color'] ?? '#000000');
-        $desc      = trim($_POST['requirements'] ?? '');
+        $desc = trim($_POST['requirements'] ?? '');
 
         $stmt = $this->db->query(
             "SELECT COALESCE(MAX(order_rank), -1) + 1 as next_rank
@@ -77,10 +77,10 @@ class GraduationController extends Controller
             "INSERT INTO graduations (style_id, belt_name, belt_color, order_rank, requirements, created_at, updated_at)
              VALUES (:style_id, :belt_name, :belt_color, :order_rank, :requirements, NOW(), NOW())",
             [
-                'style_id'     => $styleId,
-                'belt_name'    => $beltName,
-                'belt_color'   => $beltColor,
-                'order_rank'   => $nextRank,
+                'style_id' => $styleId,
+                'belt_name' => $beltName,
+                'belt_color' => $beltColor,
+                'order_rank' => $nextRank,
                 'requirements' => $desc,
             ]
         );
@@ -123,11 +123,11 @@ class GraduationController extends Controller
                  requirements = :requirements, updated_at = NOW()
              WHERE id = :id",
             [
-                'style_id'     => (int) ($_POST['style_id'] ?? 0),
-                'belt_name'    => trim($_POST['belt_name'] ?? ''),
-                'belt_color'   => trim($_POST['belt_color'] ?? '#000000'),
+                'style_id' => (int) ($_POST['style_id'] ?? 0),
+                'belt_name' => trim($_POST['belt_name'] ?? ''),
+                'belt_color' => trim($_POST['belt_color'] ?? '#000000'),
                 'requirements' => trim($_POST['requirements'] ?? ''),
-                'id'           => $id,
+                'id' => $id,
             ]
         );
 
@@ -250,14 +250,6 @@ class GraduationController extends Controller
         $this->view("admin/graduations/promote", ["student" => $student, "availableGraduations" => $availableGraduations]);
     }
 
-    /**
-     * Execute student promotion
-     * 
-     * @param int $userId Student user ID
-     * @param int $styleId Martial arts style ID
-     * @param int $newGraduationId New graduation/belt level ID
-     * @param int $senseiId Sensei who is promoting (defaults to logged user)
-     */
     public function promoteStudent(): void
     {
         // Only President or Sensei can promote

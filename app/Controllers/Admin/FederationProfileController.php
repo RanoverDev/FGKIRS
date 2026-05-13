@@ -27,13 +27,13 @@ class FederationProfileController extends Controller
         }
 
         FederationProfile::save([
-            'whatsapp' => trim($_POST['whatsapp'] ?? ''),
-            'phone' => trim($_POST['phone'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'address' => trim($_POST['address'] ?? ''),
-            'city' => trim($_POST['city'] ?? ''),
-            'state' => strtoupper(trim($_POST['state'] ?? '')),
-            'zip_code' => trim($_POST['zip_code'] ?? ''),
+            'whatsapp' => preg_replace('/\D/', '', $_POST['whatsapp'] ?? '') ?: null,
+            'phone'    => preg_replace('/\D/', '', $_POST['phone']    ?? '') ?: null,
+            'email'    => trim($_POST['email']   ?? ''),
+            'address'  => trim($_POST['address'] ?? ''),
+            'city'     => trim($_POST['city']    ?? ''),
+            'state'    => strtoupper(trim($_POST['state'] ?? '')),
+            'zip_code' => preg_replace('/\D/', '', $_POST['zip_code'] ?? '') ?: null,
             'facebook' => trim($_POST['facebook'] ?? ''),
             'instagram' => trim($_POST['instagram'] ?? ''),
         ]);

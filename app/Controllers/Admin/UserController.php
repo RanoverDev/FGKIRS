@@ -8,36 +8,28 @@ use Helpers\Auth;
 use Helpers\ImageProcessor;
 use PDO;
 
-/**
- * UserController - Admin User Management
- * Handles CRUD operations for users with role-based access control
- */
 class UserController extends Controller
 {
     private Database $db;
+
+    private const ATHLETE_ROLES = ['aluno', 'aluno-colaborador'];
 
     public function __construct()
     {
         $this->db = Database::getInstance();
     }
 
-    /**
-     * Display list of users
-     * Sensei sees only students from their dojo, Admin sees all
-     */
     public function index(): void
     {
-        // Check authentication
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login.php');
+            header('Location: /login');
             exit;
         }
 
-        $sql = "SELECT u.*, d.name as dojo_name 
-                FROM users u 
+        $sql = "SELECT u.*, d.name as dojo_name, d.city as dojo_city
+                FROM users u
                 LEFT JOIN dojos d ON u.dojo_id = d.id";
 
-        // Apply role-based filtering
         if (Auth::isSensei()) {
             $sql .= " WHERE u.dojo_id = :dojo_id";
             $params = ['dojo_id' => Auth::dojoId()];
@@ -47,96 +39,88 @@ class UserController extends Controller
 
         $sql .= " ORDER BY u.name ASC";
 
-        $stmt = $this->db->query($sql, $params);
-        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Load view
+        $users = $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
         $this->view("admin/users/index", ["users" => $users]);
     }
 
-    /**
-     * Show create user form
-     */
     public function create(): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login.php');
+            header('Location: /login');
             exit;
         }
 
-        // Get dojos for dropdown
-        $dojos = $this->getDojos();
+        $nextFgkirs = (int) $this->db->query(
+            "SELECT COALESCE(MAX(fgkirs_registration), 0) + 1 FROM athlete_profiles"
+        )->fetchColumn();
 
-        // Load view
-        $user = null; // New user
-        require_once __DIR__ . '/../../Views/admin/users/form.php';
+        $this->view("admin/users/form", [
+            'user' => null,
+            'dojos' => $this->getDojos(),
+            'styles' => $this->getStyles(),
+            'graduations' => $this->getGraduations(),
+            'athleteProfile' => null,
+            'nextFgkirs' => $nextFgkirs,
+        ]);
     }
 
-    /**
-     * Store new user with image processing
-     */
     public function store(): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login.php');
+            header('Location: /login');
             exit;
         }
 
-        $name = $_POST['name'] ?? '';
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
         $role = $_POST['role'] ?? 'aluno';
         $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
 
-        // Business rule: Sensei can only assign their own dojo
         if (Auth::isSensei()) {
             $dojoId = Auth::dojoId();
         }
 
-        // Hash password
-        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $hashedPassword = password_hash($_POST['password'] ?? '', PASSWORD_BCRYPT);
 
-        // Process image if uploaded
         $photoFilename = null;
         if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/../../../public/uploads/users';
-            $photoFilename = ImageProcessor::process($_FILES['photo'], $uploadDir);
+            $photoFilename = ImageProcessor::process(
+                $_FILES['photo'],
+                __DIR__ . '/../../../public/uploads/users'
+            );
         }
 
-        // Insert user
-        $sql = "INSERT INTO users (name, email, password, role, dojo_id, photo, created_at, updated_at) 
-                VALUES (:name, :email, :password, :role, :dojo_id, :photo, NOW(), NOW())";
+        $this->db->query(
+            "INSERT INTO users (name, email, password, role, dojo_id, photo, created_at, updated_at)
+             VALUES (:name, :email, :password, :role, :dojo_id, :photo, NOW(), NOW())",
+            [
+                'name' => $name,
+                'email' => $email,
+                'password' => $hashedPassword,
+                'role' => $role,
+                'dojo_id' => $dojoId,
+                'photo' => $photoFilename
+            ]
+        );
 
-        $params = [
-            'name' => $name,
-            'email' => $email,
-            'password' => $hashedPassword,
-            'role' => $role,
-            'dojo_id' => $dojoId,
-            'photo' => $photoFilename,
-        ];
+        $userId = (int) $this->db->lastInsertId();
 
-        $this->db->query($sql, $params);
+        if (in_array($role, self::ATHLETE_ROLES) || $role === 'sensei') {
+            $this->saveAthleteProfile($userId);
+        }
 
-        // Redirect to index
         header('Location: /fgkirs-admin/users');
         exit;
     }
 
-    /**
-     * Show edit user form
-     */
     public function edit(int $id): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login.php');
+            header('Location: /login');
             exit;
         }
 
-        // Get user
         $sql = "SELECT * FROM users WHERE id = :id";
-
-        // Business rule: Sensei can only edit users from their dojo
         if (Auth::isSensei()) {
             $sql .= " AND dojo_id = :dojo_id";
             $params = ['id' => $id, 'dojo_id' => Auth::dojoId()];
@@ -144,34 +128,43 @@ class UserController extends Controller
             $params = ['id' => $id];
         }
 
-        $stmt = $this->db->query($sql, $params);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $user = $this->db->query($sql, $params)->fetch(PDO::FETCH_ASSOC);
 
         if (!$user) {
             header('Location: /fgkirs-admin/users');
             exit;
         }
 
-        // Get dojos for dropdown
-        $dojos = $this->getDojos();
+        $athleteProfile = null;
+        if (in_array($user['role'], self::ATHLETE_ROLES) || $user['role'] === 'sensei') {
+            $athleteProfile = $this->db->query(
+                "SELECT * FROM athlete_profiles WHERE user_id = :id",
+                ['id' => $id]
+            )->fetch(PDO::FETCH_ASSOC) ?: null;
+        }
 
-        // Load view
-        require_once __DIR__ . '/../../Views/admin/users/form.php';
+        $nextFgkirs = (int) $this->db->query(
+            "SELECT COALESCE(MAX(fgkirs_registration), 0) + 1 FROM athlete_profiles"
+        )->fetchColumn();
+
+        $this->view("admin/users/form", [
+            'user' => $user,
+            'dojos' => $this->getDojos(),
+            'styles' => $this->getStyles(),
+            'graduations' => $this->getGraduations(),
+            'athleteProfile' => $athleteProfile,
+            'nextFgkirs' => $nextFgkirs,
+        ]);
     }
 
-    /**
-     * Update user with optional image replacement
-     */
     public function update(int $id): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login.php');
+            header('Location: /login');
             exit;
         }
 
-        // Verify user access
         $sql = "SELECT photo FROM users WHERE id = :id";
-
         if (Auth::isSensei()) {
             $sql .= " AND dojo_id = :dojo_id";
             $params = ['id' => $id, 'dojo_id' => Auth::dojoId()];
@@ -179,32 +172,26 @@ class UserController extends Controller
             $params = ['id' => $id];
         }
 
-        $stmt = $this->db->query($sql, $params);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
+        $user = $this->db->query($sql, $params)->fetch(PDO::FETCH_ASSOC);
         if (!$user) {
             header('Location: /fgkirs-admin/users');
             exit;
         }
 
-        $name = $_POST['name'] ?? '';
-        $email = $_POST['email'] ?? '';
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
         $role = $_POST['role'] ?? 'aluno';
         $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
 
-        // Business rule: Sensei can only assign their own dojo
         if (Auth::isSensei()) {
             $dojoId = Auth::dojoId();
         }
 
-        // Process new image if uploaded
         $photoFilename = $user['photo'];
         if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = __DIR__ . '/../../../public/uploads/users';
             $newPhoto = ImageProcessor::process($_FILES['photo'], $uploadDir);
-
             if ($newPhoto) {
-                // Delete old photo
                 if ($photoFilename) {
                     ImageProcessor::delete($uploadDir . '/' . $photoFilename);
                 }
@@ -212,56 +199,51 @@ class UserController extends Controller
             }
         }
 
-        // Update user (exclude password if not provided)
         if (!empty($_POST['password'])) {
-            $hashedPassword = password_hash($_POST['password'], PASSWORD_BCRYPT);
-            $sql = "UPDATE users 
-                    SET name = :name, email = :email, password = :password, 
-                        role = :role, dojo_id = :dojo_id, photo = :photo, updated_at = NOW() 
-                    WHERE id = :id";
-            $params = [
-                'name' => $name,
-                'email' => $email,
-                'password' => $hashedPassword,
-                'role' => $role,
-                'dojo_id' => $dojoId,
-                'photo' => $photoFilename,
-                'id' => $id,
-            ];
+            $this->db->query(
+                "UPDATE users SET name=:name, email=:email, password=:password,
+                 role=:role, dojo_id=:dojo_id, photo=:photo, updated_at=NOW() WHERE id=:id",
+                [
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => password_hash($_POST['password'], PASSWORD_BCRYPT),
+                    'role' => $role,
+                    'dojo_id' => $dojoId,
+                    'photo' => $photoFilename,
+                    'id' => $id
+                ]
+            );
         } else {
-            $sql = "UPDATE users 
-                    SET name = :name, email = :email, role = :role, 
-                        dojo_id = :dojo_id, photo = :photo, updated_at = NOW() 
-                    WHERE id = :id";
-            $params = [
-                'name' => $name,
-                'email' => $email,
-                'role' => $role,
-                'dojo_id' => $dojoId,
-                'photo' => $photoFilename,
-                'id' => $id,
-            ];
+            $this->db->query(
+                "UPDATE users SET name=:name, email=:email,
+                 role=:role, dojo_id=:dojo_id, photo=:photo, updated_at=NOW() WHERE id=:id",
+                [
+                    'name' => $name,
+                    'email' => $email,
+                    'role' => $role,
+                    'dojo_id' => $dojoId,
+                    'photo' => $photoFilename,
+                    'id' => $id
+                ]
+            );
         }
 
-        $this->db->query($sql, $params);
+        if (in_array($role, self::ATHLETE_ROLES) || $role === 'sensei') {
+            $this->saveAthleteProfile($id);
+        }
 
         header('Location: /fgkirs-admin/users');
         exit;
     }
 
-    /**
-     * Delete user
-     */
     public function delete(int $id): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
-            header('Location: /login.php');
+            header('Location: /login');
             exit;
         }
 
-        // Get user and verify access
         $sql = "SELECT photo FROM users WHERE id = :id";
-
         if (Auth::isSensei()) {
             $sql .= " AND dojo_id = :dojo_id";
             $params = ['id' => $id, 'dojo_id' => Auth::dojoId()];
@@ -269,17 +251,11 @@ class UserController extends Controller
             $params = ['id' => $id];
         }
 
-        $stmt = $this->db->query($sql, $params);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
+        $user = $this->db->query($sql, $params)->fetch(PDO::FETCH_ASSOC);
         if ($user) {
-            // Delete photo file
             if ($user['photo']) {
-                $uploadDir = __DIR__ . '/../../../public/uploads/users';
-                ImageProcessor::delete($uploadDir . '/' . $user['photo']);
+                ImageProcessor::delete(__DIR__ . '/../../../public/uploads/users/' . $user['photo']);
             }
-
-            // Delete user record
             $this->db->query("DELETE FROM users WHERE id = :id", ['id' => $id]);
         }
 
@@ -287,9 +263,6 @@ class UserController extends Controller
         exit;
     }
 
-    /**
-     * Toggle student status (AJAX endpoint)
-     */
     public function toggleStatus(int $id): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
@@ -297,42 +270,98 @@ class UserController extends Controller
             return;
         }
 
-        // Get JSON input
         $data = json_decode(file_get_contents('php://input'), true);
         $status = $data['status'] ?? 'active';
 
-        // Validate status
         if (!in_array($status, ['active', 'inactive', 'absent'])) {
             $this->json(['success' => false, 'message' => 'Invalid status'], 400);
             return;
         }
 
-        // Update student_profiles table
-        $sql = "UPDATE student_profiles SET status = :status WHERE user_id = :id";
-
-        // For Sensei, verify the student is from their dojo
         if (Auth::isSensei()) {
-            $sql = "UPDATE student_profiles sp 
-                    JOIN users u ON sp.user_id = u.id 
-                    SET sp.status = :status 
-                    WHERE sp.user_id = :id AND u.dojo_id = :dojo_id";
-            $params = ['status' => $status, 'id' => $id, 'dojo_id' => Auth::dojoId()];
+            $this->db->query(
+                "UPDATE users SET status = :status
+                 WHERE id = :id AND dojo_id = :dojo_id",
+                ['status' => $status, 'id' => $id, 'dojo_id' => Auth::dojoId()]
+            );
         } else {
-            $params = ['status' => $status, 'id' => $id];
+            $this->db->query(
+                "UPDATE users SET status = :status WHERE id = :id",
+                ['status' => $status, 'id' => $id]
+            );
         }
-
-        $this->db->query($sql, $params);
 
         $this->json(['success' => true]);
     }
 
-    /**
-     * Get dojos list for dropdown
-     */
+    private function saveAthleteProfile(int $userId): void
+    {
+        $styleId = !empty($_POST['athlete_style_id']) ? (int) $_POST['athlete_style_id'] : null;
+        $graduationId = !empty($_POST['athlete_graduation_id']) ? (int) $_POST['athlete_graduation_id'] : null;
+        $birthDate = !empty($_POST['athlete_birth_date']) ? $_POST['athlete_birth_date'] : null;
+        $weight = !empty($_POST['athlete_weight']) ? (float) $_POST['athlete_weight'] : null;
+        $height = !empty($_POST['athlete_height']) ? (int) $_POST['athlete_height'] : null;
+        $gender = in_array($_POST['athlete_gender'] ?? '', ['M', 'F', 'O'])
+            ? $_POST['athlete_gender'] : null;
+
+        $fgkirsReg = !empty($_POST['fgkirs_registration']) ? (int) $_POST['fgkirs_registration'] : null;
+        $cbkiReg = trim($_POST['cbki_registration'] ?? '') ?: null;
+
+        $this->db->query(
+            "INSERT INTO athlete_profiles
+                (user_id, birth_date, email, phone_whatsapp, gender, weight, height,
+                 style_id, graduation_id, fgkirs_registration, cbki_registration, notes)
+             VALUES
+                (:user_id,:birth_date,:email,:phone_whatsapp,:gender,:weight,:height,
+                 :style_id,:graduation_id,:fgkirs_registration,:cbki_registration,:notes)
+             ON DUPLICATE KEY UPDATE
+                birth_date          = VALUES(birth_date),
+                email               = VALUES(email),
+                phone_whatsapp      = VALUES(phone_whatsapp),
+                gender              = VALUES(gender),
+                weight              = VALUES(weight),
+                height              = VALUES(height),
+                style_id            = VALUES(style_id),
+                graduation_id       = VALUES(graduation_id),
+                fgkirs_registration = VALUES(fgkirs_registration),
+                cbki_registration   = VALUES(cbki_registration),
+                notes               = VALUES(notes)",
+            [
+                'user_id' => $userId,
+                'birth_date' => $birthDate,
+                'email' => trim($_POST['athlete_email'] ?? '') ?: null,
+                'phone_whatsapp' => preg_replace('/\D/', '', $_POST['athlete_phone_whatsapp'] ?? '') ?: null,
+                'gender' => $gender,
+                'weight' => $weight,
+                'height' => $height,
+                'style_id' => $styleId,
+                'graduation_id' => $graduationId,
+                'fgkirs_registration' => $fgkirsReg,
+                'cbki_registration' => $cbkiReg,
+                'notes' => trim($_POST['athlete_notes'] ?? '') ?: null,
+            ]
+        );
+    }
+
     private function getDojos(): array
     {
-        $sql = "SELECT id, name FROM dojos ORDER BY name ASC";
-        $stmt = $this->db->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $this->db->query("SELECT id, name FROM dojos ORDER BY name ASC")
+            ->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function getStyles(): array
+    {
+        return $this->db->query("SELECT id, name FROM martial_arts_styles ORDER BY name ASC")
+            ->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function getGraduations(): array
+    {
+        return $this->db->query(
+            "SELECT g.id, g.belt_name, g.belt_color, g.order_rank, g.style_id, s.name as style_name
+             FROM graduations g
+             JOIN martial_arts_styles s ON g.style_id = s.id
+             ORDER BY s.name ASC, g.order_rank ASC"
+        )->fetchAll(PDO::FETCH_ASSOC);
     }
 }

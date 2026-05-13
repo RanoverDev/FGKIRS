@@ -140,7 +140,9 @@ class Database
             "ALTER TABLE student_profiles ADD COLUMN registration_number VARCHAR(50)",
             "ALTER TABLE student_profiles ADD COLUMN birth_date DATE",
             "ALTER TABLE student_profiles ADD COLUMN status ENUM('active', 'inactive', 'absent') DEFAULT 'active'",
-            "ALTER TABLE student_profiles ADD COLUMN notes TEXT"
+            "ALTER TABLE student_profiles ADD COLUMN notes TEXT",
+            "ALTER TABLE athlete_profiles ADD COLUMN fgkirs_registration INT NULL",
+            "ALTER TABLE athlete_profiles ADD COLUMN cbki_registration VARCHAR(30) NULL"
         ];
 
         foreach ($fixes as $fixSql) {
@@ -287,6 +289,58 @@ class Database
                 instagram VARCHAR(255),
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS athlete_profiles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                birth_date DATE,
+                email VARCHAR(100),
+                phone_whatsapp VARCHAR(20),
+                gender ENUM('M','F','O') NULL,
+                weight DECIMAL(5,2) NULL COMMENT 'kg',
+                height SMALLINT NULL COMMENT 'cm',
+                style_id INT NULL,
+                graduation_id INT NULL,
+                fgkirs_registration INT NULL,
+                cbki_registration VARCHAR(30) NULL,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user (user_id),
+                INDEX idx_style (style_id),
+                INDEX idx_graduation (graduation_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL,
+                FOREIGN KEY (graduation_id) REFERENCES graduations(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS galleries (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                description TEXT,
+                event_date DATE NOT NULL,
+                cover_image VARCHAR(500),
+                author_id INT NOT NULL,
+                status ENUM('draft','published') DEFAULT 'published',
+                published_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_author_id (author_id),
+                INDEX idx_status (status),
+                INDEX idx_event_date (event_date),
+                FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS gallery_images (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                gallery_id INT NOT NULL,
+                filename VARCHAR(500) NOT NULL,
+                is_cover TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_gallery_id (gallery_id),
+                INDEX idx_cover (is_cover),
+                FOREIGN KEY (gallery_id) REFERENCES galleries(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 
