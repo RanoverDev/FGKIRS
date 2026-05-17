@@ -4,9 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FGKIRS – A Força do Karatê Gaúcho</title>
-    <meta name="description"
-        content="Federação Gaúcha de Karatê Interestilos – unindo dojos e atletas em todo o Rio Grande do Sul.">
+    <?php
+    $pageTitle = $pageTitle ?? 'FGKIRS – A Força do Karatê Gaúcho';
+    $pageDesc  = $pageDesc  ?? 'Federação Gaúcha de Karatê Interestilos – unindo dojos e atletas em todo o Rio Grande do Sul.';
+    $ogImage   = $ogImage   ?? 'https://fgkirs.com.br/assets/images/og-default.jpg';
+    $ogUrl     = $ogUrl     ?? 'https://fgkirs.com.br' . parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    ?>
+    <title><?= htmlspecialchars($pageTitle) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($pageDesc) ?>">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="FGKIRS">
+    <meta property="og:title" content="<?= htmlspecialchars($pageTitle) ?>">
+    <meta property="og:description" content="<?= htmlspecialchars($pageDesc) ?>">
+    <meta property="og:image" content="<?= htmlspecialchars($ogImage) ?>">
+    <meta property="og:url" content="<?= htmlspecialchars($ogUrl) ?>">
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= htmlspecialchars($pageTitle) ?>">
+    <meta name="twitter:description" content="<?= htmlspecialchars($pageDesc) ?>">
+    <meta name="twitter:image" content="<?= htmlspecialchars($ogImage) ?>">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>

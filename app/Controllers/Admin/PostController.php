@@ -6,6 +6,7 @@ use Controllers\Controller;
 use Core\Database;
 use Helpers\Auth;
 use Helpers\ImageProcessor;
+use Helpers\Slugify;
 use PDO;
 
 /**
@@ -101,11 +102,16 @@ class PostController extends Controller
             exit;
         }
 
-        $sql = "INSERT INTO posts (title, content, type, author_id, event_date, event_location, video_url, status, published_at)
-                VALUES (:title, :content, :type, :author_id, :event_date, :event_location, :video_url, :status, :published_at)";
+        $slug = Slugify::unique($title, function ($candidate) {
+            return $this->db->query("SELECT id FROM posts WHERE slug = :s", ['s' => $candidate])->fetchColumn() !== false;
+        });
+
+        $sql = "INSERT INTO posts (title, slug, content, type, author_id, event_date, event_location, video_url, status, published_at)
+                VALUES (:title, :slug, :content, :type, :author_id, :event_date, :event_location, :video_url, :status, :published_at)";
 
         $this->db->query($sql, [
             'title' => $title,
+            'slug' => $slug,
             'content' => $content,
             'type' => $type,
             'author_id' => Auth::id(),

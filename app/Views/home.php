@@ -419,7 +419,7 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
                                 ?>
                                 <article
                                     class="news-card bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 flex flex-col">
-                                    <a href="/noticia/<?= $post['id'] ?>"
+                                    <a href="/noticia/<?= $post['slug'] ?? $post['id'] ?>"
                                         class="aspect-video overflow-hidden bg-slate-800 block">
                                         <?php if ($img): ?>
                                             <img src="<?= $img ?>" alt="<?= htmlspecialchars($post['title']) ?>"
@@ -439,7 +439,7 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
                                     <div class="p-5 flex flex-col flex-1">
                                         <time class="text-xs text-slate-400 mb-2"><?= $date ?></time>
                                         <h3 class="text-base font-bold text-slate-900 leading-snug mb-2 line-clamp-2">
-                                            <a href="/noticia/<?= $post['id'] ?>"
+                                            <a href="/noticia/<?= $post['slug'] ?? $post['id'] ?>"
                                                 class="hover:text-rs-red transition-colors"><?= htmlspecialchars($post['title']) ?></a>
                                         </h3>
                                         <p class="text-sm text-slate-500 line-clamp-2 flex-1">
@@ -480,7 +480,7 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
                                 ?>
                                 <div
                                     class="event-item bg-white rounded-lg p-4 shadow-sm border border-slate-100 flex gap-4 items-start relative hover:shadow-md transition">
-                                    <a href="/evento/<?= $evt['id'] ?>" class="absolute inset-0 z-10"></a>
+                                    <a href="/evento/<?= $evt['slug'] ?? $evt['id'] ?>" class="absolute inset-0 z-10"></a>
                                     <div
                                         class="shrink-0 bg-slate-900 text-white rounded-lg w-12 text-center py-2 leading-tight">
                                         <span class="block text-xl font-black"><?= $evtDay ?></span>

@@ -49,7 +49,7 @@ function loadEvents() {
 
                 const html = `
                     <article class="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 flex flex-col hover:shadow-lg transition">
-                        <a href="/evento/${evt.id}" class="aspect-video overflow-hidden bg-slate-800 block relative">
+                        <a href="/evento/${evt.slug || evt.id}" class="aspect-video overflow-hidden bg-slate-800 block relative">
                             ${img ? `<img src="${img}" alt="${evt.title}" class="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105" loading="lazy">` : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 transition-transform duration-300 hover:scale-105"><svg class="w-12 h-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`}
                             <div class="absolute top-4 left-4 bg-slate-900 text-white rounded-lg w-12 text-center py-1.5 leading-tight shadow-md">
                                 <span class="block text-lg font-black">${evtDay}</span>
@@ -58,7 +58,7 @@ function loadEvents() {
                         </a>
                         <div class="p-5 flex flex-col flex-1">
                             <h3 class="text-base font-bold text-slate-900 leading-snug mb-2 line-clamp-2">
-                                <a href="/evento/${evt.id}" class="hover:text-rs-yellow transition-colors">${evt.title}</a>
+                                <a href="/evento/${evt.slug || evt.id}" class="hover:text-rs-yellow transition-colors">${evt.title}</a>
                             </h3>
                             ${evt.event_location ? `<p class="flex items-start gap-1 text-xs text-slate-500 mb-3"><svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>${evt.event_location}</span></p>` : ''}
                             <p class="text-sm text-slate-500 line-clamp-2 flex-1">

@@ -2,6 +2,7 @@
 
 namespace Controllers;
 
+use Models\Gallery;
 use Models\Post;
 use Models\Dojo;
 use Models\Event;
@@ -44,9 +45,18 @@ class HomeController extends Controller
         $this->view('about', ['profile' => $profile]);
     }
 
-    public function showNews(int $id): void
+    public function showNews(string $slug): void
     {
-        $post = Post::getById($id);
+        if (is_numeric($slug)) {
+            $post = Post::getById((int) $slug);
+            if ($post && !empty($post['slug'])) {
+                header("Location: /noticia/{$post['slug']}", true, 301);
+                exit;
+            }
+        } else {
+            $post = Post::getBySlug($slug);
+        }
+
         if (!$post || $post['type'] !== 'news') {
             header("HTTP/1.0 404 Not Found");
             echo "Notícia não encontrada.";
@@ -56,9 +66,18 @@ class HomeController extends Controller
         $this->view('news/show', ['post' => $post, 'profile' => $profile]);
     }
 
-    public function showEvent(int $id): void
+    public function showEvent(string $slug): void
     {
-        $post = Post::getById($id); // Events are in posts table
+        if (is_numeric($slug)) {
+            $post = Post::getById((int) $slug);
+            if ($post && !empty($post['slug'])) {
+                header("Location: /evento/{$post['slug']}", true, 301);
+                exit;
+            }
+        } else {
+            $post = Post::getBySlug($slug);
+        }
+
         if (!$post || $post['type'] !== 'event') {
             header("HTTP/1.0 404 Not Found");
             echo "Evento não encontrado.";
@@ -68,10 +87,39 @@ class HomeController extends Controller
         $this->view('events/show', ['post' => $post, 'profile' => $profile]);
     }
 
+    public function showGallery(string $slug): void
+    {
+        if (is_numeric($slug)) {
+            $gallery = Gallery::getById((int) $slug);
+            if ($gallery && !empty($gallery['slug'])) {
+                header("Location: /galeria/{$gallery['slug']}", true, 301);
+                exit;
+            }
+        } else {
+            $gallery = Gallery::getBySlug($slug);
+        }
+
+        if (!$gallery) {
+            header("HTTP/1.0 404 Not Found");
+            echo "Galeria não encontrada.";
+            exit;
+        }
+
+        $images  = Gallery::getImages($gallery['id']);
+        $profile = FederationProfile::get();
+        $this->view('galleries/show', ['gallery' => $gallery, 'images' => $images, 'profile' => $profile]);
+    }
+
     public function newsIndex(): void
     {
         $profile = FederationProfile::get();
         $this->view('news/index', ['profile' => $profile]);
+    }
+
+    public function galleriesIndex(): void
+    {
+        $profile = FederationProfile::get();
+        $this->view('galleries/index', ['profile' => $profile]);
     }
 
     public function eventsIndex(): void

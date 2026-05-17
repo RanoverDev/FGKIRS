@@ -11,7 +11,7 @@ class Event
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, title, event_date, event_location, featured_image
+            $sql = "SELECT id, slug, title, event_date, event_location, featured_image
                     FROM posts
                     WHERE type = 'event'
                       AND event_date >= CURDATE()
@@ -33,7 +33,7 @@ class Event
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, title, event_date, event_location, featured_image, content, created_at
+            $sql = "SELECT id, slug, title, event_date, event_location, featured_image, content, created_at
                     FROM posts
                     WHERE type = 'event'
                     ORDER BY event_date DESC

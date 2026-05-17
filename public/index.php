@@ -106,11 +106,14 @@ $router->add('POST', '/contato/enviar', 'HomeController@sendContact');
 
 $router->add('GET', '/noticias', 'HomeController@newsIndex');
 $router->add('GET', '/noticias/load', 'HomeController@newsLoadMore');
-$router->add('GET', '/noticia/{id}', 'HomeController@showNews');
+$router->add('GET', '/noticia/{slug}', 'HomeController@showNews');
 
 $router->add('GET', '/eventos', 'HomeController@eventsIndex');
 $router->add('GET', '/eventos/load', 'HomeController@eventsLoadMore');
-$router->add('GET', '/evento/{id}', 'HomeController@showEvent');
+$router->add('GET', '/evento/{slug}', 'HomeController@showEvent');
+
+$router->add('GET', '/galerias', 'HomeController@galleriesIndex');
+$router->add('GET', '/galeria/{slug}', 'HomeController@showGallery');
 
 // =====================================================
 // AUTHENTICATION ROUTES

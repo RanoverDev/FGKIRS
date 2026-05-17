@@ -144,7 +144,9 @@ class Database
             "ALTER TABLE athlete_profiles ADD COLUMN fgkirs_registration INT NULL",
             "ALTER TABLE athlete_profiles ADD COLUMN cbki_registration VARCHAR(30) NULL",
             "ALTER TABLE posts ADD COLUMN video_url VARCHAR(500) NULL",
-            "ALTER TABLE posts MODIFY COLUMN type ENUM('news','event','video','live') DEFAULT 'news'"
+            "ALTER TABLE posts MODIFY COLUMN type ENUM('news','event','video','live') DEFAULT 'news'",
+            "ALTER TABLE posts ADD COLUMN slug VARCHAR(255) NULL UNIQUE",
+            "ALTER TABLE galleries ADD COLUMN slug VARCHAR(255) NULL UNIQUE"
         ];
 
         foreach ($fixes as $fixSql) {

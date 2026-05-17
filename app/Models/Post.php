@@ -11,7 +11,7 @@ class Post
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, title, content, type, featured_image, published_at, created_at
+            $sql = "SELECT id, slug, title, content, type, featured_image, published_at, created_at
                     FROM posts
                     WHERE type = 'news'
                       AND status = 'published'
@@ -35,7 +35,7 @@ class Post
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, title, content, type, featured_image, published_at, created_at
+            $sql = "SELECT id, slug, title, content, type, featured_image, published_at, created_at
                     FROM posts
                     WHERE type = 'news'
                       AND status = 'published'
@@ -88,6 +88,21 @@ class Post
             return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
         } catch (\Exception $e) {
             error_log('Post::getById error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public static function getBySlug(string $slug): ?array
+    {
+        try {
+            $db = Database::getInstance();
+            $sql = "SELECT * FROM posts WHERE slug = :slug";
+            $stmt = $db->getConnection()->prepare($sql);
+            $stmt->bindValue(':slug', $slug);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (\Exception $e) {
+            error_log('Post::getBySlug error: ' . $e->getMessage());
             return null;
         }
     }

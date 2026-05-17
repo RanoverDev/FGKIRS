@@ -6,6 +6,7 @@ use Controllers\Controller;
 use Core\Database;
 use Helpers\Auth;
 use Helpers\ImageProcessor;
+use Helpers\Slugify;
 use PDO;
 use ZipArchive;
 
@@ -73,11 +74,16 @@ class GalleryController extends Controller
             exit;
         }
 
+        $slug = Slugify::unique($title, function ($candidate) {
+            return $this->db->query("SELECT id FROM galleries WHERE slug = :s", ['s' => $candidate])->fetchColumn() !== false;
+        });
+
         $this->db->query(
-            "INSERT INTO galleries (title, description, event_date, author_id, status, published_at)
-             VALUES (:title, :description, :event_date, :author_id, :status, NOW())",
+            "INSERT INTO galleries (title, slug, description, event_date, author_id, status, published_at)
+             VALUES (:title, :slug, :description, :event_date, :author_id, :status, NOW())",
             [
                 'title' => $title,
+                'slug' => $slug,
                 'description' => $description,
                 'event_date' => $eventDate,
                 'author_id' => Auth::id(),
