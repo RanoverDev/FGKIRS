@@ -321,6 +321,54 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
 
     </section>
 
+    <?php
+    // ── Live stream block ─────────────────────────────────────────────────────
+    $lp = $livePost ?? null;
+    if ($lp && !empty($lp['video_url'])) {
+        preg_match('/(?:youtube\.com\/(?:watch\?.*v=|live\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $lp['video_url'], $ym);
+        $ytId = $ym[1] ?? null;
+    } else {
+        $ytId = null;
+    }
+    ?>
+    <?php if ($lp && $ytId): ?>
+        <!-- ══════════════════════════ AO VIVO ════════════════════════════════════ -->
+        <section class="bg-slate-950 py-6 sm:py-8">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6">
+
+                <!-- Cabeçalho ao vivo -->
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="relative flex h-3 w-3">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-red-600"></span>
+                    </span>
+                    <span class="text-red-500 text-xs font-bold uppercase tracking-[.2em]">Ao Vivo Agora</span>
+                </div>
+
+                <h2 class="text-white text-xl sm:text-2xl font-bold mb-4 leading-snug">
+                    <?= htmlspecialchars($lp['title']) ?>
+                </h2>
+
+                <!-- Embed YouTube -->
+                <div class="aspect-video w-full rounded-xl overflow-hidden shadow-2xl">
+                    <iframe src="https://www.youtube.com/embed/<?= htmlspecialchars($ytId) ?>?autoplay=1&mute=0"
+                        class="w-full h-full" frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen>
+                    </iframe>
+                </div>
+
+                <?php if (!empty($lp['content'])): ?>
+                    <p class="text-slate-400 text-sm mt-4 leading-relaxed max-w-3xl">
+                        <?= htmlspecialchars(mb_substr($lp['content'], 0, 220)) ?>        <?= mb_strlen($lp['content']) > 220 ? '…' : '' ?>
+                    </p>
+                <?php endif; ?>
+
+            </div>
+        </section>
+    <?php endif; ?>
+
     <!-- ══════════════════════════ CTA ════════════════════════════════════════ -->
     <section class="py-16 bg-white text-center">
         <div class="max-w-2xl mx-auto px-4 sm:px-6">

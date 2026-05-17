@@ -142,7 +142,9 @@ class Database
             "ALTER TABLE student_profiles ADD COLUMN status ENUM('active', 'inactive', 'absent') DEFAULT 'active'",
             "ALTER TABLE student_profiles ADD COLUMN notes TEXT",
             "ALTER TABLE athlete_profiles ADD COLUMN fgkirs_registration INT NULL",
-            "ALTER TABLE athlete_profiles ADD COLUMN cbki_registration VARCHAR(30) NULL"
+            "ALTER TABLE athlete_profiles ADD COLUMN cbki_registration VARCHAR(30) NULL",
+            "ALTER TABLE posts ADD COLUMN video_url VARCHAR(500) NULL",
+            "ALTER TABLE posts MODIFY COLUMN type ENUM('news','event','video','live') DEFAULT 'news'"
         ];
 
         foreach ($fixes as $fixSql) {

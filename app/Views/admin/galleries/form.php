@@ -50,8 +50,9 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
 
         <div class="flex flex-col sm:flex-row gap-3">
-            <button type="submit"
-                class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">
+            <button type="submit" id="dataSubmitBtn"
+                onclick="this.disabled=true; this.textContent='Salvando...'; this.closest('form').submit();"
+                class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-60">
                 <?= $isEdit ? 'Salvar Alterações' : 'Criar Galeria' ?>
             </button>
             <a href="/fgkirs-admin/galleries"

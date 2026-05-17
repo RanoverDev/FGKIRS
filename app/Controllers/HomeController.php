@@ -21,10 +21,12 @@ class HomeController extends Controller
             $dojos = Dojo::getAllActive();
             $events = Event::getUpcoming(5);
             $profile = FederationProfile::get();
+            $livePost = Post::getLivePost();
         } catch (\Exception $e) {
             error_log('HomeController error: ' . $e->getMessage());
             $news = $dojos = $events = [];
             $profile = [];
+            $livePost = null;
         }
 
         $this->view('home', [
@@ -32,6 +34,7 @@ class HomeController extends Controller
             'dojos' => $dojos,
             'events' => $events,
             'profile' => $profile,
+            'livePost' => $livePost,
         ]);
     }
 
@@ -133,7 +136,7 @@ class HomeController extends Controller
             exit;
         }
 
-        $subject = "Novo Contato do Site: " . $name;
+        $subject = "Novo Contato do Site: $name";
         $headers = "From: $email\r\n";
         $headers .= "Reply-To: $email\r\n";
         $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";

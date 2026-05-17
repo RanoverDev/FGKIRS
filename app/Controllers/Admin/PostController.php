@@ -31,8 +31,20 @@ class PostController extends Controller
             exit;
         }
 
+        $allowedTypes = ['news', 'event', 'video', 'live'];
+        $typeFilter   = $_GET['type'] ?? '';
+        $activeType   = \in_array($typeFilter, $allowedTypes) ? $typeFilter : '';
+
+        $typeWhere = $activeType ? " AND p.type = :type" : " AND p.type IN ('news','event','video','live')";
         $authorFilter = Auth::isAdmin() ? '' : ' AND p.author_id = :author_id';
-        $params = Auth::isAdmin() ? [] : ['author_id' => Auth::id()];
+
+        $params = [];
+        if ($activeType) {
+            $params['type'] = $activeType;
+        }
+        if (!Auth::isAdmin()) {
+            $params['author_id'] = Auth::id();
+        }
 
         $sql = "SELECT p.*,
                     CASE
@@ -42,13 +54,12 @@ class PostController extends Controller
                 FROM posts p
                 JOIN users u  ON p.author_id = u.id
                 LEFT JOIN dojos d ON u.dojo_id = d.id
-                WHERE p.type IN ('news', 'event') {$authorFilter}
+                WHERE 1=1 {$typeWhere} {$authorFilter}
                 ORDER BY p.created_at DESC";
 
-        $stmt = $this->db->query($sql, $params);
-        $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $posts = $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
 
-        $this->view("admin/posts/index", ["posts" => $posts]);
+        $this->view("admin/posts/index", ["posts" => $posts, "activeType" => $activeType]);
     }
 
     /**
@@ -77,9 +88,10 @@ class PostController extends Controller
 
         $title = trim($_POST['title'] ?? '');
         $content = trim($_POST['content'] ?? '');
-        $type = \in_array($_POST['type'] ?? '', ['news', 'event']) ? $_POST['type'] : 'news';
+        $type = \in_array($_POST['type'] ?? '', ['news', 'event', 'video', 'live']) ? $_POST['type'] : 'news';
         $eventDate = $_POST['event_date'] ?: null;
         $eventLocation = trim($_POST['event_location'] ?? '') ?: null;
+        $videoUrl = trim($_POST['video_url'] ?? '') ?: null;
         $status = \in_array($_POST['status'] ?? '', ['draft', 'published']) ? $_POST['status'] : 'published';
         $publishedAt = !empty($_POST['published_at']) ? $_POST['published_at'] : date('Y-m-d H:i:s');
 
@@ -89,8 +101,8 @@ class PostController extends Controller
             exit;
         }
 
-        $sql = "INSERT INTO posts (title, content, type, author_id, event_date, event_location, status, published_at)
-                VALUES (:title, :content, :type, :author_id, :event_date, :event_location, :status, :published_at)";
+        $sql = "INSERT INTO posts (title, content, type, author_id, event_date, event_location, video_url, status, published_at)
+                VALUES (:title, :content, :type, :author_id, :event_date, :event_location, :video_url, :status, :published_at)";
 
         $this->db->query($sql, [
             'title' => $title,
@@ -99,6 +111,7 @@ class PostController extends Controller
             'author_id' => Auth::id(),
             'event_date' => $eventDate,
             'event_location' => $eventLocation,
+            'video_url' => $videoUrl,
             'status' => $status,
             'published_at' => $publishedAt,
         ]);
@@ -190,9 +203,10 @@ class PostController extends Controller
 
         $title = trim($_POST['title'] ?? '');
         $content = trim($_POST['content'] ?? '');
-        $type = \in_array($_POST['type'] ?? '', ['news', 'event']) ? $_POST['type'] : 'news';
+        $type = \in_array($_POST['type'] ?? '', ['news', 'event', 'video', 'live']) ? $_POST['type'] : 'news';
         $eventDate = $_POST['event_date'] ?: null;
         $eventLocation = trim($_POST['event_location'] ?? '') ?: null;
+        $videoUrl = trim($_POST['video_url'] ?? '') ?: null;
         $status = \in_array($_POST['status'] ?? '', ['draft', 'published']) ? $_POST['status'] : 'published';
         $publishedAt = !empty($_POST['published_at']) ? $_POST['published_at'] : $post['published_at'];
 
@@ -205,7 +219,7 @@ class PostController extends Controller
         $sql = "UPDATE posts
                 SET title = :title, content = :content,
                     type = :type, event_date = :event_date, event_location = :event_location,
-                    status = :status, published_at = :published_at, updated_at = NOW()
+                    video_url = :video_url, status = :status, published_at = :published_at, updated_at = NOW()
                 WHERE id = :id";
 
         $this->db->query($sql, [
@@ -214,6 +228,7 @@ class PostController extends Controller
             'type' => $type,
             'event_date' => $eventDate,
             'event_location' => $eventLocation,
+            'video_url' => $videoUrl,
             'status' => $status,
             'published_at' => $publishedAt,
             'id' => $id,

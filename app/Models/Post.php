@@ -56,6 +56,27 @@ class Post
         }
     }
 
+    public static function getLivePost(): ?array
+    {
+        try {
+            $db = Database::getInstance();
+            $sql = "SELECT id, title, content, video_url, published_at
+                    FROM posts
+                    WHERE type = 'live'
+                      AND status = 'published'
+                      AND published_at IS NOT NULL
+                      AND published_at <= NOW()
+                    ORDER BY published_at DESC
+                    LIMIT 1";
+            $stmt = $db->getConnection()->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (\Exception $e) {
+            error_log('Post::getLivePost error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public static function getById(int $id): ?array
     {
         try {
