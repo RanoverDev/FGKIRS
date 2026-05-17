@@ -33,8 +33,8 @@ class PostController extends Controller
         }
 
         $allowedTypes = ['news', 'event', 'video', 'live'];
-        $typeFilter   = $_GET['type'] ?? '';
-        $activeType   = \in_array($typeFilter, $allowedTypes) ? $typeFilter : '';
+        $typeFilter = $_GET['type'] ?? '';
+        $activeType = \in_array($typeFilter, $allowedTypes) ? $typeFilter : '';
 
         $typeWhere = $activeType ? " AND p.type = :type" : " AND p.type IN ('news','event','video','live')";
         $authorFilter = Auth::isAdmin() ? '' : ' AND p.author_id = :author_id';

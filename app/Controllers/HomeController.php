@@ -105,7 +105,7 @@ class HomeController extends Controller
             exit;
         }
 
-        $images  = Gallery::getImages($gallery['id']);
+        $images = Gallery::getImages($gallery['id']);
         $profile = FederationProfile::get();
         $this->view('galleries/show', ['gallery' => $gallery, 'images' => $images, 'profile' => $profile]);
     }

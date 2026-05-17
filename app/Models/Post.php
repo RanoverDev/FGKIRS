@@ -11,20 +11,14 @@ class Post
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, slug, title, content, type, featured_image, published_at, created_at
-                    FROM posts
-                    WHERE type = 'news'
-                      AND status = 'published'
-                      AND published_at IS NOT NULL
-                      AND published_at <= NOW()
-                    ORDER BY published_at DESC
-                    LIMIT :limit";
-
-            $stmt = $db->getConnection()->prepare($sql);
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $db->query(
+                "SELECT id, slug, title, content, type, featured_image, published_at, created_at
+                 FROM posts
+                 WHERE type = 'news' AND status = 'published'
+                   AND published_at IS NOT NULL AND published_at <= NOW()
+                 ORDER BY published_at DESC
+                 LIMIT $limit"
+            )->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             error_log('Post::getLatest error: ' . $e->getMessage());
             return [];
@@ -35,21 +29,14 @@ class Post
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, slug, title, content, type, featured_image, published_at, created_at
-                    FROM posts
-                    WHERE type = 'news'
-                      AND status = 'published'
-                      AND published_at IS NOT NULL
-                      AND published_at <= NOW()
-                    ORDER BY published_at DESC
-                    LIMIT :limit OFFSET :offset";
-
-            $stmt = $db->getConnection()->prepare($sql);
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $db->query(
+                "SELECT id, slug, title, content, type, featured_image, published_at, created_at
+                 FROM posts
+                 WHERE type = 'news' AND status = 'published'
+                   AND published_at IS NOT NULL AND published_at <= NOW()
+                 ORDER BY published_at DESC
+                 LIMIT $limit OFFSET $offset"
+            )->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             error_log('Post::getPaginatedNews error: ' . $e->getMessage());
             return [];
@@ -60,17 +47,14 @@ class Post
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, title, content, video_url, published_at
-                    FROM posts
-                    WHERE type = 'live'
-                      AND status = 'published'
-                      AND published_at IS NOT NULL
-                      AND published_at <= NOW()
-                    ORDER BY published_at DESC
-                    LIMIT 1";
-            $stmt = $db->getConnection()->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            return $db->query(
+                "SELECT id, title, content, video_url, published_at
+                 FROM posts
+                 WHERE type = 'live' AND status = 'published'
+                   AND published_at IS NOT NULL AND published_at <= NOW()
+                 ORDER BY published_at DESC
+                 LIMIT 1"
+            )->fetch(PDO::FETCH_ASSOC) ?: null;
         } catch (\Exception $e) {
             error_log('Post::getLivePost error: ' . $e->getMessage());
             return null;
@@ -81,11 +65,10 @@ class Post
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT * FROM posts WHERE id = :id";
-            $stmt = $db->getConnection()->prepare($sql);
-            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            return $db->query(
+                "SELECT * FROM posts WHERE id = :id",
+                ['id' => $id]
+            )->fetch(PDO::FETCH_ASSOC) ?: null;
         } catch (\Exception $e) {
             error_log('Post::getById error: ' . $e->getMessage());
             return null;
@@ -96,11 +79,10 @@ class Post
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT * FROM posts WHERE slug = :slug";
-            $stmt = $db->getConnection()->prepare($sql);
-            $stmt->bindValue(':slug', $slug);
-            $stmt->execute();
-            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+            return $db->query(
+                "SELECT * FROM posts WHERE slug = :slug",
+                ['slug' => $slug]
+            )->fetch(PDO::FETCH_ASSOC) ?: null;
         } catch (\Exception $e) {
             error_log('Post::getBySlug error: ' . $e->getMessage());
             return null;

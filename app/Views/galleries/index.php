@@ -1,6 +1,6 @@
 <?php
 $pageTitle = 'Galerias de Imagens – FGKIRS';
-$pageDesc  = 'Fotos de eventos, campeonatos e apresentações da Federação Gaúcha de Karatê Interestilos.';
+$pageDesc = 'Fotos de eventos, campeonatos e apresentações da Federação Gaúcha de Karatê Interestilos.';
 require_once __DIR__ . '/../partials/public_header.php';
 
 use Core\Database;
@@ -26,7 +26,7 @@ try {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach ($galleries as $gallery):
                     $url = '/galeria/' . ($gallery['slug'] ?? $gallery['id']);
-                ?>
+                    ?>
                     <a href="<?= $url ?>"
                         class="group block rounded-2xl overflow-hidden shadow hover:shadow-xl transition bg-slate-100">
                         <?php if (!empty($gallery['cover_image'])): ?>

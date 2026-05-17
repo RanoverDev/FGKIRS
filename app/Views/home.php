@@ -361,7 +361,8 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
 
                 <?php if (!empty($lp['content'])): ?>
                     <p class="text-slate-400 text-sm mt-4 leading-relaxed max-w-3xl">
-                        <?= htmlspecialchars(mb_substr($lp['content'], 0, 220)) ?>        <?= mb_strlen($lp['content']) > 220 ? '…' : '' ?>
+                        <?= htmlspecialchars(mb_substr($lp['content'], 0, 220)) ?>
+                        <?= mb_strlen($lp['content']) > 220 ? '…' : '' ?>
                     </p>
                 <?php endif; ?>
 

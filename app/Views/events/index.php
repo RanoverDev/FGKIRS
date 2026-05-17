@@ -11,9 +11,12 @@
         </div>
 
         <div class="mt-12 text-center">
-            <button id="load-more" class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-8 rounded-lg text-sm transition-all duration-200">
+            <button id="load-more"
+                class="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-8 rounded-lg text-sm transition-all duration-200">
                 Carregar mais
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
             </button>
         </div>
     </div>
@@ -22,32 +25,32 @@
 <?php require_once __DIR__ . '/../partials/public_footer.php'; ?>
 
 <script>
-let currentPage = 1;
+    let currentPage = 1;
 
-function loadEvents() {
-    fetch(`/eventos/load?page=${currentPage}`)
-        .then(response => response.json())
-        .then(data => {
-            const grid = document.getElementById('events-grid');
-            if(data.data.length === 0) {
-                document.getElementById('load-more').style.display = 'none';
-                if(currentPage === 1) {
-                    grid.innerHTML = '<p class="text-slate-400 text-sm italic col-span-full">Nenhum evento encontrado.</p>';
+    function loadEvents() {
+        fetch(`/eventos/load?page=${currentPage}`)
+            .then(response => response.json())
+            .then(data => {
+                const grid = document.getElementById('events-grid');
+                if (data.data.length === 0) {
+                    document.getElementById('load-more').style.display = 'none';
+                    if (currentPage === 1) {
+                        grid.innerHTML = '<p class="text-slate-400 text-sm italic col-span-full">Nenhum evento encontrado.</p>';
+                    }
+                    return;
                 }
-                return;
-            }
 
-            data.data.forEach(evt => {
-                const img = evt.featured_image ? `/uploads/posts/${evt.featured_image}` : null;
-                const dateObj = new Date(evt.event_date);
-                const evtDay = String(dateObj.getUTCDate()).padStart(2, '0');
-                const evtMonth = dateObj.toLocaleString('pt-BR', { month: 'short', timeZone: 'UTC' }).toUpperCase().replace('.', '');
-                
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = evt.content || '';
-                const excerpt = tempDiv.textContent.substring(0, 100) + (tempDiv.textContent.length > 100 ? '...' : '');
+                data.data.forEach(evt => {
+                    const img = evt.featured_image ? `/uploads/posts/${evt.featured_image}` : null;
+                    const dateObj = new Date(evt.event_date);
+                    const evtDay = String(dateObj.getUTCDate()).padStart(2, '0');
+                    const evtMonth = dateObj.toLocaleString('pt-BR', { month: 'short', timeZone: 'UTC' }).toUpperCase().replace('.', '');
 
-                const html = `
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = evt.content || '';
+                    const excerpt = tempDiv.textContent.substring(0, 100) + (tempDiv.textContent.length > 100 ? '...' : '');
+
+                    const html = `
                     <article class="bg-white rounded-xl shadow-md overflow-hidden border border-slate-100 flex flex-col hover:shadow-lg transition">
                         <a href="/evento/${evt.slug || evt.id}" class="aspect-video overflow-hidden bg-slate-800 block relative">
                             ${img ? `<img src="${img}" alt="${evt.title}" class="w-full h-full object-cover object-center transition-transform duration-300 hover:scale-105" loading="lazy">` : `<div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900 transition-transform duration-300 hover:scale-105"><svg class="w-12 h-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`}
@@ -67,21 +70,22 @@ function loadEvents() {
                         </div>
                     </article>
                 `;
-                grid.insertAdjacentHTML('beforeend', html);
+                    grid.insertAdjacentHTML('beforeend', html);
+                });
+
+                if (data.data.length < 20) {
+                    document.getElementById('load-more').style.display = 'none';
+                }
             });
+    }
 
-            if(data.data.length < 20) {
-                document.getElementById('load-more').style.display = 'none';
-            }
-        });
-}
+    document.getElementById('load-more').addEventListener('click', () => {
+        currentPage++;
+        loadEvents();
+    });
 
-document.getElementById('load-more').addEventListener('click', () => {
-    currentPage++;
     loadEvents();
-});
-
-loadEvents();
 </script>
 </body>
+
 </html>

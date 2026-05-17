@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
     $pageTitle = $pageTitle ?? 'FGKIRS – A Força do Karatê Gaúcho';
-    $pageDesc  = $pageDesc  ?? 'Federação Gaúcha de Karatê Interestilos – unindo dojos e atletas em todo o Rio Grande do Sul.';
-    $ogImage   = $ogImage   ?? 'https://fgkirs.com.br/assets/images/og-default.jpg';
-    $ogUrl     = $ogUrl     ?? 'https://fgkirs.com.br' . parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+    $pageDesc = $pageDesc ?? 'Federação Gaúcha de Karatê Interestilos – unindo dojos e atletas em todo o Rio Grande do Sul.';
+    $ogImage = $ogImage ?? 'https://fgkirs.com.br/assets/images/og-default.jpg';
+    $ogUrl = $ogUrl ?? 'https://fgkirs.com.br' . parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     ?>
     <title><?= htmlspecialchars($pageTitle) ?></title>
     <meta name="description" content="<?= htmlspecialchars($pageDesc) ?>">

@@ -11,18 +11,13 @@ class Event
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, slug, title, event_date, event_location, featured_image
-                    FROM posts
-                    WHERE type = 'event'
-                      AND event_date >= CURDATE()
-                    ORDER BY event_date ASC
-                    LIMIT :limit";
-
-            $stmt = $db->getConnection()->prepare($sql);
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $db->query(
+                "SELECT id, slug, title, event_date, event_location, featured_image
+                 FROM posts
+                 WHERE type = 'event' AND event_date >= CURDATE()
+                 ORDER BY event_date ASC
+                 LIMIT $limit"
+            )->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             error_log('Event::getUpcoming error: ' . $e->getMessage());
             return [];
@@ -33,18 +28,13 @@ class Event
     {
         try {
             $db = Database::getInstance();
-            $sql = "SELECT id, slug, title, event_date, event_location, featured_image, content, created_at
-                    FROM posts
-                    WHERE type = 'event'
-                    ORDER BY event_date DESC
-                    LIMIT :limit OFFSET :offset";
-
-            $stmt = $db->getConnection()->prepare($sql);
-            $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-            $stmt->execute();
-
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            return $db->query(
+                "SELECT id, slug, title, event_date, event_location, featured_image, content, created_at
+                 FROM posts
+                 WHERE type = 'event'
+                 ORDER BY event_date DESC
+                 LIMIT $limit OFFSET $offset"
+            )->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
             error_log('Event::getPaginatedEvents error: ' . $e->getMessage());
             return [];
