@@ -12,7 +12,7 @@ class Dojo
         try {
             $db = Database::getInstance();
 
-            $dojos = $db->getConnection()->query(
+            $dojos = $db->query(
                 "SELECT d.id, d.name, d.city, d.state,
                         d.address, d.phone, d.phone_whatsapp, d.website, d.logo,
                         d.instagram, d.facebook,
@@ -30,7 +30,7 @@ class Dojo
             $in      = implode(',', array_map('intval', $dojoIds));
 
             // All senseis per dojo with graduation
-            $senseis = $db->getConnection()->query(
+            $senseis = $db->query(
                 "SELECT u.id, u.name, u.dojo_id, g.name AS graduation_name
                  FROM users u
                  LEFT JOIN athlete_profiles ap ON ap.user_id = u.id
@@ -40,7 +40,7 @@ class Dojo
             )->fetchAll(PDO::FETCH_ASSOC);
 
             // Distinct styles per dojo
-            $styles = $db->getConnection()->query(
+            $styles = $db->query(
                 "SELECT u.dojo_id, ms.name AS style_name
                  FROM users u
                  JOIN athlete_profiles ap ON ap.user_id = u.id
