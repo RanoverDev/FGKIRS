@@ -191,4 +191,46 @@ class Auth
     {
         return self::check() && self::role() === 'sensei';
     }
+
+    /**
+     * Valida se uma senha é forte:
+     * - Mínimo de 8 caracteres
+     * - Pelo menos uma letra maiúscula
+     * - Pelo menos uma letra minúscula
+     * - Pelo menos um número
+     * - Pelo menos um caractere especial (ex: @, #, $, etc.)
+     *
+     * @param string $password
+     * @param string|null $errorMsg Retorno da mensagem de erro por referência
+     * @return bool
+     */
+    public static function validatePasswordStrength(string $password, ?string &$errorMsg = null): bool
+    {
+        if (strlen($password) < 8) {
+            $errorMsg = 'A senha deve ter no mínimo 8 caracteres.';
+            return false;
+        }
+
+        if (!preg_match('/[A-Z]/', $password)) {
+            $errorMsg = 'A senha deve conter pelo menos uma letra maiúscula.';
+            return false;
+        }
+
+        if (!preg_match('/[a-z]/', $password)) {
+            $errorMsg = 'A senha deve conter pelo menos uma letra minúscula.';
+            return false;
+        }
+
+        if (!preg_match('/[0-9]/', $password)) {
+            $errorMsg = 'A senha deve conter pelo menos um número.';
+            return false;
+        }
+
+        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+            $errorMsg = 'A senha deve conter pelo menos um caractere especial (ex: @, #, $, etc.).';
+            return false;
+        }
+
+        return true;
+    }
 }

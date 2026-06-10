@@ -40,4 +40,42 @@ class Event
             return [];
         }
     }
+
+    public static function getPreviousEvent(string $eventDate, int $id): ?array
+    {
+        try {
+            $db = Database::getInstance();
+            return $db->query(
+                "SELECT id, slug, title
+                 FROM posts
+                 WHERE type = 'event'
+                   AND (event_date < :date OR (event_date = :date AND id < :id))
+                 ORDER BY event_date DESC, id DESC
+                 LIMIT 1",
+                ['date' => $eventDate, 'id' => $id]
+            )->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (\Exception $e) {
+            error_log('Event::getPreviousEvent error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public static function getNextEvent(string $eventDate, int $id): ?array
+    {
+        try {
+            $db = Database::getInstance();
+            return $db->query(
+                "SELECT id, slug, title
+                 FROM posts
+                 WHERE type = 'event'
+                   AND (event_date > :date OR (event_date = :date AND id > :id))
+                 ORDER BY event_date ASC, id ASC
+                 LIMIT 1",
+                ['date' => $eventDate, 'id' => $id]
+            )->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (\Exception $e) {
+            error_log('Event::getNextEvent error: ' . $e->getMessage());
+            return null;
+        }
+    }
 }

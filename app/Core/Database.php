@@ -108,6 +108,15 @@ class Database
                 return $stmt;
             }
 
+            // Auto-migrate if foreign key constraint fails
+            if (str_contains($e->getMessage(), 'foreign key constraint fails')) {
+                $this->runColumnFixes();
+                // Retry once
+                $stmt = $this->connection->prepare($sql);
+                $stmt->execute($params);
+                return $stmt;
+            }
+
             error_log('Query failed: ' . $e->getMessage());
             throw $e;
         }
@@ -128,6 +137,7 @@ class Database
             "ALTER TABLE users ADD COLUMN photo VARCHAR(255)",
             "ALTER TABLE users ADD COLUMN status ENUM('active', 'inactive', 'absent') DEFAULT 'active'",
             "ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            "ALTER TABLE dojos ADD COLUMN phone_whatsapp VARCHAR(20) NULL",
             "ALTER TABLE dojos ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
             "ALTER TABLE graduations ADD COLUMN style_id INT NOT NULL DEFAULT 1",
             "ALTER TABLE graduations ADD COLUMN belt_name VARCHAR(100)",
@@ -135,18 +145,41 @@ class Database
             "ALTER TABLE graduations ADD COLUMN order_rank INT NOT NULL DEFAULT 0",
             "ALTER TABLE graduations ADD COLUMN requirements TEXT",
             "ALTER TABLE graduations ADD COLUMN minimum_time_months INT DEFAULT 0",
+            "ALTER TABLE graduations ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE graduations ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
             "ALTER TABLE martial_arts_styles ADD COLUMN symbol VARCHAR(50)",
+            "ALTER TABLE martial_arts_styles ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE martial_arts_styles ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
             "ALTER TABLE posts ADD COLUMN status ENUM('draft','published') DEFAULT 'published'",
             "ALTER TABLE student_profiles ADD COLUMN registration_number VARCHAR(50)",
             "ALTER TABLE student_profiles ADD COLUMN birth_date DATE",
             "ALTER TABLE student_profiles ADD COLUMN status ENUM('active', 'inactive', 'absent') DEFAULT 'active'",
             "ALTER TABLE student_profiles ADD COLUMN notes TEXT",
+            "ALTER TABLE student_profiles ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE student_profiles ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
             "ALTER TABLE athlete_profiles ADD COLUMN fgkirs_registration INT NULL",
             "ALTER TABLE athlete_profiles ADD COLUMN cbki_registration VARCHAR(30) NULL",
+            "ALTER TABLE athlete_profiles ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE athlete_profiles ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
             "ALTER TABLE posts ADD COLUMN video_url VARCHAR(500) NULL",
             "ALTER TABLE posts MODIFY COLUMN type ENUM('news','event','video','live') DEFAULT 'news'",
             "ALTER TABLE posts ADD COLUMN slug VARCHAR(255) NULL UNIQUE",
-            "ALTER TABLE galleries ADD COLUMN slug VARCHAR(255) NULL UNIQUE"
+            "ALTER TABLE posts ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE posts ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            "ALTER TABLE galleries ADD COLUMN slug VARCHAR(255) NULL UNIQUE",
+            "ALTER TABLE galleries ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE galleries ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            "ALTER TABLE users ADD COLUMN password_reset_token VARCHAR(255) NULL AFTER password",
+            "ALTER TABLE users ADD COLUMN password_reset_expires DATETIME NULL AFTER password_reset_token",
+            "ALTER TABLE graduation_history ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE payments ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE payments ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            "ALTER TABLE graduations DROP FOREIGN KEY graduations_ibfk_1",
+            "ALTER TABLE graduations ADD CONSTRAINT fk_graduations_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE CASCADE",
+            "ALTER TABLE student_profiles DROP FOREIGN KEY student_profiles_ibfk_2",
+            "ALTER TABLE student_profiles ADD CONSTRAINT fk_student_profiles_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE RESTRICT",
+            "ALTER TABLE athlete_profiles DROP FOREIGN KEY athlete_profiles_ibfk_2",
+            "ALTER TABLE athlete_profiles ADD CONSTRAINT fk_athlete_profiles_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL"
         ];
 
         foreach ($fixes as $fixSql) {
@@ -345,6 +378,15 @@ class Database
                 INDEX idx_gallery_id (gallery_id),
                 INDEX idx_cover (is_cover),
                 FOREIGN KEY (gallery_id) REFERENCES galleries(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS login_attempts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ip_address VARCHAR(45) NOT NULL,
+                email VARCHAR(100) NOT NULL,
+                attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_ip_time (ip_address, attempted_at),
+                INDEX idx_email_time (email, attempted_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 

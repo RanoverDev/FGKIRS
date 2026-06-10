@@ -12,7 +12,7 @@ class Dojo
         try {
             $db  = Database::getInstance();
             $sql = "SELECT d.id, d.name, d.city, d.state,
-                           d.address, d.phone, d.website, d.logo,
+                           d.address, d.phone, d.phone_whatsapp, d.website, d.logo,
                            u.name AS sensei_name
                     FROM dojos d
                     LEFT JOIN users u ON u.id = d.sensei_id

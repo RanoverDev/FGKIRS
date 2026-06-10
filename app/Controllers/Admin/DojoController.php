@@ -5,6 +5,7 @@ namespace Controllers\Admin;
 use Core\Database;
 use Helpers\Auth;
 use Helpers\ImageProcessor;
+use Helpers\Mailer;
 use PDO;
 
 /**
@@ -37,8 +38,11 @@ class DojoController extends \Controllers\Controller
 
         // Business rule: Sensei can only see their own dojo
         if (Auth::isSensei()) {
-            $sql .= " WHERE d.id = :dojo_id";
-            $params = ['dojo_id' => Auth::dojoId()];
+            $sql .= " WHERE d.id = :dojo_id OR d.sensei_id = :user_id";
+            $params = [
+                'dojo_id' => Auth::dojoId(),
+                'user_id' => Auth::id()
+            ];
         } else {
             $params = [];
         }
@@ -84,7 +88,7 @@ class DojoController extends \Controllers\Controller
         $name = $_POST['name'] ?? '';
         $address = $_POST['address'] ?? '';
         $city = $_POST['city'] ?? '';
-        $state = $_POST['state'] ?? '';
+        $state = 'RS';
         $senseiId = $_POST['sensei_id'] ?? null;
 
         // Process logo if uploaded
@@ -94,20 +98,95 @@ class DojoController extends \Controllers\Controller
             $logoFilename = ImageProcessor::process($_FILES['logo'], $uploadDir);
         }
 
+        $phoneWhatsapp = preg_replace('/\D/', '', $_POST['phone_whatsapp'] ?? '') ?: null;
+
         // Insert dojo
-        $sql = "INSERT INTO dojos (name, address, city, state, sensei_id, logo, created_at, updated_at) 
-                VALUES (:name, :address, :city, :state, :sensei_id, :logo, NOW(), NOW())";
+        $sql = "INSERT INTO dojos (name, address, city, state, sensei_id, logo, phone_whatsapp, created_at, updated_at)
+                VALUES (:name, :address, :city, :state, :sensei_id, :logo, :phone_whatsapp, NOW(), NOW())";
 
         $params = [
-            'name' => $name,
-            'address' => $address,
-            'city' => $city,
-            'state' => $state,
-            'sensei_id' => $senseiId,
-            'logo' => $logoFilename,
+            'name'           => $name,
+            'address'        => $address,
+            'city'           => $city,
+            'state'          => $state,
+            'sensei_id'      => $senseiId,
+            'logo'           => $logoFilename,
+            'phone_whatsapp' => $phoneWhatsapp,
         ];
 
         $this->db->query($sql, $params);
+
+        // Enviar e-mail de boas-vindas para o Sensei responsável
+        if ($senseiId) {
+            try {
+                $stmt = $this->db->query("SELECT name, email FROM users WHERE id = :id", ['id' => $senseiId]);
+                $sensei = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($sensei && !empty($sensei['email'])) {
+                    $adminLink = BASE_URL . '/login';
+                    $resetLink = BASE_URL . '/recuperar-senha';
+                    
+                    $subject = 'FGKIRS - Seu Dojo foi cadastrado com sucesso!';
+                    $logoUrl = BASE_URL . '/assets/images/logo-fgkirs-white.png';
+                    $body = "
+                        <div style='background-color: #f8fafc; padding: 20px; font-family: \"Helvetica Neue\", Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #334155;'>
+                            <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); border: 1px solid #e2e8f0;'>
+                                
+                                <!-- Header -->
+                                <div style='background-color: #0f172a; padding: 25px; text-align: center; border-bottom: 4px solid #EE302F;'>
+                                    <img src='{$logoUrl}' alt='FGKIRS' width='160' style='width: 160px; max-width: 100%; height: auto; display: inline-block;'>
+                                </div>
+
+                                <!-- Body Content -->
+                                <div style='padding: 40px 30px; background-color: #ffffff;'>
+                                    <h2 style='color: #0f172a; font-size: 20px; font-weight: bold; margin-top: 0; margin-bottom: 20px;'>Olá, " . htmlspecialchars($sensei['name']) . "!</h2>
+                                    <p style='margin-bottom: 20px;'>Temos a satisfação de informar que o dojo <strong>" . htmlspecialchars($name) . "</strong> foi cadastrado com sucesso no sistema da <strong>Federação Gaúcha de Karatê Interestilos (FGKIRS)</strong> e você foi definido como o Sensei responsável.</p>
+                                    
+                                    <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;'>
+                                    
+                                    <h3 style='color: #00AB4E; font-size: 16px; font-weight: bold; margin-top: 0; margin-bottom: 10px;'>A Importância da Atualização dos Dados</h3>
+                                    <p style='margin-bottom: 20px;'>Manter as informações do seu dojo atualizadas e o cadastro completo dos seus atletas (incluindo graduações e documentos) é essencial para garantir a participação ativa dos alunos nos eventos oficiais, exames de faixas e torneios organizados pela Federação.</p>
+                                    
+                                    <h3 style='color: #00AB4E; font-size: 16px; font-weight: bold; margin-top: 0; margin-bottom: 10px;'>Publicação de Conteúdo</h3>
+                                    <p style='margin-bottom: 25px;'>Como Sensei responsável, você possui autonomia para publicar notícias, eventos ou artigos relacionados ao seu dojo diretamente em nosso portal. Quando publicar materiais externos, lembre-se de adicionar a fonte original correspondente (URL da notícia/artigo) para garantir a veracidade e autoria dos dados.</p>
+                                    
+                                    <hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 25px 0;'>
+                                    
+                                    <h3 style='color: #0f172a; font-size: 15px; font-weight: bold; margin-top: 0; margin-bottom: 15px; text-align: center;'>Como Acessar o Painel Administrativo</h3>
+                                    <div style='text-align: center; margin-bottom: 25px;'>
+                                        <a href='{$adminLink}' style='background-color: #EE302F; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px;'>Acessar Área Administrativa</a>
+                                    </div>
+                                    
+                                    <p style='margin-bottom: 10px;'><strong>Primeiro acesso ou esqueceu sua senha?</strong></p>
+                                    <p style='margin-bottom: 0;'>Caso ainda não possua uma senha definida ou precise redefini-la, acesse o link abaixo e informe seu e-mail cadastrado (<em>" . htmlspecialchars($sensei['email']) . "</em>) para receber as instruções de redefinição:</p>
+                                    <p style='text-align: center; margin: 20px 0;'>
+                                        <a href='{$resetLink}' style='color: #EE302F; text-decoration: underline; font-weight: bold;'>Definir ou Redefinir Senha</a>
+                                    </p>
+                                    
+                                    <hr style='border: 0; border-top: 1px solid #e2e8f0; margin-top: 25px; margin-bottom: 15px;'>
+                                    <p style='font-size: 11px; color: #64748b; margin-bottom: 0; text-align: center;'>Este é um e-mail automático enviado pelo sistema de gerenciamento FGKIRS.</p>
+                                </div>
+
+                                <!-- Footer -->
+                                <div style='background-color: #f1f5f9; padding: 30px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 12px; color: #475569;'>
+                                    <p style='font-weight: bold; color: #1e293b; margin: 0 0 10px 0; text-transform: uppercase;'>Federação Gaúcha de Karatê Interestilos</p>
+                                    <p style='margin: 0 0 5px 0;'>Rua João Macluf, 333, Santa Rosa – RS</p>
+                                    <p style='margin: 0 0 5px 0;'>Telefone: (55) 3511 2602</p>
+                                    <p style='margin: 0 0 5px 0;'>WhatsApp: (55) 9 9988 1447</p>
+                                    <p style='margin: 0 0 15px 0;'>E-mail: <a href='mailto:falecom@fgkirs.com.br' style='color: #EE302F; text-decoration: none;'>falecom@fgkirs.com.br</a></p>
+                                    <p style='margin: 0; color: #94a3b8;'>&copy; " . date('Y') . " FGKIRS. Todos os direitos reservados.</p>
+                                </div>
+
+                            </div>
+                        </div>
+                    ";
+                    
+                    Mailer::send($sensei['email'], $subject, $body);
+                }
+            } catch (\Exception $e) {
+                error_log('Error sending dojo creation welcome email: ' . $e->getMessage());
+            }
+        }
 
         header('Location: /fgkirs-admin/dojos');
         exit;
@@ -126,17 +205,16 @@ class DojoController extends \Controllers\Controller
 
         // Get dojo
         $sql = "SELECT * FROM dojos WHERE id = :id";
-
-        // Business rule: Sensei can only edit their dojo
-        if (Auth::isSensei() && $id !== Auth::dojoId()) {
-            header('Location: /fgkirs-admin/dojos');
-            exit;
-        }
-
         $stmt = $this->db->query($sql, ['id' => $id]);
         $dojo = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$dojo) {
+            header('Location: /fgkirs-admin/dojos');
+            exit;
+        }
+
+        // Business rule: Sensei can only edit their dojo (assigned via user.dojo_id or dojos.sensei_id)
+        if (Auth::isSensei() && $id !== Auth::dojoId() && (int)($dojo['sensei_id'] ?? 0) !== Auth::id()) {
             header('Location: /fgkirs-admin/dojos');
             exit;
         }
@@ -158,14 +236,8 @@ class DojoController extends \Controllers\Controller
             exit;
         }
 
-        // Business rule: Sensei can only update their dojo
-        if (Auth::isSensei() && $id !== Auth::dojoId()) {
-            header('Location: /fgkirs-admin/dojos');
-            exit;
-        }
-
         // Get current dojo data
-        $stmt = $this->db->query("SELECT logo FROM dojos WHERE id = :id", ['id' => $id]);
+        $stmt = $this->db->query("SELECT logo, sensei_id FROM dojos WHERE id = :id", ['id' => $id]);
         $dojo = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$dojo) {
@@ -173,10 +245,16 @@ class DojoController extends \Controllers\Controller
             exit;
         }
 
+        // Business rule: Sensei can only update their dojo (assigned via user.dojo_id or dojos.sensei_id)
+        if (Auth::isSensei() && $id !== Auth::dojoId() && (int)($dojo['sensei_id'] ?? 0) !== Auth::id()) {
+            header('Location: /fgkirs-admin/dojos');
+            exit;
+        }
+
         $name = $_POST['name'] ?? '';
         $address = $_POST['address'] ?? '';
         $city = $_POST['city'] ?? '';
-        $state = $_POST['state'] ?? '';
+        $state = 'RS';
         $senseiId = $_POST['sensei_id'] ?? null;
 
         // Sensei cannot change sensei assignment
@@ -199,20 +277,24 @@ class DojoController extends \Controllers\Controller
             }
         }
 
+        $phoneWhatsapp = preg_replace('/\D/', '', $_POST['phone_whatsapp'] ?? '') ?: null;
+
         // Update dojo
-        $sql = "UPDATE dojos 
-                SET name = :name, address = :address, city = :city, state = :state, 
-                    sensei_id = :sensei_id, logo = :logo, updated_at = NOW() 
+        $sql = "UPDATE dojos
+                SET name = :name, address = :address, city = :city, state = :state,
+                    sensei_id = :sensei_id, logo = :logo, phone_whatsapp = :phone_whatsapp,
+                    updated_at = NOW()
                 WHERE id = :id";
 
         $params = [
-            'name' => $name,
-            'address' => $address,
-            'city' => $city,
-            'state' => $state,
-            'sensei_id' => $senseiId,
-            'logo' => $logoFilename,
-            'id' => $id,
+            'name'           => $name,
+            'address'        => $address,
+            'city'           => $city,
+            'state'          => $state,
+            'sensei_id'      => $senseiId,
+            'logo'           => $logoFilename,
+            'phone_whatsapp' => $phoneWhatsapp,
+            'id'             => $id,
         ];
 
         $this->db->query($sql, $params);

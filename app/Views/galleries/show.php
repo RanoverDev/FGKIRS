@@ -3,6 +3,8 @@ $cover = !empty($gallery['cover_image']) ? $gallery['cover_image'] : null;
 $date = !empty($gallery['event_date']) ? date('d/m/Y', strtotime($gallery['event_date'])) : null;
 $excerpt = mb_substr(strip_tags($gallery['description'] ?? ''), 0, 160, 'UTF-8');
 
+$allImgs = array_map(fn($img) => '/uploads/galleries/' . $img['filename'], $images);
+
 $pageTitle = htmlspecialchars($gallery['title']) . ' – FGKIRS';
 $pageDesc = $excerpt ?: 'Galeria de imagens da FGKIRS.';
 $ogImage = $cover
@@ -29,18 +31,22 @@ $shareTitle = urlencode($gallery['title']);
             <?php if (!empty($gallery['description'])): ?>
                 <p class="text-slate-600 text-lg max-w-2xl"><?= htmlspecialchars($gallery['description']) ?></p>
             <?php endif; ?>
+            <?php if (!empty($images)): ?>
+                <p class="text-sm text-slate-400 mt-2"><?= count($images) ?> foto(s)</p>
+            <?php endif; ?>
         </div>
 
         <?php if (empty($images)): ?>
             <div class="text-center py-20 text-slate-500">Nenhuma imagem nesta galeria ainda.</div>
         <?php else: ?>
-            <div class="columns-2 sm:columns-3 lg:columns-4 gap-3 space-y-3 mb-12">
-                <?php foreach ($images as $img): ?>
-                    <a href="/uploads/galleries/<?= htmlspecialchars($img['filename']) ?>" target="_blank" rel="noopener"
-                        class="block rounded-lg overflow-hidden break-inside-avoid hover:opacity-90 transition">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-12">
+                <?php foreach ($images as $i => $img): ?>
+                    <div class="aspect-square overflow-hidden rounded-lg cursor-pointer bg-slate-100 hover:opacity-90 transition"
+                        onclick="openLightbox(<?= $i ?>)">
                         <img src="/uploads/galleries/<?= htmlspecialchars($img['filename']) ?>"
-                            alt="<?= htmlspecialchars($gallery['title']) ?>" class="w-full h-auto object-cover">
-                    </a>
+                            alt="<?= htmlspecialchars($gallery['title']) ?>" class="w-full h-full object-cover"
+                            loading="<?= $i < 8 ? 'eager' : 'lazy' ?>">
+                    </div>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
@@ -111,8 +117,7 @@ $shareTitle = urlencode($gallery['title']);
         <a href="/galerias"
             class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18">
-                </path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18" />
             </svg>
             Voltar para Galerias
         </a>
@@ -120,13 +125,78 @@ $shareTitle = urlencode($gallery['title']);
     </div>
 </section>
 
+<!-- Lightbox -->
+<div id="lightbox" class="fixed inset-0 z-50 hidden bg-black/90 flex items-center justify-center"
+    onclick="handleBackdrop(event)">
+    <button onclick="closeLightbox()"
+        class="absolute top-4 right-4 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center transition text-2xl leading-none">
+        &times;
+    </button>
+    <button onclick="moveLightbox(-1)"
+        class="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center transition text-xl">
+        &#8592;
+    </button>
+    <button onclick="moveLightbox(1)"
+        class="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/50 hover:bg-black/80 rounded-full w-10 h-10 flex items-center justify-center transition text-xl">
+        &#8594;
+    </button>
+    <img id="lbImg" src="" alt="" class="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl">
+    <span id="lbCounter" class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-sm"></span>
+</div>
+
 <script>
+    const lbImages = <?= json_encode(array_values($allImgs)) ?>;
+    let lbIndex = 0;
+
+    function renderLightbox() {
+        document.getElementById('lbImg').src = lbImages[lbIndex];
+        document.getElementById('lbCounter').textContent = (lbIndex + 1) + ' / ' + lbImages.length;
+        const prevBtn = document.querySelector('#lightbox button:nth-child(2)');
+        const nextBtn = document.querySelector('#lightbox button:nth-child(3)');
+        prevBtn.style.display = lbImages.length > 1 ? '' : 'none';
+        nextBtn.style.display = lbImages.length > 1 ? '' : 'none';
+    }
+
+    function openLightbox(idx) {
+        lbIndex = idx;
+        renderLightbox();
+        document.getElementById('lightbox').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.add('hidden');
+        document.body.style.overflow = '';
+        if (history.replaceState) history.replaceState(null, '', location.pathname + location.search);
+    }
+
+    function moveLightbox(dir) {
+        lbIndex = (lbIndex + dir + lbImages.length) % lbImages.length;
+        renderLightbox();
+    }
+
+    function handleBackdrop(e) {
+        if (e.target === document.getElementById('lightbox')) closeLightbox();
+    }
+
+    document.addEventListener('keydown', e => {
+        if (document.getElementById('lightbox').classList.contains('hidden')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') moveLightbox(-1);
+        if (e.key === 'ArrowRight') moveLightbox(1);
+    });
+
     function copyLink(btn) {
         navigator.clipboard.writeText(btn.dataset.url).then(() => {
             const orig = btn.innerHTML;
             btn.textContent = 'Link copiado!';
             setTimeout(() => { btn.innerHTML = orig; }, 2000);
         });
+    }
+
+    // Auto-open when arriving with #lightbox in the URL
+    if (lbImages.length && location.hash === '#lightbox') {
+        openLightbox(0);
     }
 </script>
 

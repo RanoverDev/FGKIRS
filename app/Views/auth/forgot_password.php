@@ -11,7 +11,7 @@ if (Auth::check()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acesso – FGKIRS</title>
+    <title>Recuperar Senha – FGKIRS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -65,12 +65,6 @@ if (Auth::check()) {
                 Sistema de gestão da Federação Gaúcha de Karatê Interestilos —
                 dojos, atletas, graduações e muito mais.
             </p>
-
-            <!-- Affiliate logos -->
-            <div class="flex items-center justify-center gap-6 mt-10 opacity-60">
-                <img src="/assets/images/logo-wukf.png" alt="WUKF" class="h-12 w-12 object-contain">
-                <img src="/assets/images/logo-cbki.png" alt="CBKI" class="h-9 object-contain">
-            </div>
         </div>
     </div>
 
@@ -86,8 +80,8 @@ if (Auth::check()) {
 
             <div class="rs-bar h-1 rounded-full mb-8"></div>
 
-            <h2 class="text-2xl font-bold text-slate-900 mb-1">Área Administrativa</h2>
-            <p class="text-sm text-slate-500 mb-8">Acesse com suas credenciais de federado.</p>
+            <h2 class="text-2xl font-bold text-slate-900 mb-1">Recuperar Senha</h2>
+            <p class="text-sm text-slate-500 mb-8">Insira seu e-mail para receber um link de redefinição.</p>
 
             <?php if (!empty($_SESSION['error'])): ?>
                 <div
@@ -110,7 +104,7 @@ if (Auth::check()) {
                 </div>
             <?php unset($_SESSION['success']); endif; ?>
 
-            <form method="POST" action="/login" class="space-y-5">
+            <form method="POST" action="/recuperar-senha" class="space-y-5">
                 <?= \Helpers\Csrf::field() ?>
                 <div style="display:none;"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
 
@@ -122,47 +116,15 @@ if (Auth::check()) {
                                   focus:outline-none focus:border-rs-red focus:ring-0 transition">
                 </div>
 
-                <div>
-                    <div class="flex justify-between items-center mb-2">
-                        <label for="password" class="block text-xs font-bold uppercase tracking-widest text-slate-500">
-                            Senha
-                        </label>
-                        <a href="/recuperar-senha" class="text-xs text-rs-red hover:underline font-medium">Esqueceu a senha?</a>
-                    </div>
-                    <div class="relative">
-                        <input type="password" id="password" name="password" required autocomplete="current-password"
-                            class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm
-                                      focus:outline-none focus:border-rs-red focus:ring-0 transition pr-12">
-                        <button type="button" onclick="togglePwd()"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                            <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Teste Anti-Bot (Captcha) -->
-                <div>
-                    <label for="captcha" class="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                        Quanto é <?= ($_SESSION['captcha_num1'] ?? 5) ?> + <?= ($_SESSION['captcha_num2'] ?? 4) ?>?
-                    </label>
-                    <input type="number" id="captcha" name="captcha" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm
-                                  focus:outline-none focus:border-rs-red focus:ring-0 transition" placeholder="Digite o resultado da soma">
-                </div>
-
                 <button type="submit" class="w-full py-3 px-6 rounded-xl font-bold text-white text-sm transition-all
                                hover:opacity-90 active:scale-95 shadow-lg" style="background:#EE302F">
-                    Entrar no Sistema
+                    Enviar Link de Redefinição
                 </button>
 
             </form>
 
             <p class="mt-8 text-center text-xs text-slate-400">
-                <a href="/" class="hover:text-slate-600 transition">← Voltar ao site</a>
+                <a href="/login" class="hover:text-slate-600 transition">← Voltar para o Login</a>
             </p>
 
         </div>
@@ -173,17 +135,5 @@ if (Auth::check()) {
     </div>
 
 </body>
-<script>
-    const eyeOpen   = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>`;
-    const eyeClosed = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>`;
-
-    function togglePwd() {
-        const input = document.getElementById('password');
-        const icon  = document.getElementById('eyeIcon');
-        const show  = input.type === 'password';
-        input.type  = show ? 'text' : 'password';
-        icon.innerHTML = show ? eyeClosed : eyeOpen;
-    }
-</script>
 
 </html>

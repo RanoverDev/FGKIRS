@@ -23,9 +23,10 @@ class HomeController extends Controller
             $events = Event::getUpcoming(5);
             $profile = FederationProfile::get();
             $livePost = Post::getLivePost();
+            $galleries = Gallery::getLatest(6);
         } catch (\Exception $e) {
             error_log('HomeController error: ' . $e->getMessage());
-            $news = $dojos = $events = [];
+            $news = $dojos = $events = $galleries = [];
             $profile = [];
             $livePost = null;
         }
@@ -36,6 +37,7 @@ class HomeController extends Controller
             'events' => $events,
             'profile' => $profile,
             'livePost' => $livePost,
+            'galleries' => $galleries,
         ]);
     }
 
@@ -63,7 +65,8 @@ class HomeController extends Controller
             exit;
         }
         $profile = FederationProfile::get();
-        $this->view('news/show', ['post' => $post, 'profile' => $profile]);
+        $images = Post::getImages($post['id']);
+        $this->view('news/show', ['post' => $post, 'images' => $images, 'profile' => $profile]);
     }
 
     public function showEvent(string $slug): void
@@ -84,7 +87,16 @@ class HomeController extends Controller
             exit;
         }
         $profile = FederationProfile::get();
-        $this->view('events/show', ['post' => $post, 'profile' => $profile]);
+        $images = Post::getImages($post['id']);
+        $prevEvent = Event::getPreviousEvent($post['event_date'], (int) $post['id']);
+        $nextEvent = Event::getNextEvent($post['event_date'], (int) $post['id']);
+        $this->view('events/show', [
+            'post' => $post,
+            'images' => $images,
+            'profile' => $profile,
+            'prevEvent' => $prevEvent,
+            'nextEvent' => $nextEvent
+        ]);
     }
 
     public function showGallery(string $slug): void

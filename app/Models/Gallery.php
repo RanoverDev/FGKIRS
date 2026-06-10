@@ -7,6 +7,24 @@ use PDO;
 
 class Gallery
 {
+    public static function getLatest(int $limit = 6): array
+    {
+        try {
+            $db = Database::getInstance();
+            return $db->query(
+                "SELECT g.*, gi.filename AS cover_filename
+                 FROM galleries g
+                 LEFT JOIN gallery_images gi ON gi.gallery_id = g.id AND gi.is_cover = 1
+                 WHERE g.status = 'published'
+                 ORDER BY g.event_date DESC
+                 LIMIT $limit"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log('Gallery::getLatest error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     public static function getById(int $id): ?array
     {
         try {

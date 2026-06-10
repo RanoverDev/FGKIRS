@@ -3,14 +3,11 @@ $pageTitle = 'Galerias de Imagens – FGKIRS';
 $pageDesc = 'Fotos de eventos, campeonatos e apresentações da Federação Gaúcha de Karatê Interestilos.';
 require_once __DIR__ . '/../partials/public_header.php';
 
-use Core\Database;
-use PDO;
-
 try {
-    $db = Database::getInstance();
+    $db = \Core\Database::getInstance();
     $galleries = $db->query(
         "SELECT * FROM galleries WHERE status = 'published' ORDER BY event_date DESC LIMIT 60"
-    )->fetchAll(PDO::FETCH_ASSOC);
+    )->fetchAll(\PDO::FETCH_ASSOC);
 } catch (\Exception $e) {
     $galleries = [];
 }
@@ -25,7 +22,7 @@ try {
         <?php else: ?>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <?php foreach ($galleries as $gallery):
-                    $url = '/galeria/' . ($gallery['slug'] ?? $gallery['id']);
+                    $url = '/galeria/' . ($gallery['slug'] ?? $gallery['id']) . '#lightbox';
                     ?>
                     <a href="<?= $url ?>"
                         class="group block rounded-2xl overflow-hidden shadow hover:shadow-xl transition bg-slate-100">

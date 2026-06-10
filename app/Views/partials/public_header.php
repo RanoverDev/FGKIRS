@@ -205,6 +205,13 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
                 </a>
             <?php endif; ?>
 
+            <a href="/login" class="flex items-center gap-1 hover:text-white transition text-slate-300 font-medium ml-1" target="_blank">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>Entrar</span>
+            </a>
+
         </div>
     </div>
 
@@ -213,14 +220,17 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
 
             <div class="flex items-center gap-4">
-                <img src="/assets/images/logo-fgkirs-white.png"
-                    alt="Federação Gaúcha de Karatê Interestilos do Rio Grande do Sul" class="h-10 w-auto">
+                <a href="/">
+                    <img src="/assets/images/logo-fgkirs-white.png"
+                        alt="Federação Gaúcha de Karatê Interestilos do Rio Grande do Sul" class="h-10 w-auto">
+                </a>
             </div>
 
             <nav class="hidden md:flex items-center gap-6 text-sm text-slate-300">
                 <a href="/a-fgkirs" class="hover:text-white transition">A FGKIRS</a>
                 <a href="/noticias" class="hover:text-white transition">Notícias</a>
                 <a href="/eventos" class="hover:text-white transition">Eventos</a>
+                <a href="/galerias" class="hover:text-white transition">Galerias</a>
                 <a href="/dojos" class="hover:text-white transition">Dojos</a>
                 <a href="/contato" class="hover:text-white transition">Contatos</a>
             </nav>
@@ -237,13 +247,14 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
             <a href="/a-fgkirs" class="block py-2 text-slate-300 hover:text-white transition">A FGKIRS</a>
             <a href="/noticias" class="block py-2 text-slate-300 hover:text-white transition">Notícias</a>
             <a href="/eventos" class="block py-2 text-slate-300 hover:text-white transition">Eventos</a>
+            <a href="/galerias" class="block py-2 text-slate-300 hover:text-white transition">Galerias</a>
             <a href="/dojos" class="block py-2 text-slate-300 hover:text-white transition">Dojos</a>
             <a href="/contato" class="block py-2 text-slate-300 hover:text-white transition">Contatos</a>
-            <a href="/login" class="block py-2 text-slate-300 hover:text-white transition">Área Administrativa</a>
+            <a href="/login" class="block py-2 text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>Entrar</span>
+            </a>
         </div>
     </header>
-
-
-</body>
-
-</html>

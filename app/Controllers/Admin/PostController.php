@@ -56,7 +56,7 @@ class PostController extends Controller
                 JOIN users u  ON p.author_id = u.id
                 LEFT JOIN dojos d ON u.dojo_id = d.id
                 WHERE 1=1 {$typeWhere} {$authorFilter}
-                ORDER BY p.created_at DESC";
+                ORDER BY IF(p.type = 'event', p.event_date, p.published_at) DESC";
 
         $posts = $this->db->query($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
 
@@ -124,19 +124,41 @@ class PostController extends Controller
 
         $postId = (int) $this->db->lastInsertId();
 
-        // Upload initial image if provided
-        if (isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/../../../public/uploads/posts';
-            $filename = ImageProcessor::process($_FILES['featured_image'], $uploadDir);
-            if ($filename) {
+        // Upload images on creation
+        $files = $_FILES['images'] ?? [];
+        if (is_array($files['name'] ?? null) && count($files['name']) > 0) {
+            $dateFolder = date('Y/m/d');
+            $uploadDir  = __DIR__ . '/../../../public/uploads/posts/' . $dateFolder;
+            $hasFeatured = false;
+
+            for ($i = 0; $i < count($files['name']); $i++) {
+                if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                    continue;
+                }
+                $single = [
+                    'name'     => $files['name'][$i],
+                    'type'     => $files['type'][$i],
+                    'tmp_name' => $files['tmp_name'][$i],
+                    'error'    => $files['error'][$i],
+                    'size'     => $files['size'][$i],
+                ];
+                $filename = ImageProcessor::process($single, $uploadDir);
+                if (!$filename) {
+                    continue;
+                }
+                $relativePath = $dateFolder . '/' . $filename;
+                $isFeatured   = $hasFeatured ? 0 : 1;
                 $this->db->query(
-                    "INSERT INTO post_images (post_id, filename, is_featured) VALUES (:post_id, :filename, 1)",
-                    ['post_id' => $postId, 'filename' => $filename]
+                    "INSERT INTO post_images (post_id, filename, is_featured) VALUES (:post_id, :filename, :is_featured)",
+                    ['post_id' => $postId, 'filename' => $relativePath, 'is_featured' => $isFeatured]
                 );
-                $this->db->query(
-                    "UPDATE posts SET featured_image = :filename WHERE id = :id",
-                    ['filename' => $filename, 'id' => $postId]
-                );
+                if (!$hasFeatured) {
+                    $this->db->query(
+                        "UPDATE posts SET featured_image = :filename WHERE id = :id",
+                        ['filename' => $relativePath, 'id' => $postId]
+                    );
+                    $hasFeatured = true;
+                }
             }
         }
 
@@ -222,14 +244,26 @@ class PostController extends Controller
             exit;
         }
 
+        // Generate slug if post doesn't have one yet
+        $slug = $post['slug'];
+        if (empty($slug)) {
+            $slug = Slugify::unique($title, function ($candidate) use ($id) {
+                return $this->db->query(
+                    "SELECT id FROM posts WHERE slug = :s AND id != :id",
+                    ['s' => $candidate, 'id' => $id]
+                )->fetchColumn() !== false;
+            });
+        }
+
         $sql = "UPDATE posts
-                SET title = :title, content = :content,
+                SET title = :title, slug = :slug, content = :content,
                     type = :type, event_date = :event_date, event_location = :event_location,
                     video_url = :video_url, status = :status, published_at = :published_at, updated_at = NOW()
                 WHERE id = :id";
 
         $this->db->query($sql, [
             'title' => $title,
+            'slug' => $slug,
             'content' => $content,
             'type' => $type,
             'event_date' => $eventDate,
@@ -251,27 +285,52 @@ class PostController extends Controller
         if (!$post)
             return;
 
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $uploadDir = __DIR__ . '/../../../public/uploads/posts';
-            $filename = ImageProcessor::process($_FILES['image'], $uploadDir);
-            if ($filename) {
-                $countStmt = $this->db->query(
-                    "SELECT COUNT(*) FROM post_images WHERE post_id = :id",
-                    ['id' => $postId]
-                );
-                $isFeatured = (int) $countStmt->fetchColumn() === 0 ? 1 : 0;
+        $dateFolder = date('Y/m/d');
+        $uploadDir  = __DIR__ . '/../../../public/uploads/posts/' . $dateFolder;
+        $files = $_FILES['images'] ?? [];
+        $count = is_array($files['name'] ?? null) ? count($files['name']) : 0;
 
-                $this->db->query(
-                    "INSERT INTO post_images (post_id, filename, is_featured) VALUES (:post_id, :filename, :is_featured)",
-                    ['post_id' => $postId, 'filename' => $filename, 'is_featured' => $isFeatured]
-                );
-                if ($isFeatured) {
-                    $this->db->query(
-                        "UPDATE posts SET featured_image = :filename WHERE id = :id",
-                        ['filename' => $filename, 'id' => $postId]
-                    );
-                }
+        $hasFeatured = (int) $this->db->query(
+            "SELECT COUNT(*) FROM post_images WHERE post_id = :id AND is_featured = 1",
+            ['id' => $postId]
+        )->fetchColumn() > 0;
+
+        $added = 0;
+        for ($i = 0; $i < $count; $i++) {
+            if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                continue;
             }
+            $single = [
+                'name'     => $files['name'][$i],
+                'type'     => $files['type'][$i],
+                'tmp_name' => $files['tmp_name'][$i],
+                'error'    => $files['error'][$i],
+                'size'     => $files['size'][$i],
+            ];
+            $filename = ImageProcessor::process($single, $uploadDir);
+            if (!$filename) {
+                continue;
+            }
+            $relativePath = $dateFolder . '/' . $filename;
+            $isFeatured   = (!$hasFeatured && $added === 0) ? 1 : 0;
+            $this->db->query(
+                "INSERT INTO post_images (post_id, filename, is_featured) VALUES (:post_id, :filename, :is_featured)",
+                ['post_id' => $postId, 'filename' => $relativePath, 'is_featured' => $isFeatured]
+            );
+            if ($isFeatured) {
+                $this->db->query(
+                    "UPDATE posts SET featured_image = :filename WHERE id = :id",
+                    ['filename' => $relativePath, 'id' => $postId]
+                );
+                $hasFeatured = true;
+            }
+            $added++;
+        }
+
+        if ($added > 0) {
+            $_SESSION['success'] = "$added imagem(ns) adicionada(s) com sucesso!";
+        } else {
+            $_SESSION['error'] = 'Nenhuma imagem válida foi enviada. Use JPG, PNG, WebP ou HEIC.';
         }
 
         header("Location: /fgkirs-admin/posts/edit/$postId");

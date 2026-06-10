@@ -97,14 +97,12 @@ $currentType = $post['type'] ?? 'news';
 
         <?php if (!$isEdit): ?>
             <div class="mb-6">
-                <label for="featured_image" class="block text-sm font-medium text-gray-700 mb-2">Imagem Destacada</label>
-                <input type="file" id="featured_image" name="featured_image" accept=".jpg,.jpeg,image/jpeg"
-                    onchange="previewImage(this)"
+                <label class="block text-sm font-medium text-gray-700 mb-2">Imagens</label>
+                <input type="file" name="images[]"
+                    accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp"
+                    multiple
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                <p class="text-xs text-gray-500 mt-1">Apenas JPG. Será redimensionada para 1200px, qualidade 55%.</p>
-                <div id="imagePreview" class="mt-3 hidden">
-                    <img src="" alt="Pré-visualização" class="w-32 h-20 object-cover rounded">
-                </div>
+                <p class="text-xs text-gray-500 mt-1">JPG, PNG, WebP ou HEIC. Selecione várias de uma vez. A primeira será a imagem de destaque. Convertidas para WebP automaticamente.</p>
             </div>
         <?php endif; ?>
 
@@ -160,17 +158,18 @@ $currentType = $post['type'] ?? 'news';
         <?php endif; ?>
 
         <form action="/fgkirs-admin/posts/add-image/<?= $post['id'] ?>" method="POST" enctype="multipart/form-data">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Adicionar Imagem</label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Adicionar Imagens</label>
             <div class="flex gap-3 items-start">
-                <input type="file" name="image" accept=".jpg,.jpeg,image/jpeg" required
+                <input type="file" name="images[]"
+                    accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp"
+                    multiple required
                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent text-sm">
                 <button type="submit"
                     class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-5 rounded-lg transition text-sm whitespace-nowrap">
                     Enviar
                 </button>
             </div>
-            <p class="text-xs text-gray-500 mt-1">Apenas JPG. A primeira imagem adicionada será automaticamente o destaque.
-            </p>
+            <p class="text-xs text-gray-500 mt-1">JPG, PNG, WebP ou HEIC. Selecione várias de uma vez. Convertidas para WebP automaticamente.</p>
         </form>
     </div>
 <?php endif; ?>
@@ -203,18 +202,6 @@ $currentType = $post['type'] ?? 'news';
     }
 
     document.getElementById('video_url')?.addEventListener('input', updateVideoPreview);
-
-    function previewImage(input) {
-        const preview = document.getElementById('imagePreview');
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                preview.querySelector('img').src = e.target.result;
-                preview.classList.remove('hidden');
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
 
     // Initialize preview if editing and already has a video URL
     updateVideoPreview();

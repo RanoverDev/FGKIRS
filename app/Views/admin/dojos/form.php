@@ -41,9 +41,9 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
             <div>
                 <label for="state" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                <input type="text" id="state" name="state" value="<?= htmlspecialchars($dojo['state'] ?? '') ?>"
-                    placeholder="RS" maxlength="2"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                <input type="text" id="state" name="state" value="<?= htmlspecialchars($dojo['state'] ?? 'RS') ?>"
+                    readonly
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none">
             </div>
         </div>
 
@@ -67,6 +67,16 @@ require_once __DIR__ . '/../layout/header.php';
                 </select>
             </div>
         <?php endif; ?>
+
+        <!-- WhatsApp -->
+        <div class="mb-4">
+            <label for="phone_whatsapp" class="block text-sm font-medium text-gray-700 mb-2">WhatsApp de Contato</label>
+            <input type="text" id="phone_whatsapp" name="phone_whatsapp"
+                   value="<?= htmlspecialchars($dojo['phone_whatsapp'] ?? '') ?>"
+                   placeholder="(55) 99999-9999"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+            <p class="text-xs text-gray-400 mt-1">Usado para o botão de contato no site. Apenas números.</p>
+        </div>
 
         <!-- Logo -->
         <div class="mb-6">

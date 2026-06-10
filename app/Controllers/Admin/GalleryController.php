@@ -135,12 +135,21 @@ class GalleryController extends Controller
             exit;
         }
 
+        $slug = $gallery['slug'];
+        if (empty($slug)) {
+            $slug = Slugify::unique($title, fn($candidate) => $this->db->query(
+                "SELECT id FROM galleries WHERE slug = :s AND id != :id",
+                ['s' => $candidate, 'id' => $id]
+            )->fetchColumn() !== false);
+        }
+
         $this->db->query(
-            "UPDATE galleries SET title = :title, description = :description,
+            "UPDATE galleries SET title = :title, slug = :slug, description = :description,
              event_date = :event_date, status = :status, updated_at = NOW()
              WHERE id = :id",
             [
                 'title' => $title,
+                'slug' => $slug,
                 'description' => $description,
                 'event_date' => $eventDate,
                 'status' => $status,
@@ -155,10 +164,28 @@ class GalleryController extends Controller
 
     public function uploadZip(int $id): void
     {
+        @set_time_limit(300);
+        @ini_set('memory_limit', '256M');
+
         $gallery = $this->getGalleryOrDeny($id);
 
-        if (!isset($_FILES['zip_file']) || $_FILES['zip_file']['error'] !== UPLOAD_ERR_OK) {
-            $_SESSION['error'] = 'Erro no upload. Verifique o arquivo e tente novamente.';
+        if (!isset($_FILES['zip_file'])) {
+            $_SESSION['error'] = 'Nenhum arquivo recebido. Verifique as configurações de upload do servidor.';
+            header("Location: /fgkirs-admin/galleries/edit/$id");
+            exit;
+        }
+
+        $uploadError = $_FILES['zip_file']['error'];
+        if ($uploadError !== UPLOAD_ERR_OK) {
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'O arquivo excede o limite do servidor (upload_max_filesize).',
+                UPLOAD_ERR_FORM_SIZE => 'O arquivo excede o limite do formulário.',
+                UPLOAD_ERR_PARTIAL => 'O arquivo foi enviado apenas parcialmente.',
+                UPLOAD_ERR_NO_FILE => 'Nenhum arquivo foi selecionado.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Pasta temporária ausente no servidor.',
+                UPLOAD_ERR_CANT_WRITE => 'Falha ao gravar o arquivo no servidor.',
+            ];
+            $_SESSION['error'] = $errorMessages[$uploadError] ?? "Erro no upload (código $uploadError).";
             header("Location: /fgkirs-admin/galleries/edit/$id");
             exit;
         }
@@ -185,10 +212,16 @@ class GalleryController extends Controller
 
         $files = $this->scanImages($tempDir);
         $processedCount = 0;
+        $failedCount = 0;
+
+        if (empty($files)) {
+            error_log("GalleryController: ZIP extraído em $tempDir não contém imagens suportadas");
+        }
 
         foreach ($files as $file) {
             $filename = ImageProcessor::processFromPath($file, $uploadDir);
             if (!$filename) {
+                $failedCount++;
                 continue;
             }
 
@@ -213,7 +246,19 @@ class GalleryController extends Controller
 
         $this->deleteDir($tempDir);
 
-        $_SESSION['success'] = "$processedCount imagem(ns) processada(s) com sucesso!";
+        if ($processedCount === 0) {
+            $detail = empty($files)
+                ? 'Nenhuma imagem encontrada no ZIP (formatos aceitos: JPG, PNG, WebP).'
+                : "Todas as $failedCount imagem(ns) falharam no processamento. Verifique o log do servidor.";
+            $_SESSION['error'] = "Nenhuma imagem foi adicionada. $detail";
+        } else {
+            $msg = "$processedCount imagem(ns) adicionada(s) com sucesso!";
+            if ($failedCount > 0) {
+                $msg .= " ($failedCount falhou)";
+            }
+            $_SESSION['success'] = $msg;
+        }
+
         header("Location: /fgkirs-admin/galleries/edit/$id");
         exit;
     }
@@ -349,7 +394,7 @@ class GalleryController extends Controller
             }
 
             $ext = strtolower($file->getExtension());
-            if (\in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+            if (\in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'heic'])) {
                 $files[] = $pathname;
             }
         }

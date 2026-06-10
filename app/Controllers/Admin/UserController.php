@@ -75,12 +75,44 @@ class UserController extends Controller
         $email = trim($_POST['email'] ?? '');
         $role = $_POST['role'] ?? 'aluno';
         $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
+        $password = $_POST['password'] ?? '';
+
+        if (empty($name)) {
+            $_SESSION['error'] = 'O nome completo é obrigatório.';
+            header('Location: /fgkirs-admin/users/create');
+            exit;
+        }
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Por favor, insira um e-mail válido.';
+            header('Location: /fgkirs-admin/users/create');
+            exit;
+        }
+
+        $passwordError = null;
+        if (!Auth::validatePasswordStrength($password, $passwordError)) {
+            $_SESSION['error'] = $passwordError;
+            header('Location: /fgkirs-admin/users/create');
+            exit;
+        }
+
+        // Verificar e-mail duplicado
+        try {
+            $stmt = $this->db->query("SELECT id FROM users WHERE email = :email LIMIT 1", ['email' => $email]);
+            if ($stmt->fetch()) {
+                $_SESSION['error'] = 'Este e-mail já está cadastrado no sistema.';
+                header('Location: /fgkirs-admin/users/create');
+                exit;
+            }
+        } catch (\Exception $e) {
+            error_log('Error checking duplicate email: ' . $e->getMessage());
+        }
 
         if (Auth::isSensei()) {
             $dojoId = Auth::dojoId();
         }
 
-        $hashedPassword = password_hash($_POST['password'] ?? '', PASSWORD_BCRYPT);
+        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
         $photoFilename = null;
         if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
@@ -90,27 +122,35 @@ class UserController extends Controller
             );
         }
 
-        $this->db->query(
-            "INSERT INTO users (name, email, password, role, dojo_id, photo, created_at, updated_at)
-             VALUES (:name, :email, :password, :role, :dojo_id, :photo, NOW(), NOW())",
-            [
-                'name' => $name,
-                'email' => $email,
-                'password' => $hashedPassword,
-                'role' => $role,
-                'dojo_id' => $dojoId,
-                'photo' => $photoFilename
-            ]
-        );
+        try {
+            $this->db->query(
+                "INSERT INTO users (name, email, password, role, dojo_id, photo, created_at, updated_at)
+                 VALUES (:name, :email, :password, :role, :dojo_id, :photo, NOW(), NOW())",
+                [
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => $hashedPassword,
+                    'role' => $role,
+                    'dojo_id' => $dojoId,
+                    'photo' => $photoFilename
+                ]
+            );
 
-        $userId = (int) $this->db->lastInsertId();
+            $userId = (int) $this->db->lastInsertId();
 
-        if (in_array($role, self::ATHLETE_ROLES) || $role === 'sensei') {
-            $this->saveAthleteProfile($userId);
+            if (in_array($role, self::ATHLETE_ROLES) || $role === 'sensei') {
+                $this->saveAthleteProfile($userId);
+            }
+
+            $_SESSION['success'] = 'Usuário cadastrado com sucesso!';
+            header('Location: /fgkirs-admin/users');
+            exit;
+        } catch (\Exception $e) {
+            error_log('Error saving user: ' . $e->getMessage());
+            $_SESSION['error'] = 'Erro ao salvar o usuário: ' . $e->getMessage();
+            header('Location: /fgkirs-admin/users/create');
+            exit;
         }
-
-        header('Location: /fgkirs-admin/users');
-        exit;
     }
 
     public function edit(int $id): void
@@ -182,6 +222,43 @@ class UserController extends Controller
         $email = trim($_POST['email'] ?? '');
         $role = $_POST['role'] ?? 'aluno';
         $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
+        $password = $_POST['password'] ?? '';
+
+        if (empty($name)) {
+            $_SESSION['error'] = 'O nome completo é obrigatório.';
+            header('Location: /fgkirs-admin/users/edit/' . $id);
+            exit;
+        }
+
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['error'] = 'Por favor, insira um e-mail válido.';
+            header('Location: /fgkirs-admin/users/edit/' . $id);
+            exit;
+        }
+
+        if (!empty($password)) {
+            $passwordError = null;
+            if (!Auth::validatePasswordStrength($password, $passwordError)) {
+                $_SESSION['error'] = $passwordError;
+                header('Location: /fgkirs-admin/users/edit/' . $id);
+                exit;
+            }
+        }
+
+        // Verificar e-mail duplicado em outros usuários
+        try {
+            $stmt = $this->db->query("SELECT id FROM users WHERE email = :email AND id != :id LIMIT 1", [
+                'email' => $email,
+                'id' => $id
+            ]);
+            if ($stmt->fetch()) {
+                $_SESSION['error'] = 'Este e-mail já está em uso por outro usuário.';
+                header('Location: /fgkirs-admin/users/edit/' . $id);
+                exit;
+            }
+        } catch (\Exception $e) {
+            error_log('Error checking duplicate email on update: ' . $e->getMessage());
+        }
 
         if (Auth::isSensei()) {
             $dojoId = Auth::dojoId();
@@ -199,41 +276,49 @@ class UserController extends Controller
             }
         }
 
-        if (!empty($_POST['password'])) {
-            $this->db->query(
-                "UPDATE users SET name=:name, email=:email, password=:password,
-                 role=:role, dojo_id=:dojo_id, photo=:photo, updated_at=NOW() WHERE id=:id",
-                [
-                    'name' => $name,
-                    'email' => $email,
-                    'password' => password_hash($_POST['password'], PASSWORD_BCRYPT),
-                    'role' => $role,
-                    'dojo_id' => $dojoId,
-                    'photo' => $photoFilename,
-                    'id' => $id
-                ]
-            );
-        } else {
-            $this->db->query(
-                "UPDATE users SET name=:name, email=:email,
-                 role=:role, dojo_id=:dojo_id, photo=:photo, updated_at=NOW() WHERE id=:id",
-                [
-                    'name' => $name,
-                    'email' => $email,
-                    'role' => $role,
-                    'dojo_id' => $dojoId,
-                    'photo' => $photoFilename,
-                    'id' => $id
-                ]
-            );
-        }
+        try {
+            if (!empty($password)) {
+                $this->db->query(
+                    "UPDATE users SET name=:name, email=:email, password=:password,
+                     role=:role, dojo_id=:dojo_id, photo=:photo, updated_at=NOW() WHERE id=:id",
+                    [
+                        'name' => $name,
+                        'email' => $email,
+                        'password' => password_hash($password, PASSWORD_BCRYPT),
+                        'role' => $role,
+                        'dojo_id' => $dojoId,
+                        'photo' => $photoFilename,
+                        'id' => $id
+                    ]
+                );
+            } else {
+                $this->db->query(
+                    "UPDATE users SET name=:name, email=:email,
+                     role=:role, dojo_id=:dojo_id, photo=:photo, updated_at=NOW() WHERE id=:id",
+                    [
+                        'name' => $name,
+                        'email' => $email,
+                        'role' => $role,
+                        'dojo_id' => $dojoId,
+                        'photo' => $photoFilename,
+                        'id' => $id
+                    ]
+                );
+            }
 
-        if (in_array($role, self::ATHLETE_ROLES) || $role === 'sensei') {
-            $this->saveAthleteProfile($id);
-        }
+            if (in_array($role, self::ATHLETE_ROLES) || $role === 'sensei') {
+                $this->saveAthleteProfile($id);
+            }
 
-        header('Location: /fgkirs-admin/users');
-        exit;
+            $_SESSION['success'] = 'Usuário atualizado com sucesso!';
+            header('Location: /fgkirs-admin/users');
+            exit;
+        } catch (\Exception $e) {
+            error_log('Error updating user: ' . $e->getMessage());
+            $_SESSION['error'] = 'Erro ao atualizar o usuário: ' . $e->getMessage();
+            header('Location: /fgkirs-admin/users/edit/' . $id);
+            exit;
+        }
     }
 
     public function delete(int $id): void

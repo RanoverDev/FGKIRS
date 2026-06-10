@@ -97,7 +97,7 @@ HTML;
     echo "<h1>Homepage Sincronizada!</h1><p>O conteúdo real foi injetado. Acesse a Home agora.</p>";
 });
 
-$router->add('GET', '/', 'HomeController@underConstruction');
+$router->add('GET', '/', 'HomeController@index');
 $router->add('GET', '/home', 'HomeController@index');
 $router->add('GET', '/a-fgkirs', 'HomeController@about');
 $router->add('GET', '/dojos', 'HomeController@dojos');
@@ -122,6 +122,10 @@ $router->add('GET', '/galeria/{slug}', 'HomeController@showGallery');
 $router->add('GET', '/login', 'Auth\LoginController@showLoginForm');
 $router->add('POST', '/login', 'Auth\LoginController@login');
 $router->add('GET', '/logout', 'Auth\LoginController@logout');
+$router->add('GET', '/recuperar-senha', 'Auth\LoginController@showForgotPasswordForm');
+$router->add('POST', '/recuperar-senha', 'Auth\LoginController@sendResetLink');
+$router->add('GET', '/redefinir-senha', 'Auth\LoginController@showResetPasswordForm');
+$router->add('POST', '/redefinir-senha', 'Auth\LoginController@resetPassword');
 
 // =====================================================
 // ADMIN DASHBOARD ROUTES

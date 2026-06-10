@@ -110,8 +110,7 @@ require_once __DIR__ . '/../layout/header.php';
 
                 <div class="mt-4 flex justify-end">
                     <button type="submit" id="submitBtn"
-                        class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50"
-                        onclick="startUpload()">
+                        class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50">
                         Enviar e Processar
                     </button>
                 </div>
@@ -183,12 +182,19 @@ require_once __DIR__ . '/../layout/header.php';
             }
         }
 
-        function startUpload() {
+        // Submissão — mostra spinner sem bloquear o envio do formulário
+        document.getElementById('uploadForm').addEventListener('submit', function (e) {
             const input = document.getElementById('zipInput');
-            if (!input.files || !input.files[0]) return;
+            if (!input.files || !input.files[0]) {
+                e.preventDefault();
+                alert('Selecione um arquivo ZIP antes de enviar.');
+                return;
+            }
             document.getElementById('progressBar').classList.remove('hidden');
-            document.getElementById('submitBtn').disabled = true;
-        }
+            const btn = document.getElementById('submitBtn');
+            btn.textContent = 'Enviando...';
+            setTimeout(() => { btn.disabled = true; }, 0);
+        });
 
         // Drag-and-drop
         const dropZone = document.getElementById('dropZone');

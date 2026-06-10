@@ -61,12 +61,24 @@ class Post
         }
     }
 
+    private static function withAuthorSql(): string
+    {
+        return "SELECT p.*,
+                    CASE
+                        WHEN u.role = 'admin' THEN 'Comunicação FGKIRS'
+                        ELSE CONCAT(COALESCE(d.name,''), IF(d.city IS NOT NULL AND d.city != '', CONCAT(' / ', d.city), ''))
+                    END AS author_display
+                FROM posts p
+                JOIN users u ON p.author_id = u.id
+                LEFT JOIN dojos d ON u.dojo_id = d.id";
+    }
+
     public static function getById(int $id): ?array
     {
         try {
             $db = Database::getInstance();
             return $db->query(
-                "SELECT * FROM posts WHERE id = :id",
+                self::withAuthorSql() . " WHERE p.id = :id",
                 ['id' => $id]
             )->fetch(PDO::FETCH_ASSOC) ?: null;
         } catch (\Exception $e) {
@@ -80,12 +92,26 @@ class Post
         try {
             $db = Database::getInstance();
             return $db->query(
-                "SELECT * FROM posts WHERE slug = :slug",
+                self::withAuthorSql() . " WHERE p.slug = :slug",
                 ['slug' => $slug]
             )->fetch(PDO::FETCH_ASSOC) ?: null;
         } catch (\Exception $e) {
             error_log('Post::getBySlug error: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    public static function getImages(int $postId): array
+    {
+        try {
+            $db = Database::getInstance();
+            return $db->query(
+                "SELECT * FROM post_images WHERE post_id = :id ORDER BY is_featured DESC, created_at ASC",
+                ['id' => $postId]
+            )->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            error_log('Post::getImages error: ' . $e->getMessage());
+            return [];
         }
     }
 }

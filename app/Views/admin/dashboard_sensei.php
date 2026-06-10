@@ -16,7 +16,16 @@ try {
     $db = Database::getInstance();
     $dojoId = Auth::dojoId();
 
-    $dojo = $db->query("SELECT * FROM dojos WHERE id = :id", ['id' => $dojoId])->fetch() ?: $dojo;
+    if ($dojoId) {
+        $dbDojo = $db->query("SELECT * FROM dojos WHERE id = :id", ['id' => $dojoId])->fetch();
+    } else {
+        $dbDojo = $db->query("SELECT * FROM dojos WHERE sensei_id = :sensei_id LIMIT 1", ['sensei_id' => Auth::id()])->fetch();
+    }
+
+    if ($dbDojo) {
+        $dojo = $dbDojo;
+        $dojoId = $dojo['id'];
+    }
 
     $students = $db->query("
         SELECT u.id, u.name, u.photo, u.role, u.status,
@@ -87,7 +96,16 @@ require_once __DIR__ . '/layout/header.php';
 <div class="flex items-center justify-between mb-8">
     <div>
         <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Painel do Sensei</p>
-        <h1 class="text-3xl font-bold text-slate-900 leading-none"><?= htmlspecialchars($dojo['name']) ?></h1>
+        <div class="flex items-center gap-3">
+            <h1 class="text-3xl font-bold text-slate-900 leading-none"><?= htmlspecialchars($dojo['name']) ?></h1>
+            <?php if (!empty($dojo['id'])): ?>
+                <a href="/fgkirs-admin/dojos/edit/<?= $dojo['id'] ?>" class="text-blue-600 hover:text-blue-700 transition" title="Editar Dojo">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                </a>
+            <?php endif; ?>
+        </div>
     </div>
     <span
         class="hidden sm:inline-flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-500 shadow-sm">

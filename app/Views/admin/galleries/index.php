@@ -91,14 +91,18 @@ require_once __DIR__ . '/../layout/header.php';
                                 <?php endif; ?>
                             </td>
 
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 <?php if ($gallery['author_id'] === Auth::id() || Auth::authorize(['admin', 'sensei'])): ?>
-                                    <a href="/fgkirs-admin/galleries/edit/<?= $gallery['id'] ?>"
-                                        class="text-blue-600 hover:text-blue-900">Gerenciar</a>
+                                    <a href="/fgkirs-admin/galleries/edit/<?= $gallery['id'] ?>" title="Gerenciar"
+                                        class="inline-flex text-slate-600 hover:text-slate-900 transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.768-6.768a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"/></svg>
+                                    </a>
                                 <?php endif; ?>
                                 <?php if (Auth::authorize(['admin', 'sensei']) || $gallery['author_id'] === Auth::id()): ?>
-                                    <a href="/fgkirs-admin/galleries/delete/<?= $gallery['id'] ?>" data-confirm-delete
-                                        class="text-red-600 hover:text-red-900">Excluir</a>
+                                    <a href="/fgkirs-admin/galleries/delete/<?= $gallery['id'] ?>" data-confirm-delete title="Excluir"
+                                        class="inline-flex text-red-500 hover:text-red-700 transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-10 0h14"/></svg>
+                                    </a>
                                 <?php endif; ?>
                             </td>
                         </tr>
