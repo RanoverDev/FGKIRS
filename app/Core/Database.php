@@ -387,6 +387,28 @@ class Database
                 attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_ip_time (ip_address, attempted_at),
                 INDEX idx_email_time (email, attempted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS board_positions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(100) NOT NULL,
+                tier ENUM('primary','secondary','list') NOT NULL DEFAULT 'secondary',
+                section VARCHAR(100) NULL,
+                color VARCHAR(30) NOT NULL DEFAULT 'slate',
+                allow_multiple TINYINT(1) NOT NULL DEFAULT 0,
+                sort_order INT NOT NULL DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS board_assignments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                position_id INT NOT NULL,
+                user_id INT NULL,
+                custom_name VARCHAR(100) NULL,
+                custom_info VARCHAR(150) NULL,
+                sort_order INT NOT NULL DEFAULT 0,
+                INDEX idx_position (position_id),
+                FOREIGN KEY (position_id) REFERENCES board_positions(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 
@@ -403,6 +425,28 @@ class Database
             ('Shotokan', 'Estilo tradicional japonês', 'Japão'),
             ('Goju-ryu', 'Combina técnicas duras e suaves', 'Japão'),
             ('Wado-ryu', 'Enfatiza movimentos fluidos', 'Japão')");
+        } catch (\PDOException $e) {
+        }
+
+        // Seed board positions if empty
+        try {
+            $count = $this->connection->query("SELECT COUNT(*) FROM board_positions")->fetchColumn();
+            if ((int) $count === 0) {
+                $this->connection->exec("INSERT INTO board_positions (title, tier, section, color, allow_multiple, sort_order) VALUES
+                    ('Presidente', 'primary', NULL, 'red', 0, 1),
+                    ('Vice-Presidente', 'primary', NULL, 'yellow', 0, 2),
+                    ('Secretária', 'secondary', NULL, 'slate', 0, 3),
+                    ('Diretora Financeira', 'secondary', NULL, 'slate', 0, 4),
+                    ('Diretor Técnico', 'secondary', NULL, 'green', 0, 5),
+                    ('Diretor de Arbitragem', 'secondary', NULL, 'slate', 0, 6),
+                    ('Diretor Jurídico', 'secondary', NULL, 'slate', 0, 7),
+                    ('Relações Públicas, Marketing e Eventos', 'secondary', NULL, 'red', 1, 8),
+                    ('Conselho Fiscal', 'list', 'Conselho Fiscal', 'slate', 1, 9),
+                    ('Suplentes do Conselho', 'list', 'Suplentes do Conselho', 'slate', 1, 10),
+                    ('Comissão de Ética', 'list', 'Comissão de Ética', 'slate', 1, 11),
+                    ('Departamento de Kobudo', 'list', 'Departamento de Kobudo', 'slate', 1, 12)
+                ");
+            }
         } catch (\PDOException $e) {
         }
     }

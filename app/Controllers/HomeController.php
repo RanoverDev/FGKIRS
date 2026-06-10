@@ -44,7 +44,60 @@ class HomeController extends Controller
     public function about(): void
     {
         $profile = FederationProfile::get();
-        $this->view('about', ['profile' => $profile]);
+        $board   = $this->loadBoard();
+        $this->view('about', ['profile' => $profile, 'board' => $board]);
+    }
+
+    private function loadBoard(): array
+    {
+        try {
+            $db = \Core\Database::getInstance();
+            $rows = $db->query(
+                "SELECT
+                    bp.id AS position_id, bp.title AS position_title,
+                    bp.tier, bp.section, bp.color, bp.sort_order AS pos_sort,
+                    ba.id AS assignment_id, ba.user_id,
+                    ba.custom_name, ba.custom_info, ba.sort_order AS asgn_sort,
+                    u.name AS user_name, u.photo AS user_photo,
+                    g.name AS graduation_name,
+                    d.city AS dojo_city
+                 FROM board_positions bp
+                 LEFT JOIN board_assignments ba ON ba.position_id = bp.id
+                 LEFT JOIN users u ON ba.user_id = u.id
+                 LEFT JOIN athlete_profiles ap ON u.id = ap.user_id
+                 LEFT JOIN graduations g ON ap.graduation_id = g.id
+                 LEFT JOIN dojos d ON u.dojo_id = d.id
+                 ORDER BY bp.sort_order ASC, ba.sort_order ASC"
+            )->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Group by position
+            $positions = [];
+            foreach ($rows as $row) {
+                $pid = $row['position_id'];
+                if (!isset($positions[$pid])) {
+                    $positions[$pid] = [
+                        'id'      => $pid,
+                        'title'   => $row['position_title'],
+                        'tier'    => $row['tier'],
+                        'section' => $row['section'],
+                        'color'   => $row['color'],
+                        'members' => [],
+                    ];
+                }
+                if ($row['assignment_id']) {
+                    $positions[$pid]['members'][] = [
+                        'name'       => $row['user_name'] ?? $row['custom_name'],
+                        'photo'      => $row['user_photo'],
+                        'graduation' => $row['graduation_name'] ?? $row['custom_info'],
+                        'city'       => $row['dojo_city'],
+                    ];
+                }
+            }
+            return array_values($positions);
+        } catch (\Exception $e) {
+            error_log('HomeController::loadBoard error: ' . $e->getMessage());
+            return [];
+        }
     }
 
     public function showNews(string $slug): void

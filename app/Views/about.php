@@ -1,6 +1,5 @@
 <?php require_once __DIR__ . '/partials/public_header.php'; ?>
 
-<!-- Include the about block extracted from home -->
 <?php require_once __DIR__ . '/partials/about_block.php'; ?>
 
 <!-- Administrative Structure -->
@@ -14,201 +13,191 @@
             </p>
         </div>
 
+        <?php
+        // Color maps
+        $borderClass = [
+            'red'    => 'border-rs-red',
+            'yellow' => 'border-rs-yellow',
+            'green'  => 'border-rs-green',
+            'slate'  => 'border-slate-600',
+        ];
+        $textClass = [
+            'red'    => 'text-rs-red',
+            'yellow' => 'text-amber-600',
+            'green'  => 'text-green-700',
+            'slate'  => 'text-slate-500',
+        ];
+        $avatarBorder = [
+            'red'    => 'border-rs-red',
+            'yellow' => 'border-rs-yellow',
+            'green'  => 'border-slate-300',
+            'slate'  => 'border-slate-300',
+        ];
+
+        $primary   = array_filter($board ?? [], fn($p) => $p['tier'] === 'primary');
+        $secondary = array_filter($board ?? [], fn($p) => $p['tier'] === 'secondary');
+        $lists     = array_filter($board ?? [], fn($p) => $p['tier'] === 'list');
+
+        // Helper: render member info line
+        $memberInfo = function(array $m): string {
+            $parts = [];
+            if ($m['graduation']) $parts[] = htmlspecialchars($m['graduation']);
+            if ($m['city'])       $parts[] = htmlspecialchars($m['city']);
+            return implode(' &bull; ', $parts);
+        };
+
+        // Helper: avatar img or placeholder
+        $avatar = function(array $m, string $size, string $border): string {
+            if (!empty($m['photo'])) {
+                return '<img src="/uploads/users/' . htmlspecialchars($m['photo']) . '" alt="" class="w-full h-full object-cover">';
+            }
+            return '<div class="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>';
+        };
+        ?>
+
+        <?php if (!empty($primary)): ?>
         <!-- Diretoria Principal -->
         <div class="flex flex-col items-center mb-4">
-
-            <!-- Presidente -->
-            <div class="bg-white border-t-4 border-rs-red rounded-xl shadow-lg p-6 w-72 text-center z-10 relative hover:shadow-xl transition-shadow">
-                <div class="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden bg-slate-100 border-2 border-rs-red shadow">
-                    <img src="/assets/images/cargos/presidente.jpg" alt="Presidente" class="w-full h-full object-cover">
+            <?php $primArr = array_values($primary); ?>
+            <?php foreach ($primArr as $i => $pos):
+                $bc  = $borderClass[$pos['color']] ?? 'border-slate-600';
+                $tc  = $textClass[$pos['color']] ?? 'text-slate-500';
+                $ab  = $avatarBorder[$pos['color']] ?? 'border-slate-300';
+                $isFirst = $i === 0;
+                $cardSize = $isFirst ? 'w-72 p-6' : 'w-72 p-5';
+                $imgSize  = $isFirst ? 'w-20 h-20 mb-4 border-2' : 'w-16 h-16 mb-3 border-2';
+            ?>
+                <div class="bg-white border-t-4 <?= $bc ?> rounded-xl shadow<?= $isFirst ? '-lg' : '-md' ?> <?= $cardSize ?> text-center z-10 relative hover:shadow-xl transition-shadow">
+                    <?php foreach ($pos['members'] as $m): ?>
+                        <div class="<?= $imgSize ?> rounded-full mx-auto overflow-hidden bg-slate-100 <?= $ab ?> shadow">
+                            <?= $avatar($m, $imgSize, $ab) ?>
+                        </div>
+                        <span class="inline-block text-xs font-semibold uppercase tracking-widest <?= $tc ?> mb-1">
+                            <?= htmlspecialchars($pos['title']) ?>
+                        </span>
+                        <h3 class="font-bold text-slate-900 text-base leading-tight">
+                            <?= htmlspecialchars($m['name'] ?? '—') ?>
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1"><?= $memberInfo($m) ?></p>
+                    <?php endforeach; ?>
+                    <?php if (empty($pos['members'])): ?>
+                        <div class="<?= $imgSize ?> rounded-full mx-auto overflow-hidden bg-slate-100 border-2 border-slate-200 shadow">
+                            <?= $avatar([], $imgSize, '') ?>
+                        </div>
+                        <span class="inline-block text-xs font-semibold uppercase tracking-widest <?= $tc ?> mb-1">
+                            <?= htmlspecialchars($pos['title']) ?>
+                        </span>
+                        <h3 class="font-bold text-slate-400 text-base leading-tight italic">Não atribuído</h3>
+                    <?php endif; ?>
                 </div>
-                <span class="inline-block text-xs font-semibold uppercase tracking-widest text-rs-red mb-1">Presidente</span>
-                <h3 class="font-bold text-slate-900 text-base leading-tight">Gévio Kohler</h3>
-                <p class="text-xs text-slate-500 mt-1">5º Dan &bull; Santa Rosa</p>
-            </div>
 
-            <div class="w-px h-8 bg-slate-200"></div>
-
-            <!-- Vice-Presidente -->
-            <div class="bg-white border-t-4 border-rs-yellow rounded-xl shadow-md p-5 w-72 text-center z-10 relative hover:shadow-lg transition-shadow">
-                <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-rs-yellow shadow">
-                    <img src="/assets/images/cargos/vice-presidente.jpg" alt="Vice-Presidente" class="w-full h-full object-cover">
-                </div>
-                <span class="inline-block text-xs font-semibold uppercase tracking-widest text-amber-600 mb-1">Vice-Presidente</span>
-                <h3 class="font-bold text-slate-900 text-base leading-tight">Altemar Sabino</h3>
-                <p class="text-xs text-slate-500 mt-1">7º Dan &bull; Viamão</p>
-            </div>
-
+                <?php if ($i < count($primArr) - 1): ?>
+                    <div class="w-px h-8 bg-slate-200"></div>
+                <?php endif; ?>
+            <?php endforeach; ?>
             <div class="w-px h-8 bg-slate-200"></div>
         </div>
+        <?php endif; ?>
 
+        <?php if (!empty($secondary)): ?>
         <!-- Diretores em grid -->
         <div class="max-w-5xl mx-auto">
             <div class="relative mb-2">
                 <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-px bg-slate-200 hidden sm:block"></div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-8">
-
-                <!-- Secretária -->
-                <div class="bg-white border-t-4 border-slate-600 rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
-                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-300 shadow">
-                        <img src="/assets/images/cargos/secretaria.jpg" alt="Secretária" class="w-full h-full object-cover">
+                <?php foreach ($secondary as $pos):
+                    $bc = $borderClass[$pos['color']] ?? 'border-slate-600';
+                    $tc = $textClass[$pos['color']] ?? 'text-slate-500';
+                    $ab = $avatarBorder[$pos['color']] ?? 'border-slate-300';
+                ?>
+                    <div class="bg-white border-t-4 <?= $bc ?> rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
+                        <?php if (!empty($pos['members'])): ?>
+                            <?php foreach ($pos['members'] as $mi => $m): ?>
+                                <?php if ($mi === 0): ?>
+                                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 <?= $ab ?> shadow">
+                                        <?= $avatar($m, 'w-16 h-16', $ab) ?>
+                                    </div>
+                                <?php endif; ?>
+                                <span class="inline-block text-xs font-semibold uppercase tracking-widest <?= $tc ?> mb-1">
+                                    <?= htmlspecialchars($pos['title']) ?>
+                                </span>
+                                <h3 class="font-bold text-slate-900 text-sm leading-tight">
+                                    <?= htmlspecialchars($m['name'] ?? '—') ?>
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-<?= $mi > 0 ? '0.5' : '1' ?>"><?= $memberInfo($m) ?></p>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-200 shadow">
+                                <?= $avatar([], 'w-16 h-16', '') ?>
+                            </div>
+                            <span class="inline-block text-xs font-semibold uppercase tracking-widest <?= $tc ?> mb-1">
+                                <?= htmlspecialchars($pos['title']) ?>
+                            </span>
+                            <h3 class="font-bold text-slate-400 text-sm leading-tight italic">Não atribuído</h3>
+                        <?php endif; ?>
                     </div>
-                    <span class="inline-block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">Secretária</span>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">Fernanda Biachi</h3>
-                    <p class="text-xs text-slate-400 mt-1">1º Dan &bull; Alegrete</p>
-                </div>
-
-                <!-- Diretora Financeira -->
-                <div class="bg-white border-t-4 border-slate-600 rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
-                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-300 shadow">
-                        <img src="/assets/images/cargos/financeiro.jpg" alt="Diretora Financeira" class="w-full h-full object-cover">
-                    </div>
-                    <span class="inline-block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">Diretora Financeira</span>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">Rosangela Quatrin</h3>
-                    <p class="text-xs text-slate-400 mt-1">3º Dan &bull; Alecrim</p>
-                </div>
-
-                <!-- Diretor Técnico -->
-                <div class="bg-white border-t-4 border-rs-green rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
-                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-300 shadow">
-                        <img src="/assets/images/cargos/diretor-tecnico.jpg" alt="Diretor Técnico" class="w-full h-full object-cover">
-                    </div>
-                    <span class="inline-block text-xs font-semibold uppercase tracking-widest text-green-700 mb-1">Diretor Técnico</span>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">Francisco Assunção Garcia</h3>
-                    <p class="text-xs text-slate-400 mt-1">7º Dan &bull; Rio Grande</p>
-                </div>
-
-                <!-- Diretor de Arbitragem -->
-                <div class="bg-white border-t-4 border-slate-400 rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
-                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-300 shadow">
-                        <img src="/assets/images/cargos/diretor-arbitragem.jpg" alt="Diretor de Arbitragem" class="w-full h-full object-cover">
-                    </div>
-                    <span class="inline-block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">Diretor de Arbitragem</span>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">Itamar Ponciano</h3>
-                    <p class="text-xs text-slate-400 mt-1">3º Dan &bull; Alecrim</p>
-                </div>
-
-                <!-- Diretor Jurídico -->
-                <div class="bg-white border-t-4 border-slate-600 rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
-                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-300 shadow">
-                        <img src="/assets/images/cargos/diretor-juridico.jpg" alt="Diretor Jurídico" class="w-full h-full object-cover">
-                    </div>
-                    <span class="inline-block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1">Diretor Jurídico</span>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">Altemar Sabino</h3>
-                    <p class="text-xs text-slate-400 mt-1">7º Dan &bull; OAB/RS 129.714</p>
-                </div>
-
-                <!-- Diretor de Marketing e Eventos -->
-                <div class="bg-white border-t-4 border-rs-red rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
-                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-300 shadow">
-                        <img src="/assets/images/cargos/diretor-marketing-eventos.jpg" alt="Diretor de Marketing e Eventos" class="w-full h-full object-cover">
-                    </div>
-                    <span class="inline-block text-xs font-semibold uppercase tracking-widest text-rs-red mb-1">Relações Públicas, Marketing e Eventos</span>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight">Rian Lorenzo Kohler</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">2º Dan &bull; Santa Rosa</p>
-                    <h3 class="font-bold text-slate-900 text-sm leading-tight mt-2">José Figueroa</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">1º Dan &bull; Ubiretama</p>
-                </div>
-
+                <?php endforeach; ?>
             </div>
         </div>
+        <?php endif; ?>
 
-        <!-- Conselho Fiscal, Suplentes, Comissão de Ética, Kobudo -->
+        <?php if (!empty($lists)):
+            // Group list positions by section
+            $sections = [];
+            foreach ($lists as $pos) {
+                $sec = $pos['section'] ?: $pos['title'];
+                $sections[$sec][] = $pos;
+            }
+        ?>
+        <!-- Conselhos e Comissões -->
         <div class="max-w-5xl mx-auto mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-
-            <!-- Conselho Fiscal -->
-            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                <h4 class="text-sm font-bold uppercase tracking-widest text-slate-600 mb-4 border-b border-slate-200 pb-2">Conselho Fiscal</h4>
-                <ul class="space-y-3">
-                    <li class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">Angelo Tentardini</p>
-                            <p class="text-xs text-slate-500">3º Dan &bull; Santana do Livramento</p>
-                        </div>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">Leanderson Penna</p>
-                            <p class="text-xs text-slate-500">3º Dan &bull; Barra do Quaraí</p>
-                        </div>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">Fabiane Hintz</p>
-                            <p class="text-xs text-slate-500">1º Dan &bull; Santa Rosa</p>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Suplentes do Conselho -->
-            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                <h4 class="text-sm font-bold uppercase tracking-widest text-slate-600 mb-4 border-b border-slate-200 pb-2">Suplentes do Conselho</h4>
-                <ul class="space-y-3">
-                    <li class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">Arlei Roosevelt Bedatt</p>
-                            <p class="text-xs text-slate-500">4º Dan &bull; Campo Bom</p>
-                        </div>
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">Daniel Soares Guimarães</p>
-                            <p class="text-xs text-slate-500">4º Dan &bull; Rio Grande</p>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Comissão de Ética -->
-            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                <h4 class="text-sm font-bold uppercase tracking-widest text-slate-600 mb-4 border-b border-slate-200 pb-2">Comissão de Ética</h4>
-                <ul class="space-y-3">
-                    <li class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">Fabiano Maciel Ornaghi</p>
-                            <p class="text-xs text-slate-500">5º Dan &bull; Capão da Canoa</p>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Departamento de Kobudo -->
-            <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                <h4 class="text-sm font-bold uppercase tracking-widest text-slate-600 mb-4 border-b border-slate-200 pb-2">Departamento de Kobudo</h4>
-                <ul class="space-y-3">
-                    <li class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-slate-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-800">Rogélio Chagas Rodrigues</p>
-                            <p class="text-xs text-slate-500">6º Dan &bull; Santana do Livramento</p>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-
+            <?php foreach ($sections as $sectionName => $sectionPositions): ?>
+                <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                    <h4 class="text-sm font-bold uppercase tracking-widest text-slate-600 mb-4 border-b border-slate-200 pb-2">
+                        <?= htmlspecialchars($sectionName) ?>
+                    </h4>
+                    <ul class="space-y-3">
+                        <?php foreach ($sectionPositions as $pos):
+                            foreach ($pos['members'] as $m): ?>
+                                <li class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-full overflow-hidden bg-slate-200 shrink-0">
+                                        <?php if (!empty($m['photo'])): ?>
+                                            <img src="/uploads/users/<?= htmlspecialchars($m['photo']) ?>" alt="" class="w-full h-full object-cover">
+                                        <?php else: ?>
+                                            <div class="w-full h-full flex items-center justify-center text-slate-400">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                </svg>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-800">
+                                            <?= htmlspecialchars($m['name'] ?? '—') ?>
+                                        </p>
+                                        <p class="text-xs text-slate-500"><?= $memberInfo($m) ?></p>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        <?php endforeach; ?>
+                        <?php
+                        $anyMember = false;
+                        foreach ($sectionPositions as $p) { if (!empty($p['members'])) { $anyMember = true; break; } }
+                        if (!$anyMember): ?>
+                            <li class="text-sm text-slate-400 italic">Não atribuído</li>
+                        <?php endif; ?>
+                    </ul>
+                </div>
+            <?php endforeach; ?>
         </div>
+        <?php endif; ?>
 
     </div>
 </section>

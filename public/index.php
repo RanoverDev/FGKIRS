@@ -221,6 +221,13 @@ $router->add('GET', '/fgkirs-admin/federation-profile', 'Admin\FederationProfile
 $router->add('POST', '/fgkirs-admin/federation-profile/update', 'Admin\FederationProfileController@update');
 
 // =====================================================
+// ADMIN - BOARD (Estrutura Administrativa)
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/board', 'Admin\BoardController@index');
+$router->add('POST', '/fgkirs-admin/board/save', 'Admin\BoardController@save');
+
+// =====================================================
 // DISPATCH ROUTER
 // =====================================================
 
