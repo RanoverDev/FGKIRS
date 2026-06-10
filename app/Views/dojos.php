@@ -49,14 +49,14 @@ function dojoWaUrl(string $raw, string $dojoName): string {
                              onclick="openModal(<?= $dojo['id'] ?>)">
 
                             <!-- Logo -->
-                            <div class="flex items-center justify-center bg-white p-4" style="height:140px;">
+                            <div class="flex items-center justify-center overflow-hidden" style="height:180px;">
                                 <?php if (!empty($dojo['logo'])): ?>
                                     <img src="/uploads/dojos/<?= htmlspecialchars($dojo['logo']) ?>"
                                          alt="<?= htmlspecialchars($dojo['name']) ?>"
                                          class="w-full h-full object-contain">
                                 <?php else: ?>
                                     <div class="flex flex-col items-center gap-1 text-slate-200">
-                                        <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                                                   d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                         </svg>
@@ -69,7 +69,7 @@ function dojoWaUrl(string $raw, string $dojoName): string {
 
                             <!-- Info -->
                             <div class="px-3 py-3 flex flex-col items-center text-center gap-1 flex-1">
-                                <h3 class="text-xs font-bold text-slate-900 leading-snug line-clamp-2">
+                                <h3 class="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
                                     <?= htmlspecialchars($dojo['name']) ?>
                                 </h3>
                                 <?php if ($city): ?>
@@ -156,7 +156,7 @@ function dojoWaUrl(string $raw, string $dojoName): string {
 
         <!-- Header do modal -->
         <div class="flex items-start gap-4 p-5 border-b border-slate-100">
-            <div id="mLogo" class="w-16 h-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden">
+            <div id="mLogo" class="w-20 h-20 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
                 <!-- logo injetada via JS -->
             </div>
             <div class="flex-1 min-w-0">
