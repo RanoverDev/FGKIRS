@@ -281,17 +281,27 @@ class GalleryController extends Controller
 
         $this->getGalleryOrDeny($id);
 
+        // When post_max_size is exceeded PHP silently empties $_FILES — detect it via CONTENT_LENGTH
+        $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+        $postMaxBytes  = self::iniBytes('post_max_size');
+        if ($contentLength > 0 && $postMaxBytes > 0 && $contentLength > $postMaxBytes) {
+            $limit = self::formatBytes($postMaxBytes);
+            echo json_encode(['error' => "O arquivo excede o limite de envio do servidor ({$limit}). Peça ao administrador para aumentar post_max_size."]);
+            exit;
+        }
+
         if (!isset($_FILES['zip_file']) || $_FILES['zip_file']['error'] !== UPLOAD_ERR_OK) {
             $code = $_FILES['zip_file']['error'] ?? -1;
+            $uploadMaxBytes = self::iniBytes('upload_max_filesize');
             $msgs = [
-                UPLOAD_ERR_INI_SIZE  => 'O arquivo excede o limite do servidor (upload_max_filesize).',
+                UPLOAD_ERR_INI_SIZE  => 'O arquivo excede o limite upload_max_filesize do servidor (' . self::formatBytes($uploadMaxBytes) . ').',
                 UPLOAD_ERR_FORM_SIZE => 'O arquivo excede o limite do formulário.',
                 UPLOAD_ERR_PARTIAL   => 'Upload incompleto. Tente novamente.',
                 UPLOAD_ERR_NO_FILE   => 'Nenhum arquivo selecionado.',
                 UPLOAD_ERR_NO_TMP_DIR => 'Pasta temporária ausente no servidor.',
                 UPLOAD_ERR_CANT_WRITE => 'Falha ao gravar arquivo no servidor.',
             ];
-            echo json_encode(['error' => $msgs[$code] ?? "Erro no upload (código $code)."]);
+            echo json_encode(['error' => $msgs[$code] ?? "Erro no upload (código $code). Verifique os limites do servidor."]);
             exit;
         }
 
@@ -554,6 +564,28 @@ class GalleryController extends Controller
         }
 
         return $files;
+    }
+
+    private static function iniBytes(string $key): int
+    {
+        $val = trim((string) ini_get($key));
+        if ($val === '' || $val === '0') return 0;
+        $last = strtolower($val[-1]);
+        $num  = (int) $val;
+        return match ($last) {
+            'g' => $num * 1024 * 1024 * 1024,
+            'm' => $num * 1024 * 1024,
+            'k' => $num * 1024,
+            default => $num,
+        };
+    }
+
+    private static function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1024 * 1024 * 1024) return round($bytes / (1024 ** 3), 1) . ' GB';
+        if ($bytes >= 1024 * 1024)        return round($bytes / (1024 ** 2), 1) . ' MB';
+        if ($bytes >= 1024)               return round($bytes / 1024, 1) . ' KB';
+        return $bytes . ' B';
     }
 
     private function deleteDir(string $dir): void

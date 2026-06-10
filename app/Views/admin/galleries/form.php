@@ -82,7 +82,11 @@ require_once __DIR__ . '/../layout/header.php';
                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p class="text-sm font-semibold text-slate-600 mb-1" id="dropLabel">Clique ou arraste o arquivo ZIP aqui</p>
-                <p class="text-xs text-slate-400">Máximo: conforme configuração do servidor (recomendado até 200 MB)</p>
+                <?php
+                    $postMax   = ini_get('post_max_size');
+                    $uploadMax = ini_get('upload_max_filesize');
+                ?>
+                <p class="text-xs text-slate-400">Limite do servidor: <strong><?= htmlspecialchars($postMax) ?></strong> (post) · <strong><?= htmlspecialchars($uploadMax) ?></strong> (upload)</p>
                 <input type="file" id="zipInput" accept=".zip" class="hidden">
             </div>
 
