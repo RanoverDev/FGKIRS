@@ -179,7 +179,9 @@ class Database
             "ALTER TABLE student_profiles DROP FOREIGN KEY student_profiles_ibfk_2",
             "ALTER TABLE student_profiles ADD CONSTRAINT fk_student_profiles_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE RESTRICT",
             "ALTER TABLE athlete_profiles DROP FOREIGN KEY athlete_profiles_ibfk_2",
-            "ALTER TABLE athlete_profiles ADD CONSTRAINT fk_athlete_profiles_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL"
+            "ALTER TABLE athlete_profiles ADD CONSTRAINT fk_athlete_profiles_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL",
+            "ALTER TABLE dojos ADD COLUMN instagram VARCHAR(255) NULL",
+            "ALTER TABLE dojos ADD COLUMN facebook VARCHAR(255) NULL"
         ];
 
         foreach ($fixes as $fixSql) {

@@ -99,10 +99,12 @@ class DojoController extends \Controllers\Controller
         }
 
         $phoneWhatsapp = preg_replace('/\D/', '', $_POST['phone_whatsapp'] ?? '') ?: null;
+        $instagram     = trim(ltrim($_POST['instagram'] ?? '', '@')) ?: null;
+        $facebook      = trim($_POST['facebook'] ?? '') ?: null;
 
         // Insert dojo
-        $sql = "INSERT INTO dojos (name, address, city, state, sensei_id, logo, phone_whatsapp, created_at, updated_at)
-                VALUES (:name, :address, :city, :state, :sensei_id, :logo, :phone_whatsapp, NOW(), NOW())";
+        $sql = "INSERT INTO dojos (name, address, city, state, sensei_id, logo, phone_whatsapp, instagram, facebook, created_at, updated_at)
+                VALUES (:name, :address, :city, :state, :sensei_id, :logo, :phone_whatsapp, :instagram, :facebook, NOW(), NOW())";
 
         $params = [
             'name'           => $name,
@@ -112,6 +114,8 @@ class DojoController extends \Controllers\Controller
             'sensei_id'      => $senseiId,
             'logo'           => $logoFilename,
             'phone_whatsapp' => $phoneWhatsapp,
+            'instagram'      => $instagram,
+            'facebook'       => $facebook,
         ];
 
         $this->db->query($sql, $params);
@@ -278,11 +282,14 @@ class DojoController extends \Controllers\Controller
         }
 
         $phoneWhatsapp = preg_replace('/\D/', '', $_POST['phone_whatsapp'] ?? '') ?: null;
+        $instagram     = trim(ltrim($_POST['instagram'] ?? '', '@')) ?: null;
+        $facebook      = trim($_POST['facebook'] ?? '') ?: null;
 
         // Update dojo
         $sql = "UPDATE dojos
                 SET name = :name, address = :address, city = :city, state = :state,
                     sensei_id = :sensei_id, logo = :logo, phone_whatsapp = :phone_whatsapp,
+                    instagram = :instagram, facebook = :facebook,
                     updated_at = NOW()
                 WHERE id = :id";
 
@@ -294,6 +301,8 @@ class DojoController extends \Controllers\Controller
             'sensei_id'      => $senseiId,
             'logo'           => $logoFilename,
             'phone_whatsapp' => $phoneWhatsapp,
+            'instagram'      => $instagram,
+            'facebook'       => $facebook,
             'id'             => $id,
         ];
 

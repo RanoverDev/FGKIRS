@@ -78,6 +78,32 @@ require_once __DIR__ . '/../layout/header.php';
             <p class="text-xs text-gray-400 mt-1">Usado para o botão de contato no site. Apenas números.</p>
         </div>
 
+        <!-- Redes Sociais -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="instagram" class="block text-sm font-medium text-gray-700 mb-2">Instagram</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">@</span>
+                    <input type="text" id="instagram" name="instagram"
+                           value="<?= htmlspecialchars(ltrim($dojo['instagram'] ?? '', '@')) ?>"
+                           placeholder="perfil_do_dojo"
+                           class="w-full pl-7 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+                <p class="text-xs text-gray-400 mt-1">Somente o @ do perfil, sem URL.</p>
+            </div>
+            <div>
+                <label for="facebook" class="block text-sm font-medium text-gray-700 mb-2">Facebook</label>
+                <div class="relative">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium select-none">fb/</span>
+                    <input type="text" id="facebook" name="facebook"
+                           value="<?= htmlspecialchars($dojo['facebook'] ?? '') ?>"
+                           placeholder="NomeDaPagina"
+                           class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+                <p class="text-xs text-gray-400 mt-1">Somente o slug da página, sem URL.</p>
+            </div>
+        </div>
+
         <!-- Logo -->
         <div class="mb-6">
             <label for="logo" class="block text-sm font-medium text-gray-700 mb-2">Logo do Dojo</label>
