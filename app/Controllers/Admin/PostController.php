@@ -244,16 +244,12 @@ class PostController extends Controller
             exit;
         }
 
-        // Generate slug if post doesn't have one yet
-        $slug = $post['slug'];
-        if (empty($slug)) {
-            $slug = Slugify::unique($title, function ($candidate) use ($id) {
-                return $this->db->query(
-                    "SELECT id FROM posts WHERE slug = :s AND id != :id",
-                    ['s' => $candidate, 'id' => $id]
-                )->fetchColumn() !== false;
-            });
-        }
+        $slug = Slugify::unique($title, function ($candidate) use ($id) {
+            return $this->db->query(
+                "SELECT id FROM posts WHERE slug = :s AND id != :id",
+                ['s' => $candidate, 'id' => $id]
+            )->fetchColumn() !== false;
+        });
 
         $sql = "UPDATE posts
                 SET title = :title, slug = :slug, content = :content,

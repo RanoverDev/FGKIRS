@@ -135,13 +135,10 @@ class GalleryController extends Controller
             exit;
         }
 
-        $slug = $gallery['slug'];
-        if (empty($slug)) {
-            $slug = Slugify::unique($title, fn($candidate) => $this->db->query(
-                "SELECT id FROM galleries WHERE slug = :s AND id != :id",
-                ['s' => $candidate, 'id' => $id]
-            )->fetchColumn() !== false);
-        }
+        $slug = Slugify::unique($title, fn($candidate) => $this->db->query(
+            "SELECT id FROM galleries WHERE slug = :s AND id != :id",
+            ['s' => $candidate, 'id' => $id]
+        )->fetchColumn() !== false);
 
         $this->db->query(
             "UPDATE galleries SET title = :title, slug = :slug, description = :description,
