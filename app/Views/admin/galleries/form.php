@@ -74,47 +74,36 @@ require_once __DIR__ . '/../layout/header.php';
                 automaticamente.
             </p>
 
-            <form action="/fgkirs-admin/galleries/upload-zip/<?= $gallery['id'] ?>" method="POST"
-                enctype="multipart/form-data" id="uploadForm">
+            <div id="dropZone"
+                class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 hover:border-red-400 hover:bg-red-50 transition-colors cursor-pointer"
+                onclick="document.getElementById('zipInput').click()">
+                <svg class="w-12 h-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p class="text-sm font-semibold text-slate-600 mb-1" id="dropLabel">Clique ou arraste o arquivo ZIP aqui</p>
+                <p class="text-xs text-slate-400">Máximo: conforme configuração do servidor (recomendado até 200 MB)</p>
+                <input type="file" id="zipInput" accept=".zip" class="hidden">
+            </div>
 
-                <div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50
-                        hover:border-red-400 hover:bg-red-50 transition-colors cursor-pointer" id="dropZone"
-                    onclick="document.getElementById('zipInput').click()">
-
-                    <svg class="w-12 h-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-
-                    <p class="text-sm font-semibold text-slate-600 mb-1" id="dropLabel">
-                        Clique ou arraste o arquivo ZIP aqui
-                    </p>
-                    <p class="text-xs text-slate-400">Máximo: conforme configuração do servidor (recomendado até 200 MB)</p>
-
-                    <input type="file" id="zipInput" name="zip_file" accept=".zip" required class="hidden"
-                        onchange="updateDropLabel(this)">
+            <!-- Progresso -->
+            <div id="progressWrap" class="hidden mt-4 space-y-2">
+                <div class="flex justify-between text-xs text-slate-500 font-medium">
+                    <span id="progressLabel">Enviando ZIP...</span>
+                    <span id="progressPct">0%</span>
                 </div>
-
-                <div id="progressBar" class="hidden mt-4">
-                    <div class="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                        <svg class="animate-spin w-5 h-5 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        <span class="text-sm text-slate-600 font-medium">Processando imagens... aguarde, pode demorar alguns
-                            minutos.</span>
-                    </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5">
+                    <div id="progressFill" class="bg-red-600 h-2.5 rounded-full transition-all duration-300" style="width:0%"></div>
                 </div>
+            </div>
+            <div id="uploadResult" class="hidden mt-3 p-3 rounded-lg text-sm font-medium"></div>
 
-                <div class="mt-4 flex justify-end">
-                    <button type="submit" id="submitBtn"
-                        class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50">
-                        Enviar e Processar
-                    </button>
-                </div>
-            </form>
+            <div class="mt-4 flex justify-end">
+                <button id="submitBtn" onclick="startUpload()"
+                    class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-50">
+                    Enviar e Processar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -173,40 +162,102 @@ require_once __DIR__ . '/../layout/header.php';
     </div>
 
     <script>
+        const GALLERY_ID = <?= (int) $gallery['id'] ?>;
+        const zipInput   = document.getElementById('zipInput');
+        const dropZone   = document.getElementById('dropZone');
+
+        zipInput.addEventListener('change', () => updateDropLabel(zipInput));
+
         function updateDropLabel(input) {
-            const label = document.getElementById('dropLabel');
             if (input.files && input.files[0]) {
                 const size = (input.files[0].size / 1024 / 1024).toFixed(1);
-                label.textContent = input.files[0].name + ' (' + size + ' MB)';
-                label.classList.add('text-red-700');
+                document.getElementById('dropLabel').innerHTML =
+                    '<span class="text-red-700 font-bold">' + input.files[0].name + ' (' + size + ' MB)</span>';
             }
         }
 
-        // Submissão — mostra spinner sem bloquear o envio do formulário
-        document.getElementById('uploadForm').addEventListener('submit', function (e) {
-            const input = document.getElementById('zipInput');
-            if (!input.files || !input.files[0]) {
-                e.preventDefault();
+        function setProgress(pct, label) {
+            document.getElementById('progressWrap').classList.remove('hidden');
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressPct').textContent  = Math.round(pct) + '%';
+            document.getElementById('progressLabel').textContent = label;
+        }
+
+        function showResult(ok, msg) {
+            const el = document.getElementById('uploadResult');
+            el.classList.remove('hidden', 'bg-green-50', 'text-green-800', 'bg-red-50', 'text-red-800');
+            el.classList.add(ok ? 'bg-green-50' : 'bg-red-50', ok ? 'text-green-800' : 'text-red-800');
+            el.textContent = msg;
+        }
+
+        async function startUpload() {
+            if (!zipInput.files || !zipInput.files[0]) {
                 alert('Selecione um arquivo ZIP antes de enviar.');
                 return;
             }
-            document.getElementById('progressBar').classList.remove('hidden');
+
             const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
             btn.textContent = 'Enviando...';
-            setTimeout(() => { btn.disabled = true; }, 0);
-        });
+            document.getElementById('uploadResult').classList.add('hidden');
+            setProgress(0, 'Enviando ZIP para o servidor...');
+
+            // ── Step 1: upload + extract ──────────────────────────────────────
+            const formData = new FormData();
+            formData.append('zip_file', zipInput.files[0]);
+
+            let total;
+            try {
+                const res  = await fetch('/fgkirs-admin/galleries/upload-zip-extract/' + GALLERY_ID, {
+                    method: 'POST', body: formData
+                });
+                const data = await res.json();
+                if (data.error) { showResult(false, data.error); btn.disabled = false; btn.textContent = 'Enviar e Processar'; return; }
+                total = data.total;
+            } catch (e) {
+                showResult(false, 'Erro ao enviar o arquivo. Verifique a conexão e tente novamente.');
+                btn.disabled = false; btn.textContent = 'Enviar e Processar';
+                return;
+            }
+
+            setProgress(5, 'ZIP recebido. Processando ' + total + ' imagem(ns)...');
+
+            // ── Step 2: process in batches ────────────────────────────────────
+            let offset = 0, totalProcessed = 0, totalFailed = 0;
+
+            while (offset < total) {
+                try {
+                    const res  = await fetch('/fgkirs-admin/galleries/process-batch/' + GALLERY_ID, { method: 'POST' });
+                    const data = await res.json();
+                    if (data.error) { showResult(false, data.error); btn.disabled = false; btn.textContent = 'Enviar e Processar'; return; }
+
+                    offset         = data.offset;
+                    totalProcessed += data.processed;
+                    totalFailed    += data.failed;
+
+                    const pct = 5 + Math.round((offset / total) * 95);
+                    setProgress(pct, 'Processando... ' + offset + ' / ' + total + ' imagens');
+
+                    if (data.done) break;
+                } catch (e) {
+                    showResult(false, 'Erro durante o processamento. ' + totalProcessed + ' imagem(ns) já salva(s). Recarregue a página.');
+                    btn.disabled = false; btn.textContent = 'Enviar e Processar';
+                    return;
+                }
+            }
+
+            setProgress(100, 'Concluído!');
+            let msg = totalProcessed + ' imagem(ns) adicionada(s) com sucesso!';
+            if (totalFailed > 0) msg += ' (' + totalFailed + ' falhou)';
+            showResult(true, msg);
+
+            btn.textContent = 'Concluído!';
+            setTimeout(() => location.reload(), 1500);
+        }
 
         // Drag-and-drop
-        const dropZone = document.getElementById('dropZone');
-        const zipInput = document.getElementById('zipInput');
-
-        dropZone.addEventListener('dragover', e => {
-            e.preventDefault();
-            dropZone.classList.add('border-red-500', 'bg-red-50');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('border-red-500', 'bg-red-50');
-        });
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-red-500', 'bg-red-50'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-red-500', 'bg-red-50'); });
         dropZone.addEventListener('drop', e => {
             e.preventDefault();
             dropZone.classList.remove('border-red-500', 'bg-red-50');

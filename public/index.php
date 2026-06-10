@@ -208,6 +208,8 @@ $router->add('GET', '/fgkirs-admin/galleries/edit/{id}', 'Admin\GalleryControlle
 $router->add('POST', '/fgkirs-admin/galleries/update/{id}', 'Admin\GalleryController@update');
 $router->add('GET', '/fgkirs-admin/galleries/delete/{id}', 'Admin\GalleryController@delete');
 $router->add('POST', '/fgkirs-admin/galleries/upload-zip/{id}', 'Admin\GalleryController@uploadZip');
+$router->add('POST', '/fgkirs-admin/galleries/upload-zip-extract/{id}', 'Admin\GalleryController@uploadZipExtract');
+$router->add('POST', '/fgkirs-admin/galleries/process-batch/{id}', 'Admin\GalleryController@processBatch');
 $router->add('GET', '/fgkirs-admin/galleries/remove-image/{id}', 'Admin\GalleryController@removeImage');
 $router->add('GET', '/fgkirs-admin/galleries/set-cover/{id}', 'Admin\GalleryController@setCover');
 

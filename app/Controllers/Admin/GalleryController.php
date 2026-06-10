@@ -263,6 +263,160 @@ class GalleryController extends Controller
         exit;
     }
 
+    /**
+     * Step 1 of chunked upload: receive ZIP, extract to temp dir, store file list in session.
+     * Returns JSON: { total: N, tempDir: "..." } or { error: "..." }
+     */
+    public function uploadZipExtract(int $id): void
+    {
+        @set_time_limit(120);
+        @ini_set('memory_limit', '512M');
+
+        header('Content-Type: application/json');
+
+        if (!Auth::authorize(['admin', 'sensei', 'aluno-colaborador'])) {
+            echo json_encode(['error' => 'Acesso negado.']);
+            exit;
+        }
+
+        $this->getGalleryOrDeny($id);
+
+        if (!isset($_FILES['zip_file']) || $_FILES['zip_file']['error'] !== UPLOAD_ERR_OK) {
+            $code = $_FILES['zip_file']['error'] ?? -1;
+            $msgs = [
+                UPLOAD_ERR_INI_SIZE  => 'O arquivo excede o limite do servidor (upload_max_filesize).',
+                UPLOAD_ERR_FORM_SIZE => 'O arquivo excede o limite do formulário.',
+                UPLOAD_ERR_PARTIAL   => 'Upload incompleto. Tente novamente.',
+                UPLOAD_ERR_NO_FILE   => 'Nenhum arquivo selecionado.',
+                UPLOAD_ERR_NO_TMP_DIR => 'Pasta temporária ausente no servidor.',
+                UPLOAD_ERR_CANT_WRITE => 'Falha ao gravar arquivo no servidor.',
+            ];
+            echo json_encode(['error' => $msgs[$code] ?? "Erro no upload (código $code)."]);
+            exit;
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($_FILES['zip_file']['tmp_name']) !== true) {
+            echo json_encode(['error' => 'Não foi possível abrir o arquivo ZIP. Verifique se o arquivo não está corrompido.']);
+            exit;
+        }
+
+        $tempDir = sys_get_temp_dir() . '/gallery_' . $id . '_' . uniqid();
+        mkdir($tempDir, 0755, true);
+        $zip->extractTo($tempDir);
+        $zip->close();
+
+        $files = $this->scanImages($tempDir);
+
+        if (empty($files)) {
+            $this->deleteDir($tempDir);
+            echo json_encode(['error' => 'Nenhuma imagem encontrada no ZIP. Formatos aceitos: JPG, PNG, WebP.']);
+            exit;
+        }
+
+        $sessionKey = 'gallery_zip_' . $id;
+        $_SESSION[$sessionKey] = [
+            'tempDir' => $tempDir,
+            'files'   => $files,
+            'offset'  => 0,
+        ];
+
+        echo json_encode(['total' => count($files)]);
+        exit;
+    }
+
+    /**
+     * Step 2 of chunked upload: process the next batch of N images from session.
+     * Returns JSON: { processed: N, failed: N, offset: N, total: N, done: bool }
+     */
+    public function processBatch(int $id): void
+    {
+        @set_time_limit(60);
+        @ini_set('memory_limit', '512M');
+
+        header('Content-Type: application/json');
+
+        if (!Auth::authorize(['admin', 'sensei', 'aluno-colaborador'])) {
+            echo json_encode(['error' => 'Acesso negado.']);
+            exit;
+        }
+
+        $this->getGalleryOrDeny($id);
+
+        $sessionKey = 'gallery_zip_' . $id;
+        if (empty($_SESSION[$sessionKey])) {
+            echo json_encode(['error' => 'Sessão expirada. Faça o upload novamente.']);
+            exit;
+        }
+
+        $state    = &$_SESSION[$sessionKey];
+        $files    = $state['files'];
+        $offset   = $state['offset'];
+        $total    = count($files);
+        $batchSize = 5;
+
+        $dateFolder = date('Y/m/d');
+        $uploadDir  = __DIR__ . '/../../../public/uploads/galleries/' . $dateFolder;
+
+        $hasCover = (int) $this->db->query(
+            "SELECT COUNT(*) FROM gallery_images WHERE gallery_id = :id AND is_cover = 1",
+            ['id' => $id]
+        )->fetchColumn() > 0;
+
+        $processed = 0;
+        $failed    = 0;
+        $batch     = array_slice($files, $offset, $batchSize);
+
+        foreach ($batch as $file) {
+            if (!file_exists($file)) {
+                $failed++;
+                continue;
+            }
+
+            $filename = ImageProcessor::processFromPath($file, $uploadDir);
+            if (!$filename) {
+                $failed++;
+                continue;
+            }
+
+            $relativePath = $dateFolder . '/' . $filename;
+            $isCover = $hasCover ? 0 : 1;
+
+            $this->db->query(
+                "INSERT INTO gallery_images (gallery_id, filename, is_cover) VALUES (:gallery_id, :filename, :is_cover)",
+                ['gallery_id' => $id, 'filename' => $relativePath, 'is_cover' => $isCover]
+            );
+
+            if (!$hasCover) {
+                $this->db->query(
+                    "UPDATE galleries SET cover_image = :cover WHERE id = :id",
+                    ['cover' => $relativePath, 'id' => $id]
+                );
+                $hasCover = true;
+            }
+
+            $processed++;
+        }
+
+        $newOffset = $offset + count($batch);
+        $state['offset'] = $newOffset;
+        $done = $newOffset >= $total;
+
+        if ($done) {
+            $this->deleteDir($state['tempDir']);
+            unset($_SESSION[$sessionKey]);
+        }
+
+        echo json_encode([
+            'processed' => $processed,
+            'failed'    => $failed,
+            'offset'    => $newOffset,
+            'total'     => $total,
+            'done'      => $done,
+        ]);
+        exit;
+    }
+
     public function removeImage(int $imageId): void
     {
         $image = $this->getImageOrDeny($imageId);
