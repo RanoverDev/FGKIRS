@@ -544,7 +544,7 @@ if ($lp && !empty($lp['video_url'])) {
         <div class="overflow-y-auto flex-1 p-5 space-y-4">
             <div id="hmSenseisWrap"><p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Sensei(s)</p><ul id="hmSenseis" class="space-y-1.5"></ul></div>
             <div id="hmStylesWrap"><p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Estilos praticados</p><div id="hmStyles" class="flex flex-wrap gap-2"></div></div>
-            <div><p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Alunos cadastrados</p><p id="hmStudents" class="text-sm text-slate-700 font-semibold"></p></div>
+            <div><p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Atletas cadastrados</p><p id="hmStudents" class="text-sm text-slate-700 font-semibold"></p></div>
         </div>
         <div id="hmContacts" class="p-5 border-t border-slate-100 flex flex-wrap gap-2"></div>
     </div>
@@ -557,7 +557,7 @@ function openHomeDojo(id) {
     document.getElementById('hmLogo').innerHTML = d.logo ? `<img src="${d.logo}" class="w-full h-full object-contain p-1">` : `<svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>`;
     document.getElementById('hmName').textContent    = d.name;
     document.getElementById('hmCity').textContent    = d.city || '—';
-    document.getElementById('hmStudents').textContent = d.students > 0 ? d.students + ' aluno' + (d.students !== 1 ? 's' : '') : 'Sem alunos cadastrados';
+    document.getElementById('hmStudents').textContent = d.students > 0 ? d.students + ' atleta' + (d.students !== 1 ? 's' : '') : 'Sem atletas cadastrados';
     const sl = document.getElementById('hmSenseis');
     if (d.senseis.length) { sl.innerHTML = d.senseis.map(s => `<li class="flex items-center gap-2 text-sm text-slate-700"><svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><span class="font-medium">${s.name}</span>${s.graduation ? `<span class="text-xs text-slate-400">· ${s.graduation}</span>` : ''}</li>`).join(''); document.getElementById('hmSenseisWrap').classList.remove('hidden'); } else { document.getElementById('hmSenseisWrap').classList.add('hidden'); }
     const st = document.getElementById('hmStyles');

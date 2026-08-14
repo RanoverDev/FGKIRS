@@ -18,7 +18,7 @@ class Dojo
                         d.instagram, d.facebook,
                         u.name AS sensei_name,
                         (SELECT COUNT(*) FROM users
-                         WHERE dojo_id = d.id AND role IN ('aluno','aluno-colaborador')) AS student_count
+                         WHERE dojo_id = d.id AND role NOT IN ('admin','sensei')) AS student_count
                  FROM dojos d
                  LEFT JOIN users u ON u.id = d.sensei_id
                  ORDER BY d.city ASC, d.name ASC"

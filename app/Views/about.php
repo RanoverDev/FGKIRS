@@ -70,7 +70,7 @@
                 $ab  = $avatarBorder[$pos['color']] ?? 'border-slate-300';
                 $isFirst = $i === 0;
                 $cardSize = $isFirst ? 'w-72 p-6' : 'w-72 p-5';
-                $imgSize  = $isFirst ? 'w-20 h-20 mb-4 border-2' : 'w-16 h-16 mb-3 border-2';
+                $imgSize  = $isFirst ? 'w-28 h-28 mb-4 border-2' : 'w-20 h-20 mb-3 border-2';
             ?>
                 <div class="bg-white border-t-4 <?= $bc ?> rounded-xl shadow<?= $isFirst ? '-lg' : '-md' ?> <?= $cardSize ?> text-center z-10 relative hover:shadow-xl transition-shadow">
                     <?php foreach ($pos['members'] as $m): ?>
@@ -118,23 +118,39 @@
                 ?>
                     <div class="bg-white border-t-4 <?= $bc ?> rounded-xl shadow p-5 text-center hover:shadow-md transition-shadow">
                         <?php if (!empty($pos['members'])): ?>
-                            <?php foreach ($pos['members'] as $mi => $m): ?>
-                                <?php if ($mi === 0): ?>
-                                    <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 <?= $ab ?> shadow">
-                                        <?= $avatar($m, 'w-16 h-16', $ab) ?>
-                                    </div>
-                                <?php endif; ?>
+                            <?php if (count($pos['members']) === 1):
+                                $m = $pos['members'][0]; ?>
+                                <div class="w-20 h-20 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 <?= $ab ?> shadow">
+                                    <?= $avatar($m, 'w-20 h-20', $ab) ?>
+                                </div>
                                 <span class="inline-block text-xs font-semibold uppercase tracking-widest <?= $tc ?> mb-1">
                                     <?= htmlspecialchars($pos['title']) ?>
                                 </span>
                                 <h3 class="font-bold text-slate-900 text-sm leading-tight">
                                     <?= htmlspecialchars($m['name'] ?? '—') ?>
                                 </h3>
-                                <p class="text-xs text-slate-400 mt-<?= $mi > 0 ? '0.5' : '1' ?>"><?= $memberInfo($m) ?></p>
-                            <?php endforeach; ?>
+                                <p class="text-xs text-slate-400 mt-1"><?= $memberInfo($m) ?></p>
+                            <?php else: ?>
+                                <span class="inline-block text-xs font-semibold uppercase tracking-widest <?= $tc ?> mb-4">
+                                    <?= htmlspecialchars($pos['title']) ?>
+                                </span>
+                                <div class="flex flex-wrap justify-center gap-5">
+                                    <?php foreach ($pos['members'] as $m): ?>
+                                        <div class="flex flex-col items-center">
+                                            <div class="w-16 h-16 rounded-full overflow-hidden bg-slate-100 border-2 <?= $ab ?> shadow mb-2">
+                                                <?= $avatar($m, 'w-16 h-16', $ab) ?>
+                                            </div>
+                                            <p class="font-bold text-slate-900 text-xs leading-tight text-center max-w-[90px]">
+                                                <?= htmlspecialchars($m['name'] ?? '—') ?>
+                                            </p>
+                                            <p class="text-[11px] text-slate-400 mt-0.5 text-center"><?= $memberInfo($m) ?></p>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         <?php else: ?>
-                            <div class="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-200 shadow">
-                                <?= $avatar([], 'w-16 h-16', '') ?>
+                            <div class="w-20 h-20 rounded-full mx-auto mb-3 overflow-hidden bg-slate-100 border-2 border-slate-200 shadow">
+                                <?= $avatar([], 'w-20 h-20', '') ?>
                             </div>
                             <span class="inline-block text-xs font-semibold uppercase tracking-widest <?= $tc ?> mb-1">
                                 <?= htmlspecialchars($pos['title']) ?>
@@ -166,7 +182,7 @@
                         <?php foreach ($sectionPositions as $pos):
                             foreach ($pos['members'] as $m): ?>
                                 <li class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full overflow-hidden bg-slate-200 shrink-0">
+                                    <div class="w-12 h-12 rounded-full overflow-hidden bg-slate-200 shrink-0">
                                         <?php if (!empty($m['photo'])): ?>
                                             <img src="/uploads/users/<?= htmlspecialchars($m['photo']) ?>" alt="" class="w-full h-full object-cover">
                                         <?php else: ?>

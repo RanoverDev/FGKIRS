@@ -5,6 +5,13 @@ $pageTitle = isset($user) && $user ? 'Editar Usuário' : 'Novo Usuário';
 $isEdit    = isset($user) && $user;
 $ap        = $athleteProfile ?? [];
 
+$currentRole = is_array($user) ? ($user['role'] ?? '') : '';
+// If role is empty/invalid but athlete_profile exists, recover as 'aluno'
+if ($currentRole === '' && !empty($athleteProfile)) {
+    $currentRole = 'aluno';
+}
+$isAthlete = in_array($currentRole, ['aluno', 'aluno-colaborador']);
+
 require_once __DIR__ . '/../layout/header.php';
 
 // Build graduations lookup for JS: {styleId: [{id, belt_name, belt_color}, ...]}
@@ -110,11 +117,11 @@ foreach ($graduations ?? [] as $g) {
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent bg-white">
                 <option value="">Selecione...</option>
                 <?php if (Auth::isAdmin()): ?>
-                <option value="admin"  <?= ($user['role'] ?? '') === 'admin'  ? 'selected' : '' ?>>Administrador</option>
-                <option value="sensei" <?= ($user['role'] ?? '') === 'sensei' ? 'selected' : '' ?>>Sensei</option>
+                <option value="admin"  <?= $currentRole === 'admin'  ? 'selected' : '' ?>>Administrador</option>
+                <option value="sensei" <?= $currentRole === 'sensei' ? 'selected' : '' ?>>Sensei</option>
                 <?php endif; ?>
-                <option value="aluno-colaborador" <?= ($user['role'] ?? '') === 'aluno-colaborador' ? 'selected' : '' ?>>Aluno Colaborador</option>
-                <option value="aluno"             <?= ($user['role'] ?? '') === 'aluno'             ? 'selected' : '' ?>>Aluno</option>
+                <option value="aluno-colaborador" <?= $currentRole === 'aluno-colaborador' ? 'selected' : '' ?>>Aluno Colaborador</option>
+                <option value="aluno"             <?= $currentRole === 'aluno'             ? 'selected' : '' ?>>Aluno</option>
             </select>
         </div>
 
@@ -128,14 +135,13 @@ foreach ($graduations ?? [] as $g) {
         </div>
 
         <!-- ── Perfil de Atleta ──────────────────────────────────────────── -->
-        <?php
-        $currentRole    = $user['role'] ?? '';
-        $isAthlete      = in_array($currentRole, ['aluno', 'aluno-colaborador']);
-        ?>
-        <div id="athleteSection" class="<?= $isAthlete ? '' : 'hidden' ?>" style="background: #f4f4f4; margin-bottom8px; padding: 0 8px 6px 8px;">
+        <div id="athleteSection" class="<?= $isAthlete ? '' : 'hidden' ?>">
 
-            <div class="border-t border-gray-100 pt-6 mb-4">
-                <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Perfil de Atleta</p>
+            <div class="border-t border-gray-100 pt-6 mb-4 flex items-center justify-between">
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Perfil de Atleta</p>
+                <?php if ($isEdit && $athleteProfile === null && $isAthlete): ?>
+                <span class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-0.5">Perfil ainda não preenchido</span>
+                <?php endif; ?>
             </div>
 
             <!-- Registration numbers -->
@@ -160,14 +166,32 @@ foreach ($graduations ?? [] as $g) {
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Gênero</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sexo</label>
                     <select name="athlete_gender"
                             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent bg-white">
                         <option value="">—</option>
                         <option value="M" <?= ($ap['gender'] ?? '') === 'M' ? 'selected' : '' ?>>Masculino</option>
                         <option value="F" <?= ($ap['gender'] ?? '') === 'F' ? 'selected' : '' ?>>Feminino</option>
-                        <option value="O" <?= ($ap['gender'] ?? '') === 'O' ? 'selected' : '' ?>>Outro</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Para-karatê -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Para-karatê</label>
+                <div class="flex items-center gap-6">
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="athlete_para_karate" value="1"
+                               class="text-red-700 focus:ring-red-700"
+                               <?= !empty($ap['is_para_karate']) ? 'checked' : '' ?>>
+                        <span class="text-sm text-gray-700">Sim</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="athlete_para_karate" value="0"
+                               class="text-red-700 focus:ring-red-700"
+                               <?= empty($ap['is_para_karate']) ? 'checked' : '' ?>>
+                        <span class="text-sm text-gray-700">Não</span>
+                    </label>
                 </div>
             </div>
 
@@ -479,14 +503,15 @@ foreach ($graduations ?? [] as $g) {
 
     // Restore selected value on edit mode
     function restoreGradSelection() {
-        const selected = gradSelect.querySelector('option[selected]')
-                      || gradSelect.querySelector(`option[value="${gradSelect.value}"]`);
-        if (!selected || !selected.value) return;
+        if (!currentGradId) return;
+        const selected = gradSelect.querySelector(`option[value="${currentGradId}"]`);
+        if (!selected) return;
+        gradSelect.value = String(currentGradId);
         const color = selected.dataset.color || '';
         gradLabel.textContent = selected.textContent.trim();
         gradLabel.classList.remove('text-gray-400');
         gradDot.style.backgroundColor = color || '#e5e7eb';
-        gradDot.style.border = color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff'
+        gradDot.style.border = (color.toLowerCase() === '#ffffff' || color.toLowerCase() === '#fff')
             ? '1px solid #d1d5db' : '1px solid transparent';
         gradDot.classList.remove('hidden');
     }

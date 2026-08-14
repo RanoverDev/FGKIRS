@@ -9,6 +9,12 @@ $img     = !empty($post['featured_image']) ? '/uploads/posts/' . $post['featured
 $date    = date('d/m/Y', strtotime($post['published_at'] ?? $post['created_at']));
 $excerpt = mb_substr(strip_tags($post['content']), 0, 160, 'UTF-8');
 
+$ytId = null;
+if (!empty($post['video_url'])) {
+    preg_match('/(?:youtube\.com\/(?:watch\?.*v=|live\/|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $post['video_url'], $ym);
+    $ytId = $ym[1] ?? null;
+}
+
 $pageTitle = htmlspecialchars($post['title']) . ' – FGKIRS';
 $pageDesc  = $excerpt;
 $ogImage   = $img ? 'https://fgkirs.com.br' . $img : 'https://fgkirs.com.br/assets/images/og-default.jpg';
@@ -34,8 +40,21 @@ $shareTitle = urlencode($post['title']);
             <?php endif; ?>
         </div>
 
-        <!-- Imagem destaque (só quando há 1 imagem ou nenhuma adicional) -->
-        <?php if ($img && count($allImgs) <= 1): ?>
+        <!-- Vídeo destaque -->
+        <?php if ($ytId): ?>
+            <div class="relative aspect-video w-full rounded-2xl overflow-hidden mb-10 shadow-xl cursor-pointer group"
+                 onclick="openVideoLightbox()">
+                <img src="https://img.youtube.com/vi/<?= htmlspecialchars($ytId) ?>/hqdefault.jpg"
+                     alt="<?= htmlspecialchars($post['title']) ?>"
+                     class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition flex items-center justify-center">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/90 flex items-center justify-center shadow-xl group-hover:scale-105 transition">
+                        <svg class="w-7 h-7 sm:w-8 sm:h-8 text-rs-red ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                </div>
+            </div>
+        <?php elseif ($img && count($allImgs) <= 1): ?>
+            <!-- Imagem destaque (só quando há 1 imagem ou nenhuma adicional) -->
             <div class="aspect-video w-full rounded-2xl overflow-hidden mb-10 shadow-xl cursor-zoom-in"
                  onclick="openLightbox(0)">
                 <img src="<?= htmlspecialchars($img) ?>"
@@ -210,6 +229,54 @@ document.addEventListener('keydown', e => {
 // Fechar ao clicar no fundo
 document.getElementById('lb').addEventListener('click', function(e) {
     if (e.target === this) closeLightbox();
+});
+</script>
+<?php endif; ?>
+
+<!-- ── Lightbox de vídeo ── -->
+<?php if ($ytId): ?>
+<div id="videoLightbox" class="fixed inset-0 z-50 bg-black/95 hidden flex-col items-center justify-center"
+     role="dialog" aria-modal="true" aria-label="Assistir vídeo">
+
+    <button onclick="closeVideoLightbox()" aria-label="Fechar"
+        class="absolute top-4 right-4 text-white hover:text-slate-300 transition">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+    </button>
+
+    <div class="w-full max-w-4xl aspect-video px-4">
+        <iframe id="videoLightboxFrame" src=""
+            class="w-full h-full rounded-lg shadow-2xl" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+    </div>
+</div>
+
+<script>
+function openVideoLightbox() {
+    document.getElementById('videoLightboxFrame').src = 'https://www.youtube.com/embed/<?= htmlspecialchars($ytId) ?>?autoplay=1';
+    const lb = document.getElementById('videoLightbox');
+    lb.classList.remove('hidden');
+    lb.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeVideoLightbox() {
+    const lb = document.getElementById('videoLightbox');
+    lb.classList.add('hidden');
+    lb.classList.remove('flex');
+    document.getElementById('videoLightboxFrame').src = '';
+    document.body.style.overflow = '';
+}
+
+document.getElementById('videoLightbox').addEventListener('click', function(e) {
+    if (e.target === this) closeVideoLightbox();
+});
+
+document.addEventListener('keydown', e => {
+    if (document.getElementById('videoLightbox').classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeVideoLightbox();
 });
 </script>
 <?php endif; ?>

@@ -176,7 +176,7 @@ $currentType = $post['type'] ?? 'news';
 
 <script>
     function extractYouTubeId(url) {
-        const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|live\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|live\/|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
         return m ? m[1] : null;
     }
 

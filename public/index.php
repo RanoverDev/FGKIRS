@@ -99,7 +99,12 @@ HTML;
 
 $router->add('GET', '/', 'HomeController@index');
 $router->add('GET', '/home', 'HomeController@index');
-$router->add('GET', '/a-fgkirs', 'HomeController@about');
+$router->add('GET', '/quem-somos', 'HomeController@about');
+$router->add('GET', '/a-fgkirs', function () {
+    header('Location: /quem-somos', true, 301);
+    exit;
+});
+$router->add('GET', '/regras-de-arbitragem', 'HomeController@arbitrationRules');
 $router->add('GET', '/dojos', 'HomeController@dojos');
 $router->add('GET', '/contato', 'HomeController@contact');
 $router->add('POST', '/contato/enviar', 'HomeController@sendContact');
@@ -146,6 +151,7 @@ $router->add('GET', '/fgkirs-admin/users/edit/{id}', 'Admin\UserController@edit'
 $router->add('POST', '/fgkirs-admin/users/update/{id}', 'Admin\UserController@update');
 $router->add('GET', '/fgkirs-admin/users/delete/{id}', 'Admin\UserController@delete');
 $router->add('POST', '/fgkirs-admin/users/toggle-status/{id}', 'Admin\UserController@toggleStatus');
+$router->add('GET', '/fgkirs-admin/users/profile/{id}', 'Admin\UserController@profile');
 
 // =====================================================
 // ADMIN - DOJOS
@@ -226,6 +232,14 @@ $router->add('POST', '/fgkirs-admin/federation-profile/update', 'Admin\Federatio
 
 $router->add('GET', '/fgkirs-admin/board', 'Admin\BoardController@index');
 $router->add('POST', '/fgkirs-admin/board/save', 'Admin\BoardController@save');
+
+// =====================================================
+// ADMIN - HELP (Ajuda)
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/help', 'Admin\HelpController@index');
+$router->add('POST', '/fgkirs-admin/help/store', 'Admin\HelpController@store');
+$router->add('GET', '/fgkirs-admin/help/delete/{id}', 'Admin\HelpController@delete');
 
 // =====================================================
 // DISPATCH ROUTER

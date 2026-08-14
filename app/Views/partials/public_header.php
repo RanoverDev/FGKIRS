@@ -227,7 +227,34 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
             </div>
 
             <nav class="hidden md:flex items-center gap-6 text-sm text-slate-300">
-                <a href="/a-fgkirs" class="hover:text-white transition">A FGKIRS</a>
+                <!-- Dropdown A FGKIRS -->
+                <div class="relative group">
+                    <button class="flex items-center gap-1 hover:text-white transition py-1"
+                            aria-haspopup="true">
+                        A FGKIRS
+                        <svg class="w-3.5 h-3.5 mt-px transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div class="absolute top-full left-0 pt-1 hidden group-hover:block z-50">
+                        <div class="bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 w-52 overflow-hidden">
+                            <a href="/quem-somos"
+                               class="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 hover:text-rs-red transition text-sm">
+                                <svg class="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Quem Somos
+                            </a>
+                            <a href="/regras-de-arbitragem"
+                               class="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 hover:text-rs-red transition text-sm">
+                                <svg class="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Regras de Arbitragem
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <a href="/noticias" class="hover:text-white transition">Notícias</a>
                 <a href="/eventos" class="hover:text-white transition">Eventos</a>
                 <a href="/galerias" class="hover:text-white transition">Galerias</a>
@@ -244,7 +271,30 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
         </div>
 
         <div id="mobileMenu" class="hidden md:hidden border-t border-slate-700/50 px-4 pb-3 space-y-1 text-sm">
-            <a href="/a-fgkirs" class="block py-2 text-slate-300 hover:text-white transition">A FGKIRS</a>
+            <!-- Mobile dropdown A FGKIRS -->
+            <div>
+                <button onclick="toggleMobileSubMenu()" id="mobileSubBtn"
+                        class="w-full flex items-center justify-between py-2 text-slate-300 hover:text-white transition">
+                    <span>A FGKIRS</span>
+                    <svg id="mobileSubArrow" class="w-4 h-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="mobileSubMenu" class="hidden pl-3 pb-1 space-y-0.5 border-l border-slate-700/50 ml-1">
+                    <a href="/quem-somos" class="flex items-center gap-2 py-2 text-slate-400 hover:text-white transition">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Quem Somos
+                    </a>
+                    <a href="/regras-de-arbitragem" class="flex items-center gap-2 py-2 text-slate-400 hover:text-white transition">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Regras de Arbitragem
+                    </a>
+                </div>
+            </div>
             <a href="/noticias" class="block py-2 text-slate-300 hover:text-white transition">Notícias</a>
             <a href="/eventos" class="block py-2 text-slate-300 hover:text-white transition">Eventos</a>
             <a href="/galerias" class="block py-2 text-slate-300 hover:text-white transition">Galerias</a>
@@ -258,3 +308,12 @@ if ($waNumber && !str_starts_with($waNumber, '55')) {
             </a>
         </div>
     </header>
+
+<script>
+function toggleMobileSubMenu() {
+    const sub   = document.getElementById('mobileSubMenu');
+    const arrow = document.getElementById('mobileSubArrow');
+    sub.classList.toggle('hidden');
+    arrow.classList.toggle('rotate-180');
+}
+</script>

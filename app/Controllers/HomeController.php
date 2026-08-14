@@ -45,7 +45,21 @@ class HomeController extends Controller
     {
         $profile = FederationProfile::get();
         $board   = $this->loadBoard();
-        $this->view('about', ['profile' => $profile, 'board' => $board]);
+        $this->view('about', [
+            'profile'   => $profile,
+            'board'     => $board,
+            'pageTitle' => 'Quem Somos | FGKIRS',
+        ]);
+    }
+
+    public function arbitrationRules(): void
+    {
+        $profile = FederationProfile::get();
+        $this->view('arbitration_rules', [
+            'profile'   => $profile,
+            'pageTitle' => 'Regras de Arbitragem | FGKIRS',
+            'pageDesc'  => 'Regulamento oficial de arbitragem da Federação Gaúcha de Karatê Interestilos.',
+        ]);
     }
 
     private function loadBoard(): array

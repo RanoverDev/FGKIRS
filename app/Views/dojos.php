@@ -192,9 +192,9 @@ function dojoWaUrl(string $raw, string $dojoName): string {
                 <div id="mStyles" class="flex flex-wrap gap-2"></div>
             </div>
 
-            <!-- Alunos -->
+            <!-- Atletas -->
             <div>
-                <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Alunos cadastrados</p>
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Atletas cadastrados</p>
                 <p id="mStudents" class="text-sm text-slate-700 font-semibold"></p>
             </div>
         </div>
@@ -250,7 +250,7 @@ function openModal(id) {
     document.getElementById('mName').textContent    = d.name;
     document.getElementById('mCityText').textContent = d.city || '—';
     document.getElementById('mStudents').textContent =
-        d.students > 0 ? d.students + ' aluno' + (d.students !== 1 ? 's' : '') : 'Sem alunos cadastrados';
+        d.students > 0 ? d.students + ' atleta' + (d.students !== 1 ? 's' : '') : 'Sem atletas cadastrados';
 
     // Senseis
     const sl = document.getElementById('mSenseis');

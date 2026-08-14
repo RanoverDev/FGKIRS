@@ -181,7 +181,8 @@ class Database
             "ALTER TABLE athlete_profiles DROP FOREIGN KEY athlete_profiles_ibfk_2",
             "ALTER TABLE athlete_profiles ADD CONSTRAINT fk_athlete_profiles_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL",
             "ALTER TABLE dojos ADD COLUMN instagram VARCHAR(255) NULL",
-            "ALTER TABLE dojos ADD COLUMN facebook VARCHAR(255) NULL"
+            "ALTER TABLE dojos ADD COLUMN facebook VARCHAR(255) NULL",
+            "ALTER TABLE athlete_profiles ADD COLUMN is_para_karate TINYINT(1) NOT NULL DEFAULT 0 AFTER gender"
         ];
 
         foreach ($fixes as $fixSql) {
@@ -337,6 +338,7 @@ class Database
                 email VARCHAR(100),
                 phone_whatsapp VARCHAR(20),
                 gender ENUM('M','F','O') NULL,
+                is_para_karate TINYINT(1) NOT NULL DEFAULT 0,
                 weight DECIMAL(5,2) NULL COMMENT 'kg',
                 height SMALLINT NULL COMMENT 'cm',
                 style_id INT NULL,
@@ -411,6 +413,16 @@ class Database
                 INDEX idx_position (position_id),
                 FOREIGN KEY (position_id) REFERENCES board_positions(id) ON DELETE CASCADE,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS help_videos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                url VARCHAR(500) NOT NULL,
+                author_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_author_id (author_id),
+                FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 

@@ -149,6 +149,15 @@ ksort($dojoOptions);
                     </div>
                     <!-- Ações -->
                     <div class="flex items-center gap-3 shrink-0">
+                        <?php if ($u['role'] === 'sensei'): ?>
+                        <button type="button" onclick="openProfile(<?= $u['id'] ?>)" title="Ver ficha do atleta"
+                                class="text-slate-400 hover:text-blue-600 transition">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                        <?php endif; ?>
                         <a href="/fgkirs-admin/users/edit/<?= $u['id'] ?>" title="Editar"
                             class="text-slate-500 hover:text-slate-900 transition">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -227,6 +236,13 @@ ksort($dojoOptions);
                             <div class="text-xs text-slate-400 truncate"><?= htmlspecialchars($u['email']) ?></div>
                         </div>
                         <div class="flex items-center gap-3 shrink-0">
+                            <button type="button" onclick="openProfile(<?= $u['id'] ?>)" title="Ver ficha do atleta"
+                                    class="text-slate-400 hover:text-blue-600 transition">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                            </button>
                             <a href="/fgkirs-admin/users/edit/<?= $u['id'] ?>" title="Editar"
                                 class="text-slate-400 hover:text-slate-900 transition">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -279,6 +295,13 @@ ksort($dojoOptions);
                         <div class="text-xs text-slate-400 truncate"><?= htmlspecialchars($u['email']) ?></div>
                     </div>
                     <div class="flex items-center gap-3 shrink-0">
+                        <button type="button" onclick="openProfile(<?= $u['id'] ?>)" title="Ver ficha do atleta"
+                                class="text-slate-400 hover:text-blue-600 transition">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
                         <a href="/fgkirs-admin/users/edit/<?= $u['id'] ?>" title="Editar"
                             class="text-slate-400 hover:text-slate-900 transition">
                             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -387,6 +410,14 @@ function renderFiltered() {
                 <div class="text-xs text-slate-400 truncate">${u.email} · ${dojoText}</div>
             </div>
             <div class="flex items-center gap-3 shrink-0">
+                ${u.role !== 'admin' ? `
+                <button type="button" onclick="openProfile(${u.id})" title="Ver ficha do atleta"
+                        class="text-slate-400 hover:text-blue-600 transition">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                </button>` : ''}
                 <a href="/fgkirs-admin/users/edit/${u.id}" title="Editar" class="text-slate-400 hover:text-slate-900 transition">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.768-6.768a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"/></svg>
                 </a>
@@ -415,6 +446,194 @@ if (filterDojo) filterDojo.addEventListener('change', applyFilters);
 filterRole.addEventListener('change', applyFilters);
 
 applyFilters();
+
+// ── Modal Ficha do Atleta ────────────────────────────────────────────────────
+// Elementos buscados dentro das funções para garantir que o DOM está pronto
+async function openProfile(userId) {
+    const profileModal   = document.getElementById('profileModal');
+    const profileLoading = document.getElementById('profileLoading');
+    const profileContent = document.getElementById('profileContent');
+
+    profileModal.classList.remove('hidden');
+    profileModal.classList.add('flex');
+    profileLoading.classList.remove('hidden');
+    profileContent.classList.add('hidden');
+    profileContent.innerHTML = '';
+
+    try {
+        const res = await fetch(`/fgkirs-admin/users/profile/${userId}`);
+        if (!res.ok) throw new Error('Erro ao carregar dados');
+        const d = await res.json();
+        if (d.error) throw new Error(d.error);
+        profileContent.innerHTML = buildProfileHTML(d);
+        profileLoading.classList.add('hidden');
+        profileContent.classList.remove('hidden');
+    } catch (e) {
+        profileLoading.innerHTML = `<p class="text-red-500 text-sm text-center py-4">Erro ao carregar dados do atleta.</p>`;
+    }
+}
+
+function closeProfile() {
+    const profileModal = document.getElementById('profileModal');
+    if (profileModal) {
+        profileModal.classList.add('hidden');
+        profileModal.classList.remove('flex');
+    }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
+
+function fmtDate(d) {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+}
+
+function calcAge(d) {
+    if (!d) return null;
+    const today = new Date(), birth = new Date(d);
+    let age = today.getFullYear() - birth.getFullYear();
+    const mo = today.getMonth() - birth.getMonth();
+    if (mo < 0 || (mo === 0 && today.getDate() < birth.getDate())) age--;
+    return age;
+}
+
+function fmtPhone(p) {
+    if (!p) return '—';
+    const d = p.replace(/\D/g, '');
+    if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+    if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+    return p;
+}
+
+const GENDER_LABEL = { M: 'Masculino', F: 'Feminino' };
+const STATUS_CONFIG = {
+    active:   { label: 'Ativo',    cls: 'bg-green-100 text-green-800' },
+    inactive: { label: 'Inativo',  cls: 'bg-slate-100 text-slate-600' },
+    absent:   { label: 'Ausente',  cls: 'bg-yellow-100 text-yellow-800' },
+};
+const ROLE_LABEL_MODAL = { admin: 'Administrador', sensei: 'Sensei', 'aluno-colaborador': 'Colaborador', aluno: 'Aluno' };
+
+function buildProfileHTML(d) {
+    const age      = calcAge(d.birth_date);
+    const ageStr   = age !== null ? ` · ${age} anos` : '';
+    const status   = STATUS_CONFIG[d.status] || STATUS_CONFIG.active;
+    const roleLabel = ROLE_LABEL_MODAL[d.role] || d.role;
+    const dojoStr  = d.dojo_name ? (d.dojo_city ? `${d.dojo_name} / ${d.dojo_city}` : d.dojo_name) : null;
+    const beltColor = d.belt_color || '';
+    const beltBorder = beltColor.toLowerCase() === '#ffffff' || beltColor.toLowerCase() === '#fff'
+        ? 'border: 1px solid #d1d5db;' : '';
+    const hasMartial = d.style_name || d.belt_name;
+    const hasContact = d.athlete_email || d.phone_whatsapp;
+    const hasRegs    = d.fgkirs_registration || d.cbki_registration;
+
+    const photo = d.photo
+        ? `<img src="/uploads/users/${d.photo}" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow" alt="">`
+        : `<div class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-white text-2xl font-bold shadow">${d.name[0].toUpperCase()}</div>`;
+
+    const row = (label, value) => value
+        ? `<div class="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
+               <span class="text-xs text-slate-400 whitespace-nowrap">${label}</span>
+               <span class="text-sm text-slate-800 font-medium text-right">${value}</span>
+           </div>`
+        : '';
+
+    return `
+    <!-- Cabeçalho: status acima do nome, registros logo abaixo -->
+    <div class="flex items-start gap-4 mb-4">
+        ${photo}
+        <div class="flex-1 min-w-0">
+            <span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${status.cls} mb-1">${status.label}</span>
+            <h3 class="text-base font-bold text-slate-900 leading-tight">${d.name}</h3>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 mt-1 inline-block">${roleLabel}</span>
+            ${dojoStr ? `<p class="text-xs text-slate-400 mt-1 truncate">${dojoStr}</p>` : ''}
+        </div>
+    </div>
+
+    ${hasRegs ? `
+    <div class="mb-4">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Registros</p>
+        <div class="bg-slate-50 rounded-lg px-4 py-1">
+            ${row('FGKIRS', d.fgkirs_registration ? '#' + d.fgkirs_registration : null)}
+            ${row('CBKI', d.cbki_registration || null)}
+        </div>
+    </div>` : ''}
+
+    ${d.birth_date || d.gender || d.weight || d.height ? `
+    <div class="mb-4">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Dados Pessoais</p>
+        <div class="bg-slate-50 rounded-lg px-4 py-1">
+            ${row('Nascimento', d.birth_date ? fmtDate(d.birth_date) + ageStr : null)}
+            ${row('Sexo', GENDER_LABEL[d.gender] || null)}
+            ${row('Para-karatê', Number(d.is_para_karate) === 1 ? 'Sim' : null)}
+            ${row('Peso', d.weight ? d.weight + ' kg' : null)}
+            ${row('Altura', d.height ? d.height + ' cm' : null)}
+        </div>
+    </div>` : ''}
+
+    ${hasContact ? `
+    <div class="mb-4">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contato</p>
+        <div class="bg-slate-50 rounded-lg px-4 py-1">
+            ${row('E-mail pessoal', d.athlete_email || null)}
+            ${row('WhatsApp', d.phone_whatsapp ? fmtPhone(d.phone_whatsapp) : null)}
+        </div>
+    </div>` : ''}
+
+    ${hasMartial ? `
+    <div class="mb-4">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Arte Marcial</p>
+        <div class="bg-slate-50 rounded-lg px-4 py-1">
+            ${row('Estilo', d.style_name || null)}
+            ${d.belt_name ? `
+            <div class="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
+                <span class="text-xs text-slate-400 whitespace-nowrap">Graduação</span>
+                <span class="text-sm text-slate-800 font-medium text-right flex items-center gap-1.5">
+                    ${beltColor ? `<span class="w-3 h-3 rounded-full inline-block shrink-0" style="background:${beltColor};${beltBorder}"></span>` : ''}
+                    ${d.belt_name}
+                </span>
+            </div>` : ''}
+        </div>
+    </div>` : ''}
+
+    ${d.notes ? `
+    <div class="mb-1">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Observações</p>
+        <div class="bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700 whitespace-pre-line">${d.notes}</div>
+    </div>` : ''}
+
+    <div class="mt-5 pt-4 border-t border-slate-100">
+        <a href="/fgkirs-admin/users/edit/${d.id}"
+           class="block text-center bg-red-700 hover:bg-red-800 text-white text-sm font-semibold py-2 px-4 rounded-lg transition">
+            Editar cadastro
+        </a>
+    </div>`;
+}
 </script>
+
+<!-- ── Modal Ficha do Atleta ──────────────────────────────────────────────── -->
+<div id="profileModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeProfile()"></div>
+    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+            <h2 class="text-base font-bold text-slate-900">Ficha do Atleta</h2>
+            <button onclick="closeProfile()"
+                    class="text-slate-400 hover:text-slate-700 transition p-1 rounded-lg hover:bg-slate-100"
+                    aria-label="Fechar">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="overflow-y-auto px-6 py-5 flex-1">
+            <div id="profileLoading" class="flex justify-center py-10">
+                <div class="w-8 h-8 border-2 border-red-700 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <div id="profileContent" class="hidden"></div>
+        </div>
+    </div>
+</div>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

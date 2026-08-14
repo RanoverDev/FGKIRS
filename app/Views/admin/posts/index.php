@@ -76,7 +76,7 @@ require_once __DIR__ . '/../layout/header.php';
                                 <?php elseif (!empty($post['video_url'])): ?>
                                     <!-- Thumbnail do YouTube -->
                                     <?php
-                                    preg_match('/(?:youtube\.com\/(?:watch\?.*v=|live\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $post['video_url'], $ym);
+                                    preg_match('/(?:youtube\.com\/(?:watch\?.*v=|live\/|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $post['video_url'], $ym);
                                     $ytThumb = isset($ym[1]) ? "https://img.youtube.com/vi/{$ym[1]}/mqdefault.jpg" : null;
                                     ?>
                                     <?php if ($ytThumb): ?>

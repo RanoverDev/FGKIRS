@@ -73,7 +73,7 @@ class UserController extends Controller
 
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
-        $role = $_POST['role'] ?? 'aluno';
+        $role = $_POST['role'] ?? '';
         $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
         $password = $_POST['password'] ?? '';
 
@@ -85,6 +85,12 @@ class UserController extends Controller
 
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = 'Por favor, insira um e-mail válido.';
+            header('Location: /fgkirs-admin/users/create');
+            exit;
+        }
+
+        if (!in_array($role, ['admin', 'sensei', 'aluno-colaborador', 'aluno'])) {
+            $_SESSION['error'] = 'Selecione um perfil válido para o usuário.';
             header('Location: /fgkirs-admin/users/create');
             exit;
         }
@@ -175,13 +181,12 @@ class UserController extends Controller
             exit;
         }
 
-        $athleteProfile = null;
-        if (in_array($user['role'], self::ATHLETE_ROLES) || $user['role'] === 'sensei') {
-            $athleteProfile = $this->db->query(
-                "SELECT * FROM athlete_profiles WHERE user_id = :id",
-                ['id' => $id]
-            )->fetch(PDO::FETCH_ASSOC) ?: null;
-        }
+        // Sempre busca o perfil de atleta independente do role atual,
+        // pois o admin pode estar alterando o role na tela
+        $athleteProfile = $this->db->query(
+            "SELECT * FROM athlete_profiles WHERE user_id = :id",
+            ['id' => $id]
+        )->fetch(PDO::FETCH_ASSOC) ?: null;
 
         $nextFgkirs = (int) $this->db->query(
             "SELECT COALESCE(MAX(fgkirs_registration), 0) + 1 FROM athlete_profiles"
@@ -220,7 +225,7 @@ class UserController extends Controller
 
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
-        $role = $_POST['role'] ?? 'aluno';
+        $role = $_POST['role'] ?? '';
         $dojoId = empty($_POST['dojo_id']) ? null : (int) $_POST['dojo_id'];
         $password = $_POST['password'] ?? '';
 
@@ -232,6 +237,12 @@ class UserController extends Controller
 
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = 'Por favor, insira um e-mail válido.';
+            header('Location: /fgkirs-admin/users/edit/' . $id);
+            exit;
+        }
+
+        if (!in_array($role, ['admin', 'sensei', 'aluno-colaborador', 'aluno'])) {
+            $_SESSION['error'] = 'Selecione um perfil válido para o usuário.';
             header('Location: /fgkirs-admin/users/edit/' . $id);
             exit;
         }
@@ -379,53 +390,85 @@ class UserController extends Controller
         $this->json(['success' => true]);
     }
 
+    public function profile(int $id): void
+    {
+        if (!Auth::authorize(['admin', 'sensei'])) {
+            $this->json(['error' => 'Não autorizado'], 403);
+            return;
+        }
+
+        $sql = "SELECT u.id, u.name, u.email, u.role, u.photo, u.status,
+                       d.name AS dojo_name, d.city AS dojo_city,
+                       ap.birth_date, ap.email AS athlete_email, ap.phone_whatsapp,
+                       ap.gender, ap.is_para_karate, ap.weight, ap.height,
+                       ap.fgkirs_registration, ap.cbki_registration, ap.notes,
+                       g.belt_name, g.belt_color,
+                       s.name AS style_name
+                FROM users u
+                LEFT JOIN dojos d ON u.dojo_id = d.id
+                LEFT JOIN athlete_profiles ap ON ap.user_id = u.id
+                LEFT JOIN graduations g ON g.id = ap.graduation_id
+                LEFT JOIN martial_arts_styles s ON s.id = ap.style_id
+                WHERE u.id = :id";
+
+        $params = ['id' => $id];
+        if (Auth::isSensei()) {
+            $sql .= " AND u.dojo_id = :dojo_id";
+            $params['dojo_id'] = Auth::dojoId();
+        }
+
+        $data = $this->db->query($sql, $params)->fetch(PDO::FETCH_ASSOC);
+
+        if (!$data) {
+            $this->json(['error' => 'Usuário não encontrado'], 404);
+            return;
+        }
+
+        $this->json($data);
+    }
+
     private function saveAthleteProfile(int $userId): void
     {
-        $styleId = !empty($_POST['athlete_style_id']) ? (int) $_POST['athlete_style_id'] : null;
-        $graduationId = !empty($_POST['athlete_graduation_id']) ? (int) $_POST['athlete_graduation_id'] : null;
-        $birthDate = !empty($_POST['athlete_birth_date']) ? $_POST['athlete_birth_date'] : null;
-        $weight = !empty($_POST['athlete_weight']) ? (float) $_POST['athlete_weight'] : null;
-        $height = !empty($_POST['athlete_height']) ? (int) $_POST['athlete_height'] : null;
-        $gender = in_array($_POST['athlete_gender'] ?? '', ['M', 'F', 'O'])
-            ? $_POST['athlete_gender'] : null;
+        $fields = [
+            'birth_date'          => !empty($_POST['athlete_birth_date']) ? $_POST['athlete_birth_date'] : null,
+            'email'               => trim($_POST['athlete_email'] ?? '') ?: null,
+            'phone_whatsapp'      => preg_replace('/\D/', '', $_POST['athlete_phone_whatsapp'] ?? '') ?: null,
+            'gender'              => in_array($_POST['athlete_gender'] ?? '', ['M', 'F', 'O']) ? $_POST['athlete_gender'] : null,
+            'is_para_karate'      => ($_POST['athlete_para_karate'] ?? '0') === '1' ? 1 : 0,
+            'weight'              => !empty($_POST['athlete_weight']) ? (float) $_POST['athlete_weight'] : null,
+            'height'              => !empty($_POST['athlete_height']) ? (int) $_POST['athlete_height'] : null,
+            'style_id'            => !empty($_POST['athlete_style_id']) ? (int) $_POST['athlete_style_id'] : null,
+            'graduation_id'       => !empty($_POST['athlete_graduation_id']) ? (int) $_POST['athlete_graduation_id'] : null,
+            'fgkirs_registration' => !empty($_POST['fgkirs_registration']) ? (int) $_POST['fgkirs_registration'] : null,
+            'cbki_registration'   => trim($_POST['cbki_registration'] ?? '') ?: null,
+            'notes'               => trim($_POST['athlete_notes'] ?? '') ?: null,
+        ];
 
-        $fgkirsReg = !empty($_POST['fgkirs_registration']) ? (int) $_POST['fgkirs_registration'] : null;
-        $cbkiReg = trim($_POST['cbki_registration'] ?? '') ?: null;
+        // Verifica se já existe um registro para não sobrescrever campos preenchidos com null
+        $existing = $this->db->query(
+            "SELECT * FROM athlete_profiles WHERE user_id = :uid",
+            ['uid' => $userId]
+        )->fetch(PDO::FETCH_ASSOC);
 
-        $this->db->query(
-            "INSERT INTO athlete_profiles
-                (user_id, birth_date, email, phone_whatsapp, gender, weight, height,
-                 style_id, graduation_id, fgkirs_registration, cbki_registration, notes)
-             VALUES
-                (:user_id,:birth_date,:email,:phone_whatsapp,:gender,:weight,:height,
-                 :style_id,:graduation_id,:fgkirs_registration,:cbki_registration,:notes)
-             ON DUPLICATE KEY UPDATE
-                birth_date          = VALUES(birth_date),
-                email               = VALUES(email),
-                phone_whatsapp      = VALUES(phone_whatsapp),
-                gender              = VALUES(gender),
-                weight              = VALUES(weight),
-                height              = VALUES(height),
-                style_id            = VALUES(style_id),
-                graduation_id       = VALUES(graduation_id),
-                fgkirs_registration = VALUES(fgkirs_registration),
-                cbki_registration   = VALUES(cbki_registration),
-                notes               = VALUES(notes)",
-            [
-                'user_id' => $userId,
-                'birth_date' => $birthDate,
-                'email' => trim($_POST['athlete_email'] ?? '') ?: null,
-                'phone_whatsapp' => preg_replace('/\D/', '', $_POST['athlete_phone_whatsapp'] ?? '') ?: null,
-                'gender' => $gender,
-                'weight' => $weight,
-                'height' => $height,
-                'style_id' => $styleId,
-                'graduation_id' => $graduationId,
-                'fgkirs_registration' => $fgkirsReg,
-                'cbki_registration' => $cbkiReg,
-                'notes' => trim($_POST['athlete_notes'] ?? '') ?: null,
-            ]
-        );
+        if ($existing) {
+            // Mantém valores existentes quando o campo não foi enviado preenchido
+            foreach ($fields as $col => $val) {
+                if ($val === null && $existing[$col] !== null) {
+                    $fields[$col] = $existing[$col];
+                }
+            }
+            $sets = implode(', ', array_map(fn($c) => "$c = :$c", array_keys($fields)));
+            $params = array_merge($fields, ['uid' => $userId]);
+            $this->db->query("UPDATE athlete_profiles SET $sets WHERE user_id = :uid", $params);
+        } else {
+            $cols   = implode(', ', array_keys($fields));
+            $vals   = implode(', ', array_map(fn($c) => ":$c", array_keys($fields)));
+            $params = array_merge(['user_id' => $userId], $fields);
+            $this->db->query(
+                "INSERT INTO athlete_profiles (user_id, $cols) VALUES (:user_id, $vals)",
+                $params
+            );
+        }
     }
 
     private function getDojos(): array
