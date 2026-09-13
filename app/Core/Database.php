@@ -423,6 +423,25 @@ class Database
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_author_id (author_id),
                 FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS site_popup (
+                id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                is_active TINYINT(1) NOT NULL DEFAULT 0,
+                image VARCHAR(255) NULL,
+                image_format ENUM('square','portrait','story') NOT NULL DEFAULT 'portrait',
+                image_alt VARCHAR(255) NULL,
+                pix_enabled TINYINT(1) NOT NULL DEFAULT 1,
+                pix_label VARCHAR(100) NULL,
+                pix_key_type ENUM('cnpj','cpf','email','phone','random') NOT NULL DEFAULT 'cnpj',
+                pix_key VARCHAR(255) NULL,
+                whatsapp_enabled TINYINT(1) NOT NULL DEFAULT 1,
+                whatsapp_label VARCHAR(100) NULL,
+                whatsapp_phone VARCHAR(20) NULL,
+                whatsapp_message VARCHAR(500) NULL,
+                frequency_hours SMALLINT UNSIGNED NOT NULL DEFAULT 24,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 

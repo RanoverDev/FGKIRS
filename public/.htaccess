@@ -18,6 +18,13 @@
 # Prevent directory listing
 Options -Indexes
 
+# Apache/mime.types nem sempre mapeia .webp, o que faz o servidor responder
+# sem Content-Type — com X-Content-Type-Options: nosniff acima, crawlers
+# (Facebook, WhatsApp etc.) descartam a imagem por não reconhecerem o tipo.
+<IfModule mod_mime.c>
+    AddType image/webp .webp
+</IfModule>
+
 # Increase upload limits for gallery ZIP uploads
 <IfModule mod_php.c>
     php_value upload_max_filesize 200M

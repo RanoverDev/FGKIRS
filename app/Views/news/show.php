@@ -65,12 +65,16 @@ $shareTitle = urlencode($post['title']);
 
         <!-- Conteúdo -->
         <div class="prose prose-lg prose-slate max-w-none leading-relaxed text-slate-700 mb-10">
-            <?php
-            $paragraphs = array_filter(array_map('trim', preg_split('/\n{2,}/', $post['content'])));
-            foreach ($paragraphs as $p):
-            ?>
-                <p class="mb-4"><?= nl2br(htmlspecialchars($p)) ?></p>
-            <?php endforeach; ?>
+            <?php if ($post['content'] !== strip_tags($post['content'])): ?>
+                <?= $post['content'] ?>
+            <?php else: ?>
+                <?php
+                $paragraphs = array_filter(array_map('trim', preg_split('/\n{2,}/', $post['content'])));
+                foreach ($paragraphs as $p):
+                ?>
+                    <p class="mb-4"><?= nl2br(htmlspecialchars($p)) ?></p>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
 
         <!-- Grade de imagens (quando há mais de 1) -->

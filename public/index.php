@@ -227,6 +227,14 @@ $router->add('GET', '/fgkirs-admin/federation-profile', 'Admin\FederationProfile
 $router->add('POST', '/fgkirs-admin/federation-profile/update', 'Admin\FederationProfileController@update');
 
 // =====================================================
+// ADMIN - POPUP
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/popup', 'Admin\PopupController@edit');
+$router->add('POST', '/fgkirs-admin/popup/update', 'Admin\PopupController@update');
+$router->add('GET', '/fgkirs-admin/popup/remove-image', 'Admin\PopupController@removeImage');
+
+// =====================================================
 // ADMIN - BOARD (Estrutura Administrativa)
 // =====================================================
 

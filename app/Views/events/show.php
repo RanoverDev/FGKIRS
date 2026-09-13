@@ -87,12 +87,16 @@ $shareTitle = urlencode($post['title']);
                     <!-- Segunda coluna: Texto Longo (40%) -->
                     <div class="md:col-span-4">
                         <div class="prose prose-slate max-w-none leading-relaxed text-slate-700">
-                            <?php
-                            $paragraphs = array_filter(array_map('trim', preg_split('/\n{2,}/', $post['content'])));
-                            foreach ($paragraphs as $p):
-                                ?>
-                                <p class="mb-4"><?= nl2br(htmlspecialchars($p)) ?></p>
-                            <?php endforeach; ?>
+                            <?php if ($post['content'] !== strip_tags($post['content'])): ?>
+                                <?= $post['content'] ?>
+                            <?php else: ?>
+                                <?php
+                                $paragraphs = array_filter(array_map('trim', preg_split('/\n{2,}/', $post['content'])));
+                                foreach ($paragraphs as $p):
+                                    ?>
+                                    <p class="mb-4"><?= nl2br(htmlspecialchars($p)) ?></p>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

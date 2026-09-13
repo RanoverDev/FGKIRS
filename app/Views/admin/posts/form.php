@@ -73,9 +73,42 @@ $currentType = $post['type'] ?? 'news';
         </div>
 
         <div class="mb-4">
-            <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Conteúdo *</label>
-            <textarea id="content" name="content" required rows="10"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent"><?= htmlspecialchars($post['content'] ?? '') ?></textarea>
+            <label for="content-editor" class="block text-sm font-medium text-gray-700 mb-2">Conteúdo *</label>
+
+            <div class="border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-red-700 overflow-hidden">
+                <!-- Barra de ferramentas -->
+                <div class="flex flex-wrap items-center gap-1 bg-gray-50 border-b border-gray-300 p-1.5">
+                    <button type="button" data-cmd="bold" title="Negrito"
+                        class="editor-btn w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 font-bold text-sm">N</button>
+                    <button type="button" data-cmd="italic" title="Itálico"
+                        class="editor-btn w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 italic text-sm">I</button>
+                    <button type="button" data-cmd="underline" title="Sublinhado"
+                        class="editor-btn w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 underline text-sm">S</button>
+                    <span class="w-px h-5 bg-gray-300 mx-1"></span>
+                    <button type="button" data-cmd="formatBlock" data-value="H2" title="Título"
+                        class="editor-btn px-2 h-8 flex items-center justify-center rounded hover:bg-gray-200 font-bold text-xs">H2</button>
+                    <button type="button" data-cmd="formatBlock" data-value="H3" title="Subtítulo"
+                        class="editor-btn px-2 h-8 flex items-center justify-center rounded hover:bg-gray-200 font-bold text-xs">H3</button>
+                    <button type="button" data-cmd="formatBlock" data-value="P" title="Parágrafo"
+                        class="editor-btn px-2 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-xs">P</button>
+                    <span class="w-px h-5 bg-gray-300 mx-1"></span>
+                    <button type="button" data-cmd="insertUnorderedList" title="Lista"
+                        class="editor-btn w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-sm">•—</button>
+                    <button type="button" data-cmd="insertOrderedList" title="Lista numerada"
+                        class="editor-btn w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-sm">1.</button>
+                    <span class="w-px h-5 bg-gray-300 mx-1"></span>
+                    <button type="button" id="editor-link-btn" title="Inserir link"
+                        class="editor-btn w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-sm">🔗</button>
+                    <button type="button" data-cmd="removeFormat" title="Remover formatação"
+                        class="editor-btn w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-sm">✕</button>
+                </div>
+
+                <!-- Área editável -->
+                <div id="content-editor" contenteditable="true"
+                    class="prose prose-sm max-w-none w-full px-4 py-2 min-h-[220px] focus:outline-none"></div>
+            </div>
+
+            <textarea id="content" name="content" class="hidden"><?= htmlspecialchars($post['content'] ?? '') ?></textarea>
         </div>
 
         <div class="mb-4">
@@ -205,6 +238,50 @@ $currentType = $post['type'] ?? 'news';
 
     // Initialize preview if editing and already has a video URL
     updateVideoPreview();
+
+    // ── Editor de HTML simples (conteúdo) ──
+    (function initContentEditor() {
+        const hiddenField = document.getElementById('content');
+        const editor = document.getElementById('content-editor');
+
+        // Carrega o conteúdo existente. Posts antigos são texto puro
+        // (sem tags); nesse caso, convertemos parágrafos em <p>.
+        const raw = hiddenField.value;
+        if (raw && raw !== raw.replace(/<[a-z][\s\S]*>/i, '')) {
+            editor.innerHTML = raw;
+        } else if (raw) {
+            editor.innerHTML = raw
+                .split(/\n{2,}/)
+                .map(p => '<p>' + p.trim().replace(/\n/g, '<br>') + '</p>')
+                .join('');
+        }
+
+        function sync() {
+            hiddenField.value = editor.innerHTML;
+        }
+
+        editor.addEventListener('input', sync);
+
+        document.querySelectorAll('.editor-btn[data-cmd]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                editor.focus();
+                document.execCommand(btn.dataset.cmd, false, btn.dataset.value || null);
+                sync();
+            });
+        });
+
+        document.getElementById('editor-link-btn')?.addEventListener('click', () => {
+            const url = prompt('Digite a URL do link:');
+            if (url) {
+                editor.focus();
+                document.execCommand('createLink', false, url);
+                sync();
+            }
+        });
+
+        // Garante que o conteúdo esteja sincronizado antes do envio
+        editor.closest('form').addEventListener('submit', sync);
+    })();
 </script>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

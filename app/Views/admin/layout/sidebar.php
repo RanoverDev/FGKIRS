@@ -174,6 +174,15 @@ function navActive(string $route, string $path): string
                 Perfil da Federação
             </a>
 
+            <a href="/fgkirs-admin/popup"
+                class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all <?= navActive('/fgkirs-admin/popup', $path) ?>">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+                Popup do Site
+            </a>
+
             <a href="/fgkirs-admin/board"
                 class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all <?= navActive('/fgkirs-admin/board', $path) ?>">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

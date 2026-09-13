@@ -39,12 +39,12 @@ $shareTitle = urlencode($gallery['title']);
         <?php if (empty($images)): ?>
             <div class="text-center py-20 text-slate-500">Nenhuma imagem nesta galeria ainda.</div>
         <?php else: ?>
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 mb-12">
+            <div class="columns-2 sm:columns-3 lg:columns-4 gap-2 mb-12">
                 <?php foreach ($images as $i => $img): ?>
-                    <div class="aspect-square overflow-hidden rounded-lg cursor-pointer bg-slate-100 hover:opacity-90 transition"
+                    <div class="mb-2 break-inside-avoid overflow-hidden rounded-lg cursor-pointer bg-slate-100 hover:opacity-90 transition"
                         onclick="openLightbox(<?= $i ?>)">
                         <img src="/uploads/galleries/<?= htmlspecialchars($img['filename']) ?>"
-                            alt="<?= htmlspecialchars($gallery['title']) ?>" class="w-full h-full object-cover"
+                            alt="<?= htmlspecialchars($gallery['title']) ?>" class="block w-full h-auto"
                             loading="<?= $i < 8 ? 'eager' : 'lazy' ?>">
                     </div>
                 <?php endforeach; ?>

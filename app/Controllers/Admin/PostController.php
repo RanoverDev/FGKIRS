@@ -163,7 +163,7 @@ class PostController extends Controller
         }
 
         $_SESSION['success'] = 'Post criado com sucesso!';
-        header('Location: /fgkirs-admin/posts');
+        header("Location: /fgkirs-admin/posts?type=$type");
         exit;
     }
 
@@ -271,7 +271,7 @@ class PostController extends Controller
         ]);
 
         $_SESSION['success'] = 'Post atualizado com sucesso!';
-        header('Location: /fgkirs-admin/posts');
+        header("Location: /fgkirs-admin/posts?type=$type");
         exit;
     }
 

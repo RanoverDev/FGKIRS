@@ -108,7 +108,7 @@ class GalleryController extends Controller
         $gallery = $this->getGalleryOrDeny($id);
 
         $images = $this->db->query(
-            "SELECT * FROM gallery_images WHERE gallery_id = :id ORDER BY is_cover DESC, created_at ASC",
+            "SELECT * FROM gallery_images WHERE gallery_id = :id ORDER BY is_cover DESC, created_at DESC, id DESC",
             ['id' => $id]
         )->fetchAll(PDO::FETCH_ASSOC);
 

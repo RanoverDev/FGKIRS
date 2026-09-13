@@ -58,7 +58,7 @@ class Gallery
         try {
             $db = Database::getInstance();
             return $db->query(
-                "SELECT * FROM gallery_images WHERE gallery_id = :id ORDER BY is_cover DESC, created_at ASC",
+                "SELECT * FROM gallery_images WHERE gallery_id = :id ORDER BY is_cover DESC, created_at DESC, id DESC",
                 ['id' => $galleryId]
             )->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
