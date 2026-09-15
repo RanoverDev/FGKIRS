@@ -182,7 +182,10 @@ class Database
             "ALTER TABLE athlete_profiles ADD CONSTRAINT fk_athlete_profiles_style FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL",
             "ALTER TABLE dojos ADD COLUMN instagram VARCHAR(255) NULL",
             "ALTER TABLE dojos ADD COLUMN facebook VARCHAR(255) NULL",
-            "ALTER TABLE athlete_profiles ADD COLUMN is_para_karate TINYINT(1) NOT NULL DEFAULT 0 AFTER gender"
+            "ALTER TABLE athlete_profiles ADD COLUMN is_para_karate TINYINT(1) NOT NULL DEFAULT 0 AFTER gender",
+            "ALTER TABLE federation_profile ADD COLUMN legal_name VARCHAR(180) NULL",
+            "ALTER TABLE federation_profile ADD COLUMN cnpj VARCHAR(20) NULL",
+            "ALTER TABLE federation_profile ADD COLUMN website VARCHAR(180) NULL"
         ];
 
         foreach ($fixes as $fixSql) {
@@ -191,6 +194,36 @@ class Database
             } catch (\PDOException $ex) {
                 // Ignore if column already exists
             }
+        }
+
+        $this->ensureBlackBeltFlag();
+    }
+
+    /**
+     * A flag nasce zerada, entao o backfill so pode rodar junto do ALTER que
+     * cria a coluna - rodar sempre desfaria as correcoes manuais feitas depois
+     * na tela de Graduacoes.
+     */
+    private function ensureBlackBeltFlag(): void
+    {
+        try {
+            $this->connection->exec(
+                "ALTER TABLE graduations ADD COLUMN is_black_belt TINYINT(1) NOT NULL DEFAULT 0"
+            );
+        } catch (\PDOException $e) {
+            return;
+        }
+
+        try {
+            $this->connection->exec(
+                "UPDATE graduations
+                 SET is_black_belt = 1
+                 WHERE belt_color LIKE '%preta%'
+                    OR belt_color LIKE '%black%'
+                    OR belt_name LIKE '%preta%'
+                    OR belt_name LIKE '%dan%'"
+            );
+        } catch (\PDOException $e) {
         }
     }
 
@@ -318,6 +351,9 @@ class Database
 
             "CREATE TABLE IF NOT EXISTS federation_profile (
                 id TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                legal_name VARCHAR(180),
+                cnpj VARCHAR(20),
+                website VARCHAR(180),
                 whatsapp VARCHAR(20),
                 phone VARCHAR(20),
                 email VARCHAR(100),
@@ -442,6 +478,131 @@ class Database
                 frequency_hours SMALLINT UNSIGNED NOT NULL DEFAULT 24,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS competition_categories (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(180) NOT NULL,
+                modality ENUM('kata','kumite') NOT NULL,
+                entry_type ENUM('individual','team') NOT NULL DEFAULT 'individual',
+                gender ENUM('M','F','X') NOT NULL DEFAULT 'X',
+                age_min TINYINT UNSIGNED NULL,
+                age_max TINYINT UNSIGNED NULL,
+                age_label VARCHAR(60) NULL,
+                belt_group ENUM('black','colored','any') NOT NULL DEFAULT 'any',
+                weight_min DECIMAL(5,2) NULL,
+                weight_max DECIMAL(5,2) NULL,
+                team_size TINYINT UNSIGNED NULL,
+                sort_order INT NOT NULL DEFAULT 0,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_lookup (entry_type, modality, gender, is_active),
+                INDEX idx_sort (sort_order)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS championships (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                slug VARCHAR(255) NULL UNIQUE,
+                description TEXT,
+                location VARCHAR(255) NULL,
+                event_date DATE NOT NULL,
+                registration_start DATETIME NOT NULL,
+                registration_end DATETIME NOT NULL,
+                status ENUM('draft','published','closed') NOT NULL DEFAULT 'draft',
+                post_id INT NULL,
+                created_by INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_event_date (event_date),
+                FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS championship_athletes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                championship_id INT NOT NULL,
+                dojo_id INT NOT NULL,
+                user_id INT NULL,
+                name VARCHAR(255) NOT NULL,
+                gender ENUM('M','F') NOT NULL,
+                birth_date DATE NOT NULL,
+                style_id INT NULL,
+                graduation_id INT NULL,
+                belt_group ENUM('black','colored') NOT NULL DEFAULT 'colored',
+                weight DECIMAL(5,2) NULL,
+                is_guest TINYINT(1) NOT NULL DEFAULT 0,
+                is_para_karate TINYINT(1) NOT NULL DEFAULT 0,
+                registered_by INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_championship_dojo (championship_id, dojo_id),
+                INDEX idx_belt_group (belt_group),
+                UNIQUE KEY unique_championship_user (championship_id, user_id),
+                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
+                FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL,
+                FOREIGN KEY (graduation_id) REFERENCES graduations(id) ON DELETE SET NULL,
+                FOREIGN KEY (registered_by) REFERENCES users(id) ON DELETE RESTRICT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS championship_entries (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                championship_athlete_id INT NOT NULL,
+                category_id INT NOT NULL,
+                weight DECIMAL(5,2) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_athlete_category (championship_athlete_id, category_id),
+                INDEX idx_category (category_id),
+                FOREIGN KEY (championship_athlete_id) REFERENCES championship_athletes(id) ON DELETE CASCADE,
+                FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS championship_teams (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                championship_id INT NOT NULL,
+                dojo_id INT NOT NULL,
+                category_id INT NOT NULL,
+                name VARCHAR(120) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_championship_dojo (championship_id, dojo_id),
+                INDEX idx_category (category_id),
+                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
+                FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE CASCADE,
+                FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS championship_team_members (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                team_id INT NOT NULL,
+                championship_athlete_id INT NOT NULL,
+                position TINYINT UNSIGNED NOT NULL DEFAULT 1,
+                UNIQUE KEY unique_team_athlete (team_id, championship_athlete_id),
+                INDEX idx_athlete (championship_athlete_id),
+                FOREIGN KEY (team_id) REFERENCES championship_teams(id) ON DELETE CASCADE,
+                FOREIGN KEY (championship_athlete_id) REFERENCES championship_athletes(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS championship_referees (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                championship_id INT NOT NULL,
+                dojo_id INT NOT NULL,
+                user_id INT NULL,
+                name VARCHAR(255) NOT NULL,
+                role ENUM('referee','table_judge','timekeeper','scorer') NOT NULL DEFAULT 'referee',
+                qualification VARCHAR(100) NULL,
+                notes VARCHAR(255) NULL,
+                registered_by INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_championship_dojo (championship_id, dojo_id),
+                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
+                FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (registered_by) REFERENCES users(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 
@@ -481,6 +642,42 @@ class Database
                 ");
             }
         } catch (\PDOException $e) {
+        }
+
+        $this->ensureBlackBeltFlag();
+        $this->seedCompetitionCategories();
+    }
+
+    /**
+     * Catalogo inicial de categorias. As regras vivem no model; aqui so
+     * persistimos, e apenas quando a tabela ainda esta vazia.
+     */
+    private function seedCompetitionCategories(): void
+    {
+        try {
+            $count = $this->connection->query("SELECT COUNT(*) FROM competition_categories")->fetchColumn();
+            if ((int) $count > 0) {
+                return;
+            }
+        } catch (\PDOException $e) {
+            return;
+        }
+
+        try {
+            $stmt = $this->connection->prepare(
+                "INSERT INTO competition_categories
+                    (name, modality, entry_type, gender, age_min, age_max, age_label,
+                     belt_group, weight_min, weight_max, team_size, sort_order)
+                 VALUES
+                    (:name, :modality, :entry_type, :gender, :age_min, :age_max, :age_label,
+                     :belt_group, :weight_min, :weight_max, :team_size, :sort_order)"
+            );
+
+            foreach (\Models\CompetitionCategory::defaultCatalog() as $row) {
+                $stmt->execute($row);
+            }
+        } catch (\PDOException $e) {
+            error_log('seedCompetitionCategories error: ' . $e->getMessage());
         }
     }
 

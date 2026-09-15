@@ -27,6 +27,9 @@ class FederationProfileController extends Controller
         }
 
         FederationProfile::save([
+            'legal_name' => trim($_POST['legal_name'] ?? '') ?: null,
+            'cnpj'     => trim($_POST['cnpj'] ?? '') ?: null,
+            'website'  => trim($_POST['website'] ?? '') ?: null,
             'whatsapp' => preg_replace('/\D/', '', $_POST['whatsapp'] ?? '') ?: null,
             'phone'    => preg_replace('/\D/', '', $_POST['phone']    ?? '') ?: null,
             'email'    => trim($_POST['email']   ?? ''),

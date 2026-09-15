@@ -106,6 +106,15 @@ function navActive(string $route, string $path): string
                         </svg>
                         Graduações
                     </a>
+
+                    <a href="/fgkirs-admin/categories"
+                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all <?= navActive('/fgkirs-admin/categories', $path) ?>">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 10h16M4 14h10M4 18h10" />
+                        </svg>
+                        Categorias de Disputa
+                    </a>
                 </div>
             </div>
         <?php endif; ?>
@@ -140,6 +149,17 @@ function navActive(string $route, string $path): string
                     Meu Dojo
                 </a>
             <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if (Auth::authorize(['admin', 'sensei'])): ?>
+            <a href="/fgkirs-admin/championships"
+                class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all <?= navActive('/fgkirs-admin/championships', $path) ?>">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 21h8m-4-4v4m-7-9a7 7 0 0014 0V4H5v8zM5 6H3a2 2 0 002 2m14-2h2a2 2 0 01-2 2" />
+                </svg>
+                Eventos
+            </a>
         <?php endif; ?>
 
         <?php if (Auth::authorize(['admin', 'sensei', 'aluno-colaborador'])): ?>

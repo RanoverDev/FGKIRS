@@ -25,9 +25,12 @@ class FederationProfile
         $db = Database::getInstance();
         $db->query(
             "INSERT INTO federation_profile
-                (id, whatsapp, phone, email, address, city, state, zip_code, facebook, instagram)
-             VALUES (1, :whatsapp, :phone, :email, :address, :city, :state, :zip_code, :facebook, :instagram)
+                (id, legal_name, cnpj, website, whatsapp, phone, email, address, city, state, zip_code, facebook, instagram)
+             VALUES (1, :legal_name, :cnpj, :website, :whatsapp, :phone, :email, :address, :city, :state, :zip_code, :facebook, :instagram)
              ON DUPLICATE KEY UPDATE
+                legal_name = VALUES(legal_name),
+                cnpj       = VALUES(cnpj),
+                website    = VALUES(website),
                 whatsapp   = VALUES(whatsapp),
                 phone      = VALUES(phone),
                 email      = VALUES(email),
@@ -38,6 +41,9 @@ class FederationProfile
                 facebook   = VALUES(facebook),
                 instagram  = VALUES(instagram)",
             [
+                'legal_name' => $data['legal_name'] ?? null,
+                'cnpj' => $data['cnpj'] ?? null,
+                'website' => $data['website'] ?? null,
                 'whatsapp' => $data['whatsapp'] ?? null,
                 'phone' => $data['phone'] ?? null,
                 'email' => $data['email'] ?? null,

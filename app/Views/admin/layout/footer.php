@@ -56,8 +56,22 @@
         if (input.value) input.value = fmt(input.value);
     }
 
+    function applyCnpjMask(input) {
+        function fmt(v) {
+            const d = v.replace(/\D/g, '').slice(0, 14);
+            if (d.length <= 2)  return d;
+            if (d.length <= 5)  return `${d.slice(0,2)}.${d.slice(2)}`;
+            if (d.length <= 8)  return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5)}`;
+            if (d.length <= 12) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8)}`;
+            return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+        }
+        input.addEventListener('input', function () { this.value = fmt(this.value); });
+        if (input.value) input.value = fmt(input.value);
+    }
+
     document.querySelectorAll('[data-mask="phone"]').forEach(applyPhoneMask);
     document.querySelectorAll('[data-mask="cep"]').forEach(applyCepMask);
+    document.querySelectorAll('[data-mask="cnpj"]').forEach(applyCnpjMask);
 </script>
 </body>
 

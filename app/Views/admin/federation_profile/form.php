@@ -12,8 +12,39 @@ require_once __DIR__ . '/../layout/header.php';
     <div class="lg:col-span-2 bg-white rounded-lg shadow p-6 sm:p-8">
         <form action="/fgkirs-admin/federation-profile/update" method="POST">
 
+            <!-- Dados institucionais -->
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Dados institucionais</p>
+            <p class="text-xs text-slate-500 -mt-3 mb-4">
+                Usados no cabeçalho das fichas de inscrição dos eventos.
+            </p>
+
+            <div class="mb-4">
+                <label for="legal_name" class="block text-sm font-medium text-gray-700 mb-2">Razão social</label>
+                <input type="text" id="legal_name" name="legal_name" maxlength="180"
+                    value="<?= htmlspecialchars($p['legal_name'] ?? '') ?>"
+                    placeholder="Federação Gaúcha de Karatê Interestilos"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="cnpj" class="block text-sm font-medium text-gray-700 mb-2">CNPJ</label>
+                    <input type="text" id="cnpj" name="cnpj" data-mask="cnpj" maxlength="18"
+                        value="<?= htmlspecialchars($p['cnpj'] ?? '') ?>"
+                        placeholder="00.000.000/0001-00"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+                <div>
+                    <label for="website" class="block text-sm font-medium text-gray-700 mb-2">Site</label>
+                    <input type="text" id="website" name="website" maxlength="180"
+                        value="<?= htmlspecialchars($p['website'] ?? '') ?>"
+                        placeholder="fgkirs.com.br"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+            </div>
+
             <!-- Contato -->
-            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Contato</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 mt-6">Contato</p>
 
             <div class="grid sm:grid-cols-2 gap-4 mb-4">
                 <div>

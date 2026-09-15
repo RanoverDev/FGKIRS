@@ -235,6 +235,54 @@ $router->add('POST', '/fgkirs-admin/popup/update', 'Admin\PopupController@update
 $router->add('GET', '/fgkirs-admin/popup/remove-image', 'Admin\PopupController@removeImage');
 
 // =====================================================
+// ADMIN - COMPETITION CATEGORIES
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/categories', 'Admin\CompetitionCategoryController@index');
+$router->add('GET', '/fgkirs-admin/categories/create', 'Admin\CompetitionCategoryController@create');
+$router->add('POST', '/fgkirs-admin/categories/store', 'Admin\CompetitionCategoryController@store');
+$router->add('GET', '/fgkirs-admin/categories/edit/{id}', 'Admin\CompetitionCategoryController@edit');
+$router->add('POST', '/fgkirs-admin/categories/update/{id}', 'Admin\CompetitionCategoryController@update');
+$router->add('GET', '/fgkirs-admin/categories/delete/{id}', 'Admin\CompetitionCategoryController@delete');
+
+// =====================================================
+// ADMIN - CHAMPIONSHIPS (Eventos de disputa)
+// =====================================================
+
+$router->add('GET', '/fgkirs-admin/championships', 'Admin\ChampionshipController@index');
+$router->add('GET', '/fgkirs-admin/championships/create', 'Admin\ChampionshipController@create');
+$router->add('POST', '/fgkirs-admin/championships/store', 'Admin\ChampionshipController@store');
+$router->add('GET', '/fgkirs-admin/championships/edit/{id}', 'Admin\ChampionshipController@edit');
+$router->add('POST', '/fgkirs-admin/championships/update/{id}', 'Admin\ChampionshipController@update');
+$router->add('GET', '/fgkirs-admin/championships/delete/{id}', 'Admin\ChampionshipController@delete');
+$router->add('GET', '/fgkirs-admin/championships/{id}/registrations', 'Admin\ChampionshipController@registrations');
+$router->add('GET', '/fgkirs-admin/championships/{id}/registrations/print', 'Admin\ChampionshipController@registrationsPrint');
+
+// Abas de inscricao (sensei do dojo e presidente)
+$router->add('GET', '/fgkirs-admin/championships/{id}/athletes', 'Admin\ChampionshipRegistrationController@athletes');
+$router->add('GET', '/fgkirs-admin/championships/{id}/athletes/search', 'Admin\ChampionshipRegistrationController@searchStudents');
+$router->add('POST', '/fgkirs-admin/championships/{id}/athletes/store', 'Admin\ChampionshipRegistrationController@storeAthlete');
+$router->add('POST', '/fgkirs-admin/championships/{id}/athletes/update/{athleteId}', 'Admin\ChampionshipRegistrationController@updateAthlete');
+$router->add('GET', '/fgkirs-admin/championships/{id}/athletes/delete/{athleteId}', 'Admin\ChampionshipRegistrationController@deleteAthlete');
+$router->add('GET', '/fgkirs-admin/championships/{id}/athletes/{athleteId}/categories', 'Admin\ChampionshipRegistrationController@athleteCategories');
+
+$router->add('POST', '/fgkirs-admin/championships/{id}/entries/store', 'Admin\ChampionshipRegistrationController@storeEntry');
+$router->add('GET', '/fgkirs-admin/championships/{id}/entries/delete/{entryId}', 'Admin\ChampionshipRegistrationController@deleteEntry');
+
+$router->add('GET', '/fgkirs-admin/championships/{id}/teams', 'Admin\ChampionshipRegistrationController@teams');
+$router->add('GET', '/fgkirs-admin/championships/{id}/teams/eligible/{categoryId}', 'Admin\ChampionshipRegistrationController@teamEligible');
+$router->add('POST', '/fgkirs-admin/championships/{id}/teams/store', 'Admin\ChampionshipRegistrationController@storeTeam');
+$router->add('GET', '/fgkirs-admin/championships/{id}/teams/delete/{teamId}', 'Admin\ChampionshipRegistrationController@deleteTeam');
+
+$router->add('GET', '/fgkirs-admin/championships/{id}/referees', 'Admin\ChampionshipRegistrationController@referees');
+$router->add('GET', '/fgkirs-admin/championships/{id}/referees/search', 'Admin\ChampionshipRegistrationController@searchReferees');
+$router->add('POST', '/fgkirs-admin/championships/{id}/referees/store', 'Admin\ChampionshipRegistrationController@storeReferee');
+$router->add('GET', '/fgkirs-admin/championships/{id}/referees/delete/{refereeId}', 'Admin\ChampionshipRegistrationController@deleteReferee');
+
+$router->add('GET', '/fgkirs-admin/championships/{id}/summary', 'Admin\ChampionshipRegistrationController@summary');
+$router->add('GET', '/fgkirs-admin/championships/{id}/summary/print', 'Admin\ChampionshipRegistrationController@summaryPrint');
+
+// =====================================================
 // ADMIN - BOARD (Estrutura Administrativa)
 // =====================================================
 

@@ -151,13 +151,7 @@ class SitePopup
 
     public static function formatPhone(?string $digits): string
     {
-        $d = preg_replace('/\D/', '', (string) $digits);
-
-        return match (strlen($d)) {
-            11      => sprintf('(%s) %s-%s', substr($d, 0, 2), substr($d, 2, 5), substr($d, 7)),
-            10      => sprintf('(%s) %s-%s', substr($d, 0, 2), substr($d, 2, 4), substr($d, 6)),
-            default => $d,
-        };
+        return \Helpers\Format::phone($digits);
     }
 
     private static function normalizeFormat(?string $format): string

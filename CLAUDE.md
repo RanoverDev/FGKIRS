@@ -87,7 +87,23 @@ www/
 - **`student_profiles`** — perfil do aluno (user_id, style_id, current_graduation_id, registration_number, birth_date, status)
 - **`graduation_history`** — histórico de promoções (promoted_by_sensei_id, exam_score, promotion_date)
 - **`payments`** — pagamentos (monthly/exam/registration/other; status: pending/paid/overdue/cancelled)
-- **`posts`** — notícias e eventos (type: `news | event`; event_date, event_location, slug implícito via Slugify)
+- **`posts`** — notícias e agenda de eventos (type: `news | event`; event_date, event_location, slug implícito via Slugify)
+
+### Módulo de Eventos de Disputa (auto-migrate em `Core/Database.php`)
+- **`competition_categories`** — catálogo de categorias de kata/kumite (modality, entry_type, gender, age_min/max, belt_group, weight_min/max, team_size). Seed inicial de 88 categorias vem de `CompetitionCategory::defaultCatalog()`
+- **`championships`** — o campeonato (title, event_date, registration_start/end, status, post_id opcional ligando à Agenda de Eventos)
+- **`championship_athletes`** — atleta inscrito no evento; guarda **snapshot** de nome/nascimento/graduação. `user_id` NULL = atleta avulso
+- **`championship_entries`** — inscrição do atleta numa categoria individual (+ peso no kumite)
+- **`championship_teams`** / **`championship_team_members`** — equipes e seus integrantes
+- **`championship_referees`** — árbitros indicados por cada dojo
+
+> A ficha de inscrição (`Views/admin/championships/print.php`) monta o papel timbrado a partir de
+> `federation_profile` — que ganhou `legal_name`, `cnpj` e `website`, editáveis em Perfil da Federação.
+> Cabeçalho e rodapé repetem em toda folha via `thead`/`tfoot` de uma tabela-moldura: `position: fixed`
+> não reserva espaço no paginado e acaba cobrindo o conteúdo.
+
+> `graduations.is_black_belt` distingue faixa preta de colorida. A coluna é criada e
+> preenchida uma única vez por `Database::ensureBlackBeltFlag()`.
 
 > Dados de acesso (já em `config/config.php`):  
 > DB_HOST=`mysql.fgkirs.com.br` | DB_NAME=`fgkirs01` | DB_USER=`fgkirs01`
@@ -125,8 +141,26 @@ Auth:      /login  /logout  /recuperar-senha  /redefinir-senha
 Admin:     /fgkirs-admin  /fgkirs-admin/users  /fgkirs-admin/dojos
            /fgkirs-admin/styles  /fgkirs-admin/graduations  /fgkirs-admin/posts
            /fgkirs-admin/galleries  /fgkirs-admin/federation-profile
-           /fgkirs-admin/board
+           /fgkirs-admin/board  /fgkirs-admin/popup  /fgkirs-admin/categories
+Eventos:   /fgkirs-admin/championships                        (lista; admin cria, sensei inscreve)
+           /fgkirs-admin/championships/{id}/athletes          (aba Atletas — faixa preta | colorida)
+           /fgkirs-admin/championships/{id}/teams             (aba Equipes)
+           /fgkirs-admin/championships/{id}/referees          (aba Árbitros)
+           /fgkirs-admin/championships/{id}/summary           (aba Inscritos + impressão)
+           /fgkirs-admin/championships/{id}/registrations     (consolidado do Presidente)
 ```
+
+### Segurança do módulo de eventos
+
+Três camadas, **todas no backend** — nunca apenas escondendo botão na tela:
+
+1. `Auth::isAdmin()` nas rotas exclusivas do Presidente (criar evento, categorias, consolidado)
+2. `Helpers\DojoScope` resolve o dojo pela **sessão** (nunca pela URL) e revalida todo
+   `{athleteId}`, `{teamId}`, `{entryId}` contra ele antes de ler ou escrever — id de outro dojo recebe 403
+3. `Championship::assertRegistrationOpen()` roda em todo POST/DELETE. Fora do prazo o sensei
+   é bloqueado no servidor; o Presidente passa (para corrigir) e a tela avisa que ele está nesse modo
+
+Deletes trafegam por GET (padrão do painel) mas exigem `?token=` do `Csrf` neste módulo.
 
 ---
 
@@ -190,9 +224,14 @@ Antes de propor mudanças arquiteturais ou de frontend, consultar:
 - [x] Dashboards por role (admin, presidente, sensei)
 - [x] Frontend público: Home, Sobre, Dojos, Notícias, Eventos, Galerias, Contato
 - [x] CSRF em formulários, Rate Limiter, Slugify, Mailer
+- [x] Popup do site gerenciável pelo admin
+- [x] **Módulo de Eventos de disputa** — campeonatos de kata/kumite: catálogo de categorias,
+      inscrição de atletas (cadastrados e avulsos) com matching automático por idade/sexo/graduação,
+      faixa de peso no kumite, equipes, árbitros e ficha de inscrição para impressão/PDF
 
 ## O que ainda pode ser evoluído
 
+- [ ] Chaves de disputa por categoria (a dupla `championship_id + category_id` já é a chave natural)
 - [ ] Controle de presenças / frequência dos alunos
 - [ ] Portal do aluno (área logada para aluno ver suas informações)
 - [ ] Dashboard de métricas / relatórios (pagamentos em dia, alunos por faixa, etc.)
