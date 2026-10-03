@@ -138,6 +138,78 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
     </div>
 
+    <?php
+    /** Novo evento nasce com tudo marcado; o Presidente desmarca o que nao vale. */
+    $enabled = $enabledIds === null
+        ? array_flip(array_map('intval', array_column($catalog, 'id')))
+        : array_flip($enabledIds);
+
+    $sections = [];
+    foreach ($catalog as $category) {
+        $key = $category['entry_type'] . ':' . $category['modality'];
+        $sections[$key][] = $category;
+    }
+
+    $sectionTitles = [
+        'individual:kata'   => 'Kata Individual',
+        'individual:kumite' => 'Kumite Individual',
+        'team:kata'         => 'Kata Equipe',
+        'team:kumite'       => 'Kumite Equipe (Revezamento)',
+    ];
+    ?>
+
+    <div id="categorias" class="pt-5 mb-6 border-t border-slate-100">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <h2 class="text-lg font-bold text-slate-900">Categorias do evento</h2>
+            <span class="text-sm text-slate-600">
+                <strong id="category-count">0</strong> de <?= count($catalog) ?> liberadas
+            </span>
+        </div>
+        <p class="text-xs text-slate-500 mb-4">
+            Só as categorias marcadas aparecem para os senseis na inscrição de atletas e de equipes.
+            O cruzamento por idade, sexo, graduação e peso continua valendo dentro delas.
+            Categoria que já tem inscritos não pode ser retirada.
+        </p>
+
+        <?php if (empty($catalog)): ?>
+            <div class="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+                O catálogo de categorias está vazio.
+                <a href="/fgkirs-admin/categories" class="font-semibold underline">Abrir categorias de disputa</a>
+                e use "Restaurar catálogo padrão".
+            </div>
+        <?php endif; ?>
+
+        <div class="space-y-3">
+            <?php foreach ($sectionTitles as $key => $sectionTitle): ?>
+                <?php if (empty($sections[$key])) {
+                    continue;
+                } ?>
+                <details class="border border-slate-200 rounded-lg overflow-hidden" data-category-group>
+                    <summary class="px-4 py-3 bg-slate-50 cursor-pointer flex flex-wrap items-center justify-between gap-2">
+                        <span class="font-semibold text-slate-800 text-sm"><?= $sectionTitle ?></span>
+                        <span class="text-xs text-slate-500" data-group-count></span>
+                    </summary>
+                    <div class="px-4 py-3">
+                        <div class="flex gap-3 mb-3 text-xs font-semibold">
+                            <button type="button" data-group-all class="text-red-700 hover:text-red-800">Marcar todas</button>
+                            <button type="button" data-group-none class="text-slate-500 hover:text-slate-800">Limpar</button>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-x-6 gap-y-1.5">
+                            <?php foreach ($sections[$key] as $category): ?>
+                                <label class="flex items-start gap-2 text-sm text-slate-700 py-0.5 cursor-pointer">
+                                    <input type="checkbox" name="category_ids[]" value="<?= (int) $category['id'] ?>"
+                                        <?= isset($enabled[(int) $category['id']]) ? 'checked' : '' ?>
+                                        class="mt-0.5 rounded border-slate-300 text-red-700 focus:ring-red-700">
+                                    <span><?= htmlspecialchars($category['name']) ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </details>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
     <div class="flex flex-wrap gap-3 pt-5 border-t border-slate-100">
         <button type="submit"
             class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-8 rounded-lg transition">
@@ -155,5 +227,38 @@ require_once __DIR__ . '/../layout/header.php';
         <?php endif; ?>
     </div>
 </form>
+
+<script>
+    (function () {
+        const boxes = () => document.querySelectorAll('input[name="category_ids[]"]');
+        const total = document.getElementById('category-count');
+
+        function refresh() {
+            total.textContent = [...boxes()].filter(box => box.checked).length;
+
+            document.querySelectorAll('[data-category-group]').forEach(group => {
+                const inputs = group.querySelectorAll('input[type="checkbox"]');
+                const checked = [...inputs].filter(box => box.checked).length;
+                group.querySelector('[data-group-count]').textContent = `${checked} de ${inputs.length}`;
+            });
+        }
+
+        document.querySelectorAll('[data-category-group]').forEach(group => {
+            const setAll = value => {
+                group.querySelectorAll('input[type="checkbox"]').forEach(box => { box.checked = value; });
+                refresh();
+            };
+            group.querySelector('[data-group-all]').addEventListener('click', () => setAll(true));
+            group.querySelector('[data-group-none]').addEventListener('click', () => setAll(false));
+        });
+
+        boxes().forEach(box => box.addEventListener('change', refresh));
+        refresh();
+
+        if (location.hash === '#categorias') {
+            document.querySelectorAll('[data-category-group]').forEach(group => { group.open = true; });
+        }
+    })();
+</script>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

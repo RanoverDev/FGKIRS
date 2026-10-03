@@ -185,7 +185,8 @@ class Database
             "ALTER TABLE athlete_profiles ADD COLUMN is_para_karate TINYINT(1) NOT NULL DEFAULT 0 AFTER gender",
             "ALTER TABLE federation_profile ADD COLUMN legal_name VARCHAR(180) NULL",
             "ALTER TABLE federation_profile ADD COLUMN cnpj VARCHAR(20) NULL",
-            "ALTER TABLE federation_profile ADD COLUMN website VARCHAR(180) NULL"
+            "ALTER TABLE federation_profile ADD COLUMN website VARCHAR(180) NULL",
+            "ALTER TABLE championship_athletes ADD COLUMN height SMALLINT UNSIGNED NULL AFTER weight"
         ];
 
         foreach ($fixes as $fixSql) {
@@ -232,6 +233,8 @@ class Database
      */
     private function runMigrations(): void
     {
+        $needsCategoryBackfill = !$this->tableExists('championship_categories');
+
         $tables = [
             "CREATE TABLE IF NOT EXISTS martial_arts_styles (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -521,6 +524,15 @@ class Database
                 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
+            "CREATE TABLE IF NOT EXISTS championship_categories (
+                championship_id INT NOT NULL,
+                category_id INT NOT NULL,
+                PRIMARY KEY (championship_id, category_id),
+                INDEX idx_category (category_id),
+                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
+                FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
             "CREATE TABLE IF NOT EXISTS championship_athletes (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 championship_id INT NOT NULL,
@@ -533,6 +545,7 @@ class Database
                 graduation_id INT NULL,
                 belt_group ENUM('black','colored') NOT NULL DEFAULT 'colored',
                 weight DECIMAL(5,2) NULL,
+                height SMALLINT UNSIGNED NULL COMMENT 'cm',
                 is_guest TINYINT(1) NOT NULL DEFAULT 0,
                 is_para_karate TINYINT(1) NOT NULL DEFAULT 0,
                 registered_by INT NOT NULL,
@@ -646,6 +659,37 @@ class Database
 
         $this->ensureBlackBeltFlag();
         $this->seedCompetitionCategories();
+
+        if ($needsCategoryBackfill) {
+            $this->backfillChampionshipCategories();
+        }
+    }
+
+    private function tableExists(string $table): bool
+    {
+        try {
+            return (bool) $this->connection->query("SHOW TABLES LIKE " . $this->connection->quote($table))->fetchColumn();
+        } catch (\PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Eventos criados antes da selecao de categorias por evento continuam com
+     * todas as categorias ativas. Roda so na criacao da tabela: rodar de novo
+     * devolveria categorias que o Presidente ja tirou.
+     */
+    private function backfillChampionshipCategories(): void
+    {
+        try {
+            $this->connection->exec(
+                "INSERT IGNORE INTO championship_categories (championship_id, category_id)
+                 SELECT c.id, k.id FROM championships c
+                 CROSS JOIN competition_categories k WHERE k.is_active = 1"
+            );
+        } catch (\PDOException $e) {
+            error_log('backfillChampionshipCategories error: ' . $e->getMessage());
+        }
     }
 
     /**

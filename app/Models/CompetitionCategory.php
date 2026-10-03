@@ -84,23 +84,25 @@ class CompetitionCategory
      * graduacao. O peso nao entra aqui: para kumite ele e pedido num passo
      * separado e validado contra a faixa da categoria escolhida.
      */
-    public static function forIndividual(string $gender, string $beltGroup, int $age): array
+    public static function forIndividual(string $gender, string $beltGroup, int $age, int $championshipId): array
     {
         try {
             return Database::getInstance()->query(
-                "SELECT * FROM competition_categories
-                 WHERE is_active = 1
-                   AND entry_type = 'individual'
-                   AND (gender = :gender OR gender = 'X')
-                   AND (belt_group = :belt_group OR belt_group = 'any')
-                   AND (age_min IS NULL OR age_min <= :age_low)
-                   AND (age_max IS NULL OR age_max >= :age_high)
-                 ORDER BY modality ASC, sort_order ASC",
+                "SELECT c.* FROM competition_categories c
+                 JOIN championship_categories cc ON cc.category_id = c.id AND cc.championship_id = :championship_id
+                 WHERE c.is_active = 1
+                   AND c.entry_type = 'individual'
+                   AND (c.gender = :gender OR c.gender = 'X')
+                   AND (c.belt_group = :belt_group OR c.belt_group = 'any')
+                   AND (c.age_min IS NULL OR c.age_min <= :age_low)
+                   AND (c.age_max IS NULL OR c.age_max >= :age_high)
+                 ORDER BY c.modality ASC, c.sort_order ASC",
                 [
-                    'gender'     => $gender,
-                    'belt_group' => $beltGroup,
-                    'age_low'    => $age,
-                    'age_high'   => $age,
+                    'championship_id' => $championshipId,
+                    'gender'          => $gender,
+                    'belt_group'      => $beltGroup,
+                    'age_low'         => $age,
+                    'age_high'        => $age,
                 ]
             )->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
@@ -109,10 +111,57 @@ class CompetitionCategory
         }
     }
 
-    /** Categorias de equipe ativas, agrupadas por modalidade na tela. */
-    public static function teams(): array
+    public static function countActive(): int
     {
-        return self::all(['entry_type' => 'team', 'is_active' => 1]);
+        try {
+            return (int) Database::getInstance()->query(
+                "SELECT COUNT(*) FROM competition_categories WHERE is_active = 1"
+            )->fetchColumn();
+        } catch (\Exception $e) {
+            error_log('CompetitionCategory::countActive error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Grava as categorias do catalogo padrao que ainda nao existem (comparando
+     * pelo nome). Nao altera nem reativa as que o Presidente ja mexeu.
+     */
+    public static function restoreDefaults(): int
+    {
+        $db       = Database::getInstance();
+        $existing = array_flip(array_column(self::all(), 'name'));
+        $inserted = 0;
+
+        foreach (self::defaultCatalog() as $row) {
+            if (isset($existing[$row['name']])) {
+                continue;
+            }
+
+            $db->query(
+                "INSERT INTO competition_categories
+                    (name, modality, entry_type, gender, age_min, age_max, age_label,
+                     belt_group, weight_min, weight_max, team_size, sort_order)
+                 VALUES
+                    (:name, :modality, :entry_type, :gender, :age_min, :age_max, :age_label,
+                     :belt_group, :weight_min, :weight_max, :team_size, :sort_order)",
+                $row
+            );
+            $inserted++;
+        }
+
+        return $inserted;
+    }
+
+    /** Categorias de equipe liberadas no evento, agrupadas por modalidade na tela. */
+    public static function teams(int $championshipId): array
+    {
+        $enabled = array_flip(Championship::categoryIds($championshipId));
+
+        return array_values(array_filter(
+            self::all(['entry_type' => 'team', 'is_active' => 1]),
+            fn(array $category) => isset($enabled[(int) $category['id']])
+        ));
     }
 
     public static function matchesAge(array $category, int $age): bool

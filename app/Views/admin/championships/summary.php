@@ -51,6 +51,9 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                             <th class="px-5 py-3">Idade</th>
                             <th class="px-5 py-3">Faixa</th>
                             <th class="px-5 py-3">Categorias</th>
+                            <?php if ($canWrite): ?>
+                                <th class="px-5 py-3 text-right">Ações</th>
+                            <?php endif; ?>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -64,6 +67,9 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                                         <?= htmlspecialchars(ChampionshipAthlete::GENDERS[$athlete['gender']]) ?>
                                         <?php if ($athlete['weight'] !== null): ?>
                                             · <?= number_format((float) $athlete['weight'], 1, ',', '') ?> kg
+                                        <?php endif; ?>
+                                        <?php if (!empty($athlete['height'])): ?>
+                                            · <?= (int) $athlete['height'] ?> cm
                                         <?php endif; ?>
                                     </p>
                                 </td>
@@ -82,6 +88,11 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                                         </ul>
                                     <?php endif; ?>
                                 </td>
+                                <?php if ($canWrite): ?>
+                                    <td class="px-5 py-3">
+                                        <?php $actionsBack = 'summary'; require __DIR__ . '/partials/athlete_row_actions.php'; ?>
+                                    </td>
+                                <?php endif; ?>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -114,6 +125,10 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
         <?php endif; ?>
     </div>
 
+<?php endif; ?>
+
+<?php if (!empty($dojoId) && $canWrite): ?>
+    <?php $editBack = 'summary'; require __DIR__ . '/partials/athlete_edit_modal.php'; ?>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

@@ -23,6 +23,23 @@ class ChampionshipAthlete
         'F' => 'Feminino',
     ];
 
+    public static function styleOptions(): array
+    {
+        return Database::getInstance()->query(
+            "SELECT id, name FROM martial_arts_styles ORDER BY name ASC"
+        )->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function graduationOptions(): array
+    {
+        return Database::getInstance()->query(
+            "SELECT g.id, g.belt_name, g.belt_color, g.is_black_belt, g.style_id, s.name AS style_name
+             FROM graduations g
+             JOIN martial_arts_styles s ON s.id = g.style_id
+             ORDER BY s.name ASC, g.order_rank ASC"
+        )->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /** Idade completada na data da competicao. */
     public static function ageOn(string $birthDate, string $referenceDate): int
     {
@@ -112,7 +129,7 @@ class ChampionshipAthlete
         try {
             return Database::getInstance()->query(
                 "SELECT u.id, u.name, u.photo,
-                        ap.birth_date, ap.gender, ap.weight, ap.is_para_karate,
+                        ap.birth_date, ap.gender, ap.weight, ap.height, ap.is_para_karate,
                         ap.style_id, ap.graduation_id,
                         g.belt_name, g.belt_color, g.is_black_belt,
                         s.name AS style_name
@@ -146,7 +163,7 @@ class ChampionshipAthlete
         try {
             $row = Database::getInstance()->query(
                 "SELECT u.id, u.name,
-                        ap.birth_date, ap.gender, ap.weight, ap.is_para_karate,
+                        ap.birth_date, ap.gender, ap.weight, ap.height, ap.is_para_karate,
                         ap.style_id, ap.graduation_id
                  FROM users u
                  LEFT JOIN athlete_profiles ap ON ap.user_id = u.id
@@ -189,11 +206,11 @@ class ChampionshipAthlete
         $db->query(
             "INSERT INTO championship_athletes
                 (championship_id, dojo_id, user_id, name, gender, birth_date,
-                 style_id, graduation_id, belt_group, weight, is_guest,
+                 style_id, graduation_id, belt_group, weight, height, is_guest,
                  is_para_karate, registered_by)
              VALUES
                 (:championship_id, :dojo_id, :user_id, :name, :gender, :birth_date,
-                 :style_id, :graduation_id, :belt_group, :weight, :is_guest,
+                 :style_id, :graduation_id, :belt_group, :weight, :height, :is_guest,
                  :is_para_karate, :registered_by)",
             $data
         );
@@ -209,7 +226,8 @@ class ChampionshipAthlete
             "UPDATE championship_athletes SET
                 name = :name, gender = :gender, birth_date = :birth_date,
                 style_id = :style_id, graduation_id = :graduation_id,
-                belt_group = :belt_group, weight = :weight, is_para_karate = :is_para_karate
+                belt_group = :belt_group, weight = :weight, height = :height,
+                is_para_karate = :is_para_karate
              WHERE id = :id",
             $data
         );

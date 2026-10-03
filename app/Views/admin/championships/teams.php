@@ -102,9 +102,13 @@ $modalityTitles = [
     <?php if (empty($categories)): ?>
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-10 text-center">
             <p class="text-slate-500">
-                Nenhuma categoria de equipe cadastrada.
+                Nenhuma categoria de equipe foi liberada para este evento.
                 <?php if (Auth::isAdmin()): ?>
-                    <a href="/fgkirs-admin/categories" class="text-red-700 font-semibold">Cadastrar categorias →</a>
+                    <a href="/fgkirs-admin/championships/edit/<?= $championshipId ?>#categorias" class="text-red-700 font-semibold">
+                        Configurar categorias do evento →
+                    </a>
+                <?php else: ?>
+                    Avise a federação.
                 <?php endif; ?>
             </p>
         </div>

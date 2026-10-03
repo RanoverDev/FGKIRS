@@ -100,7 +100,8 @@ foreach ($referees as $referee) {
                                     <th class="py-2 pr-4">Idade</th>
                                     <th class="py-2 pr-4">Faixa</th>
                                     <th class="py-2 pr-4">Peso</th>
-                                    <th class="py-2">Categorias</th>
+                                    <th class="py-2 pr-4">Categorias</th>
+                                    <th class="py-2 text-right">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -125,7 +126,7 @@ foreach ($referees as $referee) {
                                                 ? number_format((float) $athlete['weight'], 1, ',', '') . ' kg'
                                                 : '—' ?>
                                         </td>
-                                        <td class="py-2">
+                                        <td class="py-2 pr-4">
                                             <?php if (empty($athlete['entries'])): ?>
                                                 <span class="text-xs text-amber-700">Sem categoria</span>
                                             <?php else: ?>
@@ -135,6 +136,9 @@ foreach ($referees as $referee) {
                                                     <?php endforeach; ?>
                                                 </ul>
                                             <?php endif; ?>
+                                        </td>
+                                        <td class="py-2">
+                                            <?php $actionsBack = 'registrations'; require __DIR__ . '/partials/athlete_row_actions.php'; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -182,5 +186,7 @@ foreach ($referees as $referee) {
         <?php endforeach; ?>
     </div>
 <?php endif; ?>
+
+<?php $editBack = 'registrations'; require __DIR__ . '/partials/athlete_edit_modal.php'; ?>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

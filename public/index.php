@@ -241,6 +241,7 @@ $router->add('GET', '/fgkirs-admin/popup/remove-image', 'Admin\PopupController@r
 $router->add('GET', '/fgkirs-admin/categories', 'Admin\CompetitionCategoryController@index');
 $router->add('GET', '/fgkirs-admin/categories/create', 'Admin\CompetitionCategoryController@create');
 $router->add('POST', '/fgkirs-admin/categories/store', 'Admin\CompetitionCategoryController@store');
+$router->add('POST', '/fgkirs-admin/categories/restore-defaults', 'Admin\CompetitionCategoryController@restoreDefaults');
 $router->add('GET', '/fgkirs-admin/categories/edit/{id}', 'Admin\CompetitionCategoryController@edit');
 $router->add('POST', '/fgkirs-admin/categories/update/{id}', 'Admin\CompetitionCategoryController@update');
 $router->add('GET', '/fgkirs-admin/categories/delete/{id}', 'Admin\CompetitionCategoryController@delete');

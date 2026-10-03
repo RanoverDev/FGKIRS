@@ -50,7 +50,7 @@ class ChampionshipRegistrationController extends Controller
     {
         [$championship, $dojoId] = $this->context($championshipId);
 
-        $categories = CompetitionCategory::teams();
+        $categories = CompetitionCategory::teams($championshipId);
         $counts     = $dojoId ? ChampionshipTeam::countsByCategory($championshipId, $dojoId) : [];
         $teams      = $dojoId ? ChampionshipTeam::forDojo($championshipId, $dojoId) : [];
 
@@ -79,7 +79,10 @@ class ChampionshipRegistrationController extends Controller
     {
         [$championship, $dojoId] = $this->context($championshipId);
 
-        $this->render('summary', $championship, $dojoId, $this->summaryData($championshipId, $dojoId, $championship));
+        $this->render('summary', $championship, $dojoId, array_merge(
+            $this->summaryData($championshipId, $dojoId, $championship),
+            ['styles' => $this->styles(), 'graduations' => $this->graduations()]
+        ));
     }
 
     /** Versao para impressao do dojo — o navegador salva como PDF. */
@@ -149,7 +152,7 @@ class ChampionshipRegistrationController extends Controller
         [$championship, $dojoId] = $this->writeContext($championshipId);
 
         $athlete = $this->athleteOf($championshipId, $athleteId);
-        $back    = $this->tabUrl($championshipId, 'athletes', $dojoId);
+        $back    = $this->returnUrl($championshipId, $dojoId);
 
         $graduationId = ($_POST['graduation_id'] ?? '') !== '' ? (int) $_POST['graduation_id'] : null;
         $beltGroup    = ChampionshipAthlete::beltGroupFor($graduationId);
@@ -167,6 +170,7 @@ class ChampionshipRegistrationController extends Controller
             'graduation_id'  => $graduationId,
             'belt_group'     => $beltGroup,
             'weight'         => ($_POST['weight'] ?? '') !== '' ? $this->decimal($_POST['weight']) : null,
+            'height'         => $this->height($_POST['height'] ?? ''),
             'is_para_karate' => !empty($_POST['is_para_karate']) ? 1 : 0,
         ]);
 
@@ -184,7 +188,7 @@ class ChampionshipRegistrationController extends Controller
         ChampionshipAthlete::delete($athleteId);
 
         $_SESSION['success'] = 'Atleta removido do evento.';
-        $this->redirect($this->tabUrl($championshipId, 'athletes', $dojoId));
+        $this->redirect($this->returnUrl($championshipId, $dojoId));
     }
 
     /** Categorias compativeis com o atleta, cruzando sexo, idade e graduacao. */
@@ -195,7 +199,7 @@ class ChampionshipRegistrationController extends Controller
         $athlete = $this->athleteOf($championshipId, $athleteId);
         $age     = ChampionshipAthlete::ageOn($athlete['birth_date'], $championship['event_date']);
 
-        $categories = CompetitionCategory::forIndividual($athlete['gender'], $athlete['belt_group'], $age);
+        $categories = CompetitionCategory::forIndividual($athlete['gender'], $athlete['belt_group'], $age, $championshipId);
         $taken      = array_column(ChampionshipAthlete::entries($athleteId), 'category_id');
 
         $payload = [];
@@ -212,6 +216,7 @@ class ChampionshipRegistrationController extends Controller
         }
 
         $this->json([
+            'event_empty'   => !$payload && !Championship::categoryIds($championshipId),
             'athlete' => [
                 'id'     => (int) $athlete['id'],
                 'name'   => $athlete['name'],
@@ -235,6 +240,11 @@ class ChampionshipRegistrationController extends Controller
 
         if (!$category || $category['entry_type'] !== 'individual' || !$category['is_active']) {
             $_SESSION['error'] = 'Categoria inválida.';
+            $this->redirect($back);
+        }
+
+        if (!Championship::hasCategory($championshipId, $categoryId)) {
+            $_SESSION['error'] = 'Esta categoria não foi liberada para este evento.';
             $this->redirect($back);
         }
 
@@ -265,6 +275,7 @@ class ChampionshipRegistrationController extends Controller
                 'graduation_id'  => $athlete['graduation_id'],
                 'belt_group'     => $athlete['belt_group'],
                 'weight'         => $weight,
+                'height'         => $athlete['height'] ?? null,
                 'is_para_karate' => $athlete['is_para_karate'],
             ]);
         }
@@ -303,7 +314,10 @@ class ChampionshipRegistrationController extends Controller
 
         $category = CompetitionCategory::find($categoryId);
 
-        if (!$dojoId || !$category || $category['entry_type'] !== 'team') {
+        if (
+            !$dojoId || !$category || $category['entry_type'] !== 'team'
+            || !Championship::hasCategory($championshipId, $categoryId)
+        ) {
             $this->json(['athletes' => [], 'team_size' => null]);
         }
 
@@ -336,6 +350,11 @@ class ChampionshipRegistrationController extends Controller
 
         if (!$category || $category['entry_type'] !== 'team' || !$category['is_active']) {
             $_SESSION['error'] = 'Categoria de equipe inválida.';
+            $this->redirect($back);
+        }
+
+        if (!Championship::hasCategory($championshipId, $categoryId)) {
+            $_SESSION['error'] = 'Esta categoria não foi liberada para este evento.';
             $this->redirect($back);
         }
 
@@ -566,24 +585,41 @@ class ChampionshipRegistrationController extends Controller
             DojoScope::deny('Este aluno não pertence ao seu dojo.');
         }
 
-        if (empty($student['birth_date']) || empty($student['gender'])) {
-            $_SESSION['error'] = "Complete a ficha de {$student['name']} (data de nascimento e sexo) antes de inscrevê-lo.";
+        // O sensei confirma (ou completa) os dados no ato da inscricao; o que vier
+        // vazio cai na ficha do aluno
+        $gender = isset(ChampionshipAthlete::GENDERS[$_POST['gender'] ?? ''])
+            ? $_POST['gender']
+            : ($student['gender'] ?? '');
+
+        $birthDate = $this->validDate($_POST['birth_date'] ?? '') ?? ($student['birth_date'] ?? '');
+
+        if ($birthDate === '' || !isset(ChampionshipAthlete::GENDERS[$gender])) {
+            $_SESSION['error'] = "Informe a data de nascimento e o sexo de {$student['name']} para inscrevê-lo.";
             $this->redirect($back);
         }
+
+        $weight = ($_POST['weight'] ?? '') !== ''
+            ? $this->decimal($_POST['weight'])
+            : ($student['weight'] !== null ? (float) $student['weight'] : null);
+
+        $height = ($_POST['height'] ?? '') !== ''
+            ? $this->height($_POST['height'])
+            : ($student['height'] !== null ? (int) $student['height'] : null);
 
         return [
             'championship_id' => $championshipId,
             'dojo_id'         => $dojoId,
             'user_id'         => $userId,
             'name'            => $student['name'],
-            'gender'          => $student['gender'],
-            'birth_date'      => $student['birth_date'],
+            'gender'          => $gender,
+            'birth_date'      => $birthDate,
             'style_id'        => $student['style_id'] ? (int) $student['style_id'] : null,
             'graduation_id'   => $student['graduation_id'] ? (int) $student['graduation_id'] : null,
             'belt_group'      => ChampionshipAthlete::beltGroupFor(
                 $student['graduation_id'] ? (int) $student['graduation_id'] : null
             ),
-            'weight'          => $student['weight'] !== null ? (float) $student['weight'] : null,
+            'weight'          => $weight,
+            'height'          => $height,
             'is_guest'        => 0,
             'is_para_karate'  => (int) ($student['is_para_karate'] ?? 0),
             'registered_by'   => (int) Auth::id(),
@@ -622,6 +658,7 @@ class ChampionshipRegistrationController extends Controller
             'graduation_id'   => $graduationId,
             'belt_group'      => 'colored',
             'weight'          => ($_POST['weight'] ?? '') !== '' ? $this->decimal($_POST['weight']) : null,
+            'height'          => $this->height($_POST['height'] ?? ''),
             'is_guest'        => 1,
             'is_para_karate'  => !empty($_POST['is_para_karate']) ? 1 : 0,
             'registered_by'   => (int) Auth::id(),
@@ -689,11 +726,41 @@ class ChampionshipRegistrationController extends Controller
         return $url;
     }
 
+    /**
+     * Pagina de origem da edicao/remocao de atleta. Whitelist: o valor vem do
+     * cliente e nunca entra direto no redirect.
+     */
+    private function returnUrl(int $championshipId, ?int $dojoId): string
+    {
+        $origin = $_REQUEST['back'] ?? 'athletes';
+
+        if ($origin === 'registrations' && Auth::isAdmin()) {
+            return "/fgkirs-admin/championships/$championshipId/registrations";
+        }
+
+        return $this->tabUrl($championshipId, $origin === 'summary' ? 'summary' : 'athletes', $dojoId);
+    }
+
     private function decimal(string $value): ?float
     {
         $normalized = (float) str_replace(',', '.', trim($value));
 
         return $normalized > 0 ? $normalized : null;
+    }
+
+    /** Altura em cm; fora de 50–250 e tratada como nao informada. */
+    private function height(string $value): ?int
+    {
+        $cm = (int) preg_replace('/\D/', '', $value);
+
+        return $cm >= 50 && $cm <= 250 ? $cm : null;
+    }
+
+    private function validDate(string $value): ?string
+    {
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d', $value);
+
+        return $date && $date->format('Y-m-d') === $value ? $value : null;
     }
 
     private function dojo(int $dojoId): ?array
@@ -715,18 +782,11 @@ class ChampionshipRegistrationController extends Controller
 
     private function styles(): array
     {
-        return Database::getInstance()->query(
-            "SELECT id, name FROM martial_arts_styles ORDER BY name ASC"
-        )->fetchAll(PDO::FETCH_ASSOC);
+        return ChampionshipAthlete::styleOptions();
     }
 
     private function graduations(): array
     {
-        return Database::getInstance()->query(
-            "SELECT g.id, g.belt_name, g.belt_color, g.is_black_belt, g.style_id, s.name AS style_name
-             FROM graduations g
-             JOIN martial_arts_styles s ON s.id = g.style_id
-             ORDER BY s.name ASC, g.order_rank ASC"
-        )->fetchAll(PDO::FETCH_ASSOC);
+        return ChampionshipAthlete::graduationOptions();
     }
 }

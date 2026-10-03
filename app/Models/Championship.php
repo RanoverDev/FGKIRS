@@ -169,6 +169,95 @@ class Championship
         );
     }
 
+    /** @return int[] ids das categorias liberadas para o evento */
+    public static function categoryIds(int $id): array
+    {
+        try {
+            return array_map('intval', Database::getInstance()->query(
+                "SELECT category_id FROM championship_categories WHERE championship_id = :id",
+                ['id' => $id]
+            )->fetchAll(PDO::FETCH_COLUMN));
+        } catch (\Exception $e) {
+            error_log('Championship::categoryIds error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    public static function hasCategory(int $id, int $categoryId): bool
+    {
+        try {
+            return (bool) Database::getInstance()->query(
+                "SELECT 1 FROM championship_categories
+                 WHERE championship_id = :id AND category_id = :category_id LIMIT 1",
+                ['id' => $id, 'category_id' => $categoryId]
+            )->fetchColumn();
+        } catch (\Exception $e) {
+            error_log('Championship::hasCategory error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Grava as categorias liberadas. Categoria que ja tem atleta ou equipe
+     * inscritos no evento nao sai: retorna os nomes das que foram mantidas
+     * para a tela avisar o Presidente.
+     *
+     * @param int[] $categoryIds
+     * @return string[]
+     */
+    public static function syncCategories(int $id, array $categoryIds): array
+    {
+        $db = Database::getInstance();
+
+        $valid = array_map('intval', array_column(CompetitionCategory::all(['is_active' => 1]), 'id'));
+        $wanted = array_values(array_intersect(array_unique(array_map('intval', $categoryIds)), $valid));
+        $current = self::categoryIds($id);
+
+        $kept = [];
+
+        foreach (array_diff($current, $wanted) as $categoryId) {
+            if (self::categoryInUse($id, $categoryId)) {
+                $category = CompetitionCategory::find($categoryId);
+                $kept[] = $category['name'] ?? "#$categoryId";
+                continue;
+            }
+
+            $db->query(
+                "DELETE FROM championship_categories WHERE championship_id = :id AND category_id = :category_id",
+                ['id' => $id, 'category_id' => $categoryId]
+            );
+        }
+
+        foreach (array_diff($wanted, $current) as $categoryId) {
+            $db->query(
+                "INSERT IGNORE INTO championship_categories (championship_id, category_id)
+                 VALUES (:id, :category_id)",
+                ['id' => $id, 'category_id' => $categoryId]
+            );
+        }
+
+        return $kept;
+    }
+
+    private static function categoryInUse(int $id, int $categoryId): bool
+    {
+        $db = Database::getInstance();
+
+        $entries = (int) $db->query(
+            "SELECT COUNT(*) FROM championship_entries e
+             JOIN championship_athletes a ON a.id = e.championship_athlete_id
+             WHERE a.championship_id = :id AND e.category_id = :category_id",
+            ['id' => $id, 'category_id' => $categoryId]
+        )->fetchColumn();
+
+        $teams = (int) $db->query(
+            "SELECT COUNT(*) FROM championship_teams WHERE championship_id = :id AND category_id = :category_id",
+            ['id' => $id, 'category_id' => $categoryId]
+        )->fetchColumn();
+
+        return $entries + $teams > 0;
+    }
+
     public static function delete(int $id): void
     {
         Database::getInstance()->query(

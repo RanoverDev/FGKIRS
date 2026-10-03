@@ -46,7 +46,12 @@ $boxes = [
                 <div class="relative">
                     <input type="text" id="student-search" autocomplete="off"
                         placeholder="Digite ao menos 2 letras do nome…"
-                        class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                        class="w-full pl-4 pr-11 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                    <svg id="student-spinner" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 h-5 w-5 animate-spin text-red-700"
+                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" role="status" aria-label="Buscando atletas">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
                     <div id="student-results"
                         class="hidden absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
                     </div>
@@ -56,13 +61,51 @@ $boxes = [
                     A faixa (preta ou colorida) vem da graduação cadastrada na ficha do atleta.
                 </p>
 
-                <div id="student-selected" class="hidden mt-4 flex flex-wrap items-center gap-3">
-                    <span class="inline-flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800">
-                        <span id="student-selected-name"></span>
-                        <button type="button" id="student-clear" class="text-slate-400 hover:text-red-600">✕</button>
-                    </span>
+                <div id="student-selected" class="hidden mt-4">
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <span class="inline-flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 text-sm font-semibold text-slate-800">
+                            <span id="student-selected-name"></span>
+                            <button type="button" id="student-clear" class="text-slate-400 hover:text-red-600"
+                                aria-label="Trocar atleta">✕</button>
+                        </span>
+                        <span class="text-xs text-slate-500">Confira os dados abaixo antes de inscrever.</span>
+                    </div>
+
+                    <div id="student-incomplete"
+                        class="hidden mb-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+                        A ficha deste aluno está incompleta. Informe sexo e data de nascimento para continuar.
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label for="student-gender" class="block text-sm font-medium text-slate-700 mb-2">Sexo *</label>
+                            <select id="student-gender" name="gender" required
+                                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                                <option value="">— Selecione —</option>
+                                <?php foreach (ChampionshipAthlete::GENDERS as $value => $label): ?>
+                                    <option value="<?= $value ?>"><?= $label ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="student-birth" class="block text-sm font-medium text-slate-700 mb-2">Nascimento *</label>
+                            <input type="date" id="student-birth" name="birth_date" required
+                                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="student-weight" class="block text-sm font-medium text-slate-700 mb-2">Peso (kg)</label>
+                            <input type="text" id="student-weight" name="weight" inputmode="decimal" placeholder="Ex: 49,5"
+                                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="student-height" class="block text-sm font-medium text-slate-700 mb-2">Altura (cm)</label>
+                            <input type="number" id="student-height" name="height" min="50" max="250" inputmode="numeric" placeholder="Ex: 165"
+                                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                        </div>
+                    </div>
+
                     <button type="submit"
-                        class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">
+                        class="mt-5 bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-8 rounded-lg transition">
                         Inscrever no evento
                     </button>
                 </div>
@@ -139,6 +182,15 @@ $boxes = [
                         <p class="text-xs text-slate-500 mt-1.5">Necessário apenas para categorias de Kumite.</p>
                     </div>
 
+                    <div>
+                        <label for="guest-height" class="block text-sm font-medium text-slate-700 mb-2">
+                            Altura (cm)
+                        </label>
+                        <input type="number" id="guest-height" name="height" min="50" max="250" inputmode="numeric"
+                            placeholder="Ex: 165"
+                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                    </div>
+
                     <div class="flex items-end">
                         <label class="flex items-center gap-2 text-sm text-slate-700 pb-2">
                             <input type="checkbox" name="is_para_karate" value="1"
@@ -207,6 +259,9 @@ $boxes = [
                                             <?php if ($athlete['weight'] !== null): ?>
                                                 · <?= number_format((float) $athlete['weight'], 1, ',', '') ?> kg
                                             <?php endif; ?>
+                                            <?php if (!empty($athlete['height'])): ?>
+                                                · <?= (int) $athlete['height'] ?> cm
+                                            <?php endif; ?>
                                         </p>
                                     </div>
 
@@ -220,15 +275,22 @@ $boxes = [
                                             </button>
                                             <button type="button"
                                                 data-edit-athlete="<?= (int) $athlete['id'] ?>"
+                                                data-dojo="<?= (int) $athlete['dojo_id'] ?>"
                                                 data-name="<?= htmlspecialchars($athlete['name']) ?>"
                                                 data-gender="<?= htmlspecialchars($athlete['gender']) ?>"
                                                 data-birth="<?= htmlspecialchars($athlete['birth_date']) ?>"
                                                 data-style="<?= (int) ($athlete['style_id'] ?? 0) ?>"
                                                 data-graduation="<?= (int) ($athlete['graduation_id'] ?? 0) ?>"
                                                 data-weight="<?= $athlete['weight'] !== null ? htmlspecialchars(number_format((float) $athlete['weight'], 1, ',', '')) : '' ?>"
+                                                data-height="<?= !empty($athlete['height']) ? (int) $athlete['height'] : '' ?>"
                                                 data-para="<?= (int) $athlete['is_para_karate'] ?>"
-                                                class="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 transition">
-                                                Editar
+                                                title="Editar dados do atleta" aria-label="Editar dados de <?= htmlspecialchars($athlete['name']) ?>"
+                                                class="text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-md p-1.5 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                                    stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M15.232 5.232l3.536 3.536M9 13l6.768-6.768a2 2 0 112.828 2.828L11.828 15.828a4 4 0 01-1.414.943L6 18l1.229-4.414A4 4 0 018.172 12.17L9 13z"/>
+                                                </svg>
                                             </button>
                                             <a href="/fgkirs-admin/championships/<?= $championshipId ?>/athletes/delete/<?= (int) $athlete['id'] ?><?= $deleteQuery ?>"
                                                 data-confirm-delete
@@ -270,103 +332,7 @@ $boxes = [
         <?php endforeach; ?>
     </div>
 
-    <!-- Modal de edicao do atleta -->
-    <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
-        style="background:rgba(15,23,42,.6)">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
-            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 class="font-bold text-slate-900">Editar dados do atleta</h3>
-                <button type="button" id="edit-close" class="text-slate-400 hover:text-slate-700 text-xl leading-none">✕</button>
-            </div>
-
-            <form method="POST" id="edit-form" class="flex flex-col min-h-0">
-                <?= Csrf::field() ?>
-                <input type="hidden" name="dojo_id" value="<?= (int) $dojoId ?>">
-
-                <div class="p-5 overflow-y-auto grid md:grid-cols-2 gap-4">
-                    <div class="md:col-span-2">
-                        <label for="edit-name" class="block text-sm font-medium text-slate-700 mb-2">Nome completo *</label>
-                        <input type="text" id="edit-name" name="name" required maxlength="255"
-                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label for="edit-gender" class="block text-sm font-medium text-slate-700 mb-2">Sexo *</label>
-                        <select id="edit-gender" name="gender" required
-                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                            <?php foreach (ChampionshipAthlete::GENDERS as $value => $label): ?>
-                                <option value="<?= $value ?>"><?= $label ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="edit-birth" class="block text-sm font-medium text-slate-700 mb-2">
-                            Data de nascimento *
-                        </label>
-                        <input type="date" id="edit-birth" name="birth_date" required
-                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                    </div>
-
-                    <div>
-                        <label for="edit-style" class="block text-sm font-medium text-slate-700 mb-2">Estilo</label>
-                        <select id="edit-style" name="style_id"
-                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                            <option value="">— Selecione —</option>
-                            <?php foreach ($styles as $style): ?>
-                                <option value="<?= (int) $style['id'] ?>"><?= htmlspecialchars($style['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="edit-graduation" class="block text-sm font-medium text-slate-700 mb-2">
-                            Graduação / Faixa
-                        </label>
-                        <select id="edit-graduation" name="graduation_id"
-                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                            <option value="">— Selecione —</option>
-                            <?php foreach ($graduations as $graduation): ?>
-                                <option value="<?= (int) $graduation['id'] ?>" data-black="<?= (int) $graduation['is_black_belt'] ?>">
-                                    <?= htmlspecialchars($graduation['style_name'] . ' – ' . $graduation['belt_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="edit-weight" class="block text-sm font-medium text-slate-700 mb-2">Peso (kg)</label>
-                        <input type="text" id="edit-weight" name="weight" inputmode="decimal" placeholder="Ex: 49,5"
-                            class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                    </div>
-
-                    <div class="flex items-end">
-                        <label class="flex items-center gap-2 text-sm text-slate-700 pb-2">
-                            <input type="checkbox" id="edit-para" name="is_para_karate" value="1"
-                                class="rounded border-slate-300 text-red-700 focus:ring-red-700">
-                            Para-karatê
-                        </label>
-                    </div>
-
-                    <p class="md:col-span-2 text-xs text-slate-500">
-                        Mudar a graduação pode tirar o atleta das categorias em que ele já está inscrito —
-                        confira as categorias depois de salvar.
-                    </p>
-                </div>
-
-                <div class="px-5 py-4 border-t border-slate-200 flex gap-3">
-                    <button type="submit"
-                        class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2.5 px-6 rounded-lg transition">
-                        Salvar
-                    </button>
-                    <button type="button" id="edit-cancel"
-                        class="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 px-6 rounded-lg transition">
-                        Cancelar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <?php $editBack = 'athletes'; require __DIR__ . '/partials/athlete_edit_modal.php'; ?>
 
     <!-- Modal de categorias -->
     <div id="category-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -438,15 +404,30 @@ $boxes = [
             // ── Autocomplete de alunos do dojo ──
             const search = document.getElementById('student-search');
             const results = document.getElementById('student-results');
+            const spinner = document.getElementById('student-spinner');
             const hiddenId = document.getElementById('student-user-id');
             const selected = document.getElementById('student-selected');
             const selectedName = document.getElementById('student-selected-name');
+            const incompleteWarning = document.getElementById('student-incomplete');
+            const studentFields = {
+                gender: document.getElementById('student-gender'),
+                birth: document.getElementById('student-birth'),
+                weight: document.getElementById('student-weight'),
+                height: document.getElementById('student-height'),
+            };
+            const studentsById = new Map();
             let timer = null;
+            let controller = null;
+
+            function setSearching(active) {
+                spinner.classList.toggle('hidden', !active);
+                search.setAttribute('aria-busy', active ? 'true' : 'false');
+            }
 
             function clearSelection() {
                 hiddenId.value = '';
                 selected.classList.add('hidden');
-                search.classList.remove('hidden');
+                Object.values(studentFields).forEach(field => { field.value = ''; });
             }
 
             document.getElementById('student-clear')?.addEventListener('click', () => {
@@ -457,22 +438,35 @@ $boxes = [
 
             search?.addEventListener('input', () => {
                 clearTimeout(timer);
+                controller?.abort();
+                clearSelection();
                 const term = search.value.trim();
 
                 if (term.length < 2) {
+                    setSearching(false);
                     results.classList.add('hidden');
                     return;
                 }
 
+                setSearching(true);
+                results.innerHTML = '<p class="px-4 py-3 text-sm text-slate-500">Buscando atletas…</p>';
+                results.classList.remove('hidden');
+
                 timer = setTimeout(async () => {
+                    controller = new AbortController();
+
                     try {
                         const url = `/fgkirs-admin/championships/${championshipId}/athletes/search?q=`
                             + encodeURIComponent(term) + dojoParam;
-                        const response = await fetch(url);
-                        const students = await response.json();
-                        renderResults(students);
+                        const response = await fetch(url, { signal: controller.signal });
+                        if (!response.ok) throw new Error('http ' + response.status);
+                        renderResults(await response.json());
+                        setSearching(false);
                     } catch (e) {
-                        results.classList.add('hidden');
+                        if (e.name === 'AbortError') return;
+                        setSearching(false);
+                        results.innerHTML = '<p class="px-4 py-3 text-sm text-red-700">'
+                            + 'Não foi possível buscar agora. Tente novamente.</p>';
                     }
                 }, 250);
             });
@@ -485,12 +479,15 @@ $boxes = [
                     return;
                 }
 
+                studentsById.clear();
+                students.forEach(student => studentsById.set(String(student.id), student));
+
                 results.innerHTML = students.map(student => {
                     const belt = student.belt_name
                         ? `<span class="text-xs text-slate-500">${escapeHtml(student.belt_name)}</span>`
                         : '<span class="text-xs text-amber-700">sem graduação na ficha</span>';
                     const missing = (!student.birth_date || !student.gender)
-                        ? '<span class="block text-[11px] text-amber-700">ficha incompleta — complete em Usuários</span>'
+                        ? '<span class="block text-[11px] text-amber-700">ficha incompleta — você poderá completar ao inscrever</span>'
                         : '';
 
                     return `<button type="button" data-id="${student.id}" data-name="${escapeHtml(student.name)}"
@@ -502,11 +499,20 @@ $boxes = [
 
                 results.querySelectorAll('button[data-id]').forEach(button => {
                     button.addEventListener('click', () => {
+                        const student = studentsById.get(button.dataset.id);
+
                         hiddenId.value = button.dataset.id;
                         selectedName.textContent = button.dataset.name;
+                        search.value = button.dataset.name;
+
+                        studentFields.gender.value = ['M', 'F'].includes(student.gender) ? student.gender : '';
+                        studentFields.birth.value = student.birth_date ?? '';
+                        studentFields.weight.value = student.weight ? formatKg(student.weight) : '';
+                        studentFields.height.value = student.height ?? '';
+                        incompleteWarning.classList.toggle('hidden', !!(studentFields.gender.value && studentFields.birth.value));
+
                         selected.classList.remove('hidden');
                         results.classList.add('hidden');
-                        search.value = button.dataset.name;
                     });
                 });
 
@@ -533,37 +539,6 @@ $boxes = [
             guestGraduation?.addEventListener('change', () => {
                 const option = guestGraduation.selectedOptions[0];
                 blackWarning.classList.toggle('hidden', option?.dataset.black !== '1');
-            });
-
-            // ── Modal de edicao do atleta ──
-            const editModal = document.getElementById('edit-modal');
-            const editForm = document.getElementById('edit-form');
-
-            function closeEdit() {
-                editModal.classList.add('hidden');
-            }
-
-            document.getElementById('edit-close')?.addEventListener('click', closeEdit);
-            document.getElementById('edit-cancel')?.addEventListener('click', closeEdit);
-            editModal?.addEventListener('click', event => {
-                if (event.target === editModal) closeEdit();
-            });
-
-            document.querySelectorAll('[data-edit-athlete]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const id = button.dataset.editAthlete;
-
-                    editForm.action = `/fgkirs-admin/championships/${championshipId}/athletes/update/${id}`;
-                    document.getElementById('edit-name').value = button.dataset.name;
-                    document.getElementById('edit-gender').value = button.dataset.gender;
-                    document.getElementById('edit-birth').value = button.dataset.birth;
-                    document.getElementById('edit-style').value = button.dataset.style !== '0' ? button.dataset.style : '';
-                    document.getElementById('edit-graduation').value = button.dataset.graduation !== '0' ? button.dataset.graduation : '';
-                    document.getElementById('edit-weight').value = button.dataset.weight;
-                    document.getElementById('edit-para').checked = button.dataset.para === '1';
-
-                    editModal.classList.remove('hidden');
-                });
             });
 
             // ── Modal de categorias ──
@@ -613,9 +588,16 @@ $boxes = [
             function renderCategories(data) {
                 modalAthlete.textContent = `${data.athlete.name} · ${data.athlete.age} anos`;
 
+                if (data.event_empty) {
+                    modalBody.innerHTML = '<p class="text-sm text-red-700">'
+                        + 'O Presidente ainda não liberou categorias para este evento. '
+                        + 'Avise a federação para configurar as categorias do evento.</p>';
+                    return;
+                }
+
                 if (!data.categories.length) {
                     modalBody.innerHTML = '<p class="text-sm text-slate-600">'
-                        + 'Nenhuma categoria cadastrada é compatível com a idade, o sexo e a graduação deste atleta.</p>';
+                        + 'Nenhuma categoria liberada neste evento é compatível com a idade, o sexo e a graduação deste atleta.</p>';
                     return;
                 }
 

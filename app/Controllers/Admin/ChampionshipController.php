@@ -9,6 +9,7 @@ use Models\Championship;
 use Models\ChampionshipAthlete;
 use Models\ChampionshipReferee;
 use Models\ChampionshipTeam;
+use Models\CompetitionCategory;
 use Models\FederationProfile;
 
 /**
@@ -41,6 +42,8 @@ class ChampionshipController extends Controller
         $this->view('admin/championships/form', [
             'championship' => null,
             'agendaPosts'  => Championship::agendaPosts(),
+            'catalog'      => CompetitionCategory::all(['is_active' => 1]),
+            'enabledIds'   => null,
             'pageTitle'    => 'Novo Evento',
         ]);
     }
@@ -56,6 +59,7 @@ class ChampionshipController extends Controller
         }
 
         $id = Championship::create($_POST, (int) Auth::id());
+        Championship::syncCategories($id, (array) ($_POST['category_ids'] ?? []));
 
         $_SESSION['success'] = 'Evento criado com sucesso!';
         $this->redirect("/fgkirs-admin/championships/edit/$id");
@@ -75,6 +79,8 @@ class ChampionshipController extends Controller
         $this->view('admin/championships/form', [
             'championship' => $championship,
             'agendaPosts'  => Championship::agendaPosts(),
+            'catalog'      => CompetitionCategory::all(['is_active' => 1]),
+            'enabledIds'   => Championship::categoryIds($id),
             'totals'       => Championship::totals($id),
             'pageTitle'    => 'Editar Evento',
         ]);
@@ -96,8 +102,15 @@ class ChampionshipController extends Controller
         }
 
         Championship::update($id, $_POST);
+        $kept = Championship::syncCategories($id, (array) ($_POST['category_ids'] ?? []));
 
         $_SESSION['success'] = 'Evento atualizado com sucesso!';
+
+        if ($kept) {
+            $_SESSION['error'] = 'Estas categorias continuam liberadas porque já têm inscritos: '
+                . implode('; ', $kept) . '. Remova as inscrições antes de retirá-las.';
+        }
+
         $this->redirect("/fgkirs-admin/championships/edit/$id");
     }
 
@@ -135,6 +148,8 @@ class ChampionshipController extends Controller
             'athletes'     => ChampionshipAthlete::forChampionship($id),
             'teams'        => ChampionshipTeam::forChampionship($id),
             'referees'     => ChampionshipReferee::forChampionship($id),
+            'styles'       => ChampionshipAthlete::styleOptions(),
+            'graduations'  => ChampionshipAthlete::graduationOptions(),
             'pageTitle'    => 'Inscritos – ' . $championship['title'],
         ]);
     }
@@ -177,6 +192,10 @@ class ChampionshipController extends Controller
 
         if (strtotime($data['registration_end']) <= strtotime($data['registration_start'])) {
             return 'O fim das inscrições precisa ser depois do início.';
+        }
+
+        if (($data['status'] ?? 'draft') !== 'draft' && empty($data['category_ids'])) {
+            return 'Libere ao menos uma categoria para publicar o evento.';
         }
 
         return null;

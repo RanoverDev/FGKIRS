@@ -23,10 +23,20 @@ $tabs = [
             as categorias de cada atleta.
         </p>
     </div>
-    <a href="/fgkirs-admin/categories/create"
-        class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition shrink-0">
-        + Nova Categoria
-    </a>
+    <div class="flex flex-wrap gap-2 shrink-0">
+        <form method="POST" action="/fgkirs-admin/categories/restore-defaults"
+            onsubmit="return confirm('Adicionar ao catálogo as categorias padrão que ainda não existem? As categorias atuais não serão alteradas.');">
+            <?= Csrf::field() ?>
+            <button type="submit"
+                class="border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-2 px-4 rounded-lg transition">
+                Restaurar catálogo padrão
+            </button>
+        </form>
+        <a href="/fgkirs-admin/categories/create"
+            class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">
+            + Nova Categoria
+        </a>
+    </div>
 </div>
 
 <?php require __DIR__ . '/../championships/partials/flash.php'; ?>

@@ -88,6 +88,19 @@ class CompetitionCategoryController extends Controller
         $this->redirect('/fgkirs-admin/categories');
     }
 
+    public function restoreDefaults(): void
+    {
+        $this->guard();
+        $this->guardCsrf('/fgkirs-admin/categories');
+
+        $inserted = CompetitionCategory::restoreDefaults();
+
+        $_SESSION['success'] = $inserted > 0
+            ? "$inserted categoria(s) do catálogo padrão foram adicionadas."
+            : 'O catálogo padrão já está completo. Nada foi alterado.';
+        $this->redirect('/fgkirs-admin/categories');
+    }
+
     public function delete(int $id): void
     {
         $this->guard();
