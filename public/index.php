@@ -189,6 +189,19 @@ $router->add('GET', '/fgkirs-admin/graduations/history/{id}', 'Admin\GraduationC
 $router->add('GET', '/fgkirs-admin/graduations/promote/{id}', 'Admin\GraduationController@promoteForm');
 $router->add('POST', '/fgkirs-admin/graduations/promote', 'Admin\GraduationController@promoteStudent');
 
+// Regulamentos (divisões e gerador de categorias — só admin)
+$router->add('GET', '/fgkirs-admin/rulesets', 'Admin\RulesetController@index');
+$router->add('GET', '/fgkirs-admin/rulesets/create', 'Admin\RulesetController@create');
+$router->add('POST', '/fgkirs-admin/rulesets/store', 'Admin\RulesetController@store');
+$router->add('GET', '/fgkirs-admin/rulesets/edit/{id}', 'Admin\RulesetController@edit');
+$router->add('POST', '/fgkirs-admin/rulesets/update/{id}', 'Admin\RulesetController@update');
+$router->add('POST', '/fgkirs-admin/rulesets/duplicate/{id}', 'Admin\RulesetController@duplicate');
+$router->add('GET', '/fgkirs-admin/rulesets/{id}/preview', 'Admin\RulesetController@preview');
+$router->add('POST', '/fgkirs-admin/rulesets/{id}/ages', 'Admin\RulesetController@saveAges');
+$router->add('POST', '/fgkirs-admin/rulesets/{id}/belts', 'Admin\RulesetController@saveBelts');
+$router->add('POST', '/fgkirs-admin/rulesets/{id}/weights', 'Admin\RulesetController@saveWeights');
+$router->add('POST', '/fgkirs-admin/rulesets/{id}/disciplines', 'Admin\RulesetController@saveDisciplines');
+
 // Atletas (cadastro permanente do dojo)
 $router->add('GET', '/fgkirs-admin/athletes', 'Admin\AthleteController@index');
 $router->add('GET', '/fgkirs-admin/athletes/create', 'Admin\AthleteController@create');
