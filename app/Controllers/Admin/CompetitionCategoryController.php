@@ -118,7 +118,13 @@ class CompetitionCategoryController extends Controller
             $this->redirect('/fgkirs-admin/categories');
         }
 
-        CompetitionCategory::delete($id);
+        try {
+            CompetitionCategory::delete($id);
+        } catch (\PDOException $e) {
+            error_log('CompetitionCategoryController::delete error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Não foi possível excluir a categoria. Ela está em uso por algum evento.';
+            $this->redirect('/fgkirs-admin/categories');
+        }
 
         $_SESSION['success'] = 'Categoria excluída com sucesso!';
         $this->redirect('/fgkirs-admin/categories');

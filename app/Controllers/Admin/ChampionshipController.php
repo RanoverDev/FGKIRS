@@ -123,7 +123,18 @@ class ChampionshipController extends Controller
             $this->redirect('/fgkirs-admin/championships');
         }
 
-        Championship::delete($id);
+        try {
+            if (Championship::hasRegistrations($id)) {
+                $_SESSION['error'] = 'Este evento tem inscrições e não pode ser excluído. Altere o status para Encerrado.';
+                $this->redirect('/fgkirs-admin/championships');
+            }
+
+            Championship::delete($id);
+        } catch (\PDOException $e) {
+            error_log('ChampionshipController::delete error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Não foi possível excluir o evento. Ele possui dados vinculados.';
+            $this->redirect('/fgkirs-admin/championships');
+        }
 
         $_SESSION['success'] = 'Evento excluído com sucesso!';
         $this->redirect('/fgkirs-admin/championships');

@@ -6,6 +6,7 @@ use Core\Database;
 use Helpers\Auth;
 use Helpers\ImageProcessor;
 use Helpers\Mailer;
+use Models\Dojo;
 use PDO;
 
 /**
@@ -323,19 +324,38 @@ class DojoController extends \Controllers\Controller
             exit;
         }
 
+        try {
+            if (Dojo::hasChampionshipRegistrations($id)) {
+                $_SESSION['error'] = 'Este dojo tem inscrições em eventos e não pode ser excluído.';
+                header('Location: /fgkirs-admin/dojos');
+                exit;
+            }
+        } catch (\PDOException $e) {
+            error_log('DojoController::delete check error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Não foi possível verificar as inscrições do dojo. Exclusão cancelada.';
+            header('Location: /fgkirs-admin/dojos');
+            exit;
+        }
+
         // Get dojo
         $stmt = $this->db->query("SELECT logo FROM dojos WHERE id = :id", ['id' => $id]);
         $dojo = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($dojo) {
-            // Delete logo file
+            try {
+                $this->db->query("DELETE FROM dojos WHERE id = :id", ['id' => $id]);
+            } catch (\PDOException $e) {
+                error_log('DojoController::delete error: ' . $e->getMessage());
+                $_SESSION['error'] = 'Não foi possível excluir o dojo. Ele possui dados vinculados.';
+                header('Location: /fgkirs-admin/dojos');
+                exit;
+            }
+
+            // Arquivo só sai depois que o registro foi excluído de fato
             if ($dojo['logo']) {
                 $uploadDir = __DIR__ . '/../../../public/uploads/dojos';
                 ImageProcessor::delete($uploadDir . '/' . $dojo['logo']);
             }
-
-            // Delete dojo record
-            $this->db->query("DELETE FROM dojos WHERE id = :id", ['id' => $id]);
         }
 
         header('Location: /fgkirs-admin/dojos');

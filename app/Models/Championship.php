@@ -266,6 +266,20 @@ class Championship
         );
     }
 
+    /**
+     * Evento com atleta, equipe ou árbitro inscrito. Não engole exceção como totals():
+     * se a consulta falhar, a exclusão não pode seguir como se o evento estivesse vazio.
+     */
+    public static function hasRegistrations(int $id): bool
+    {
+        return (bool) Database::getInstance()->query(
+            "SELECT EXISTS(SELECT 1 FROM championship_athletes WHERE championship_id = :a)
+                 OR EXISTS(SELECT 1 FROM championship_teams WHERE championship_id = :t)
+                 OR EXISTS(SELECT 1 FROM championship_referees WHERE championship_id = :r)",
+            ['a' => $id, 't' => $id, 'r' => $id]
+        )->fetchColumn();
+    }
+
     /** Totais do evento inteiro, para o painel do Presidente. */
     public static function totals(int $id): array
     {

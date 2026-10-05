@@ -108,8 +108,12 @@ class Database
                 return $stmt;
             }
 
-            // Auto-migrate if foreign key constraint fails
-            if (str_contains($e->getMessage(), 'foreign key constraint fails')) {
+            // 1451 = exclusão bloqueada de propósito por ON DELETE RESTRICT; não é migração
+            $driverCode = (int) ($e->errorInfo[1] ?? 0);
+
+            // Auto-migrate if a child row points to a missing parent (1452)
+            if ($driverCode === 1452) {
+                error_log('Query failed with FK 1452, running column fixes: ' . $e->getMessage());
                 $this->runColumnFixes();
                 // Retry once
                 $stmt = $this->connection->prepare($sql);
@@ -530,7 +534,7 @@ class Database
                 PRIMARY KEY (championship_id, category_id),
                 INDEX idx_category (category_id),
                 FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
-                FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE CASCADE
+                CONSTRAINT fk_champcat_category FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS championship_athletes (
@@ -554,8 +558,8 @@ class Database
                 INDEX idx_championship_dojo (championship_id, dojo_id),
                 INDEX idx_belt_group (belt_group),
                 UNIQUE KEY unique_championship_user (championship_id, user_id),
-                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
-                FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE CASCADE,
+                CONSTRAINT fk_champathletes_championship FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE RESTRICT,
+                CONSTRAINT fk_champathletes_dojo FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE RESTRICT,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
                 FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL,
                 FOREIGN KEY (graduation_id) REFERENCES graduations(id) ON DELETE SET NULL,
@@ -571,7 +575,7 @@ class Database
                 UNIQUE KEY unique_athlete_category (championship_athlete_id, category_id),
                 INDEX idx_category (category_id),
                 FOREIGN KEY (championship_athlete_id) REFERENCES championship_athletes(id) ON DELETE CASCADE,
-                FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE CASCADE
+                CONSTRAINT fk_entries_category FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS championship_teams (
@@ -584,9 +588,9 @@ class Database
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_championship_dojo (championship_id, dojo_id),
                 INDEX idx_category (category_id),
-                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
-                FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE CASCADE,
-                FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE CASCADE
+                CONSTRAINT fk_teams_championship FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE RESTRICT,
+                CONSTRAINT fk_teams_dojo FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE RESTRICT,
+                CONSTRAINT fk_teams_category FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS championship_team_members (
@@ -612,8 +616,8 @@ class Database
                 registered_by INT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_championship_dojo (championship_id, dojo_id),
-                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
-                FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE CASCADE,
+                CONSTRAINT fk_referees_championship FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE RESTRICT,
+                CONSTRAINT fk_referees_dojo FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE RESTRICT,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
                 FOREIGN KEY (registered_by) REFERENCES users(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"

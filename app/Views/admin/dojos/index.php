@@ -16,6 +16,8 @@ require_once __DIR__ . '/../layout/header.php';
     <?php endif; ?>
 </div>
 
+<?php require __DIR__ . '/../championships/partials/flash.php'; ?>
+
 <!-- Dojos Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
     <?php if (empty($dojos)): ?>
