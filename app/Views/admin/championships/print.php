@@ -475,7 +475,7 @@ $teamMemberNames = static function (array $team): string {
                     </thead>
                     <tbody>
                         <?php foreach ($dojoAthletes as $index => $athlete): ?>
-                            <?php $age = ChampionshipAthlete::ageOn($athlete['birth_date'], $championship['event_date']); ?>
+                            <?php $age = $athlete['age'] ?? ChampionshipAthlete::ageOn($athlete['birth_date'], $championship['event_date']); ?>
                             <tr>
                                 <td class="num"><?= $index + 1 ?></td>
                                 <td class="name">

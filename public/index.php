@@ -189,6 +189,24 @@ $router->add('GET', '/fgkirs-admin/graduations/history/{id}', 'Admin\GraduationC
 $router->add('GET', '/fgkirs-admin/graduations/promote/{id}', 'Admin\GraduationController@promoteForm');
 $router->add('POST', '/fgkirs-admin/graduations/promote', 'Admin\GraduationController@promoteStudent');
 
+// Eventos no modelo novo (v2): categorias do evento, grade de inscrição, equipes e painel
+$router->add('GET', '/fgkirs-admin/championships/{id}/categories', 'Admin\ChampionshipCategoryController@index');
+$router->add('GET', '/fgkirs-admin/championships/{id}/categories/preview', 'Admin\ChampionshipCategoryController@preview');
+$router->add('POST', '/fgkirs-admin/championships/{id}/categories/store', 'Admin\ChampionshipCategoryController@store');
+$router->add('POST', '/fgkirs-admin/championships/{id}/categories/merge', 'Admin\ChampionshipCategoryController@merge');
+$router->add('POST', '/fgkirs-admin/championships/{id}/categories/{categoryId}/status', 'Admin\ChampionshipCategoryController@status');
+$router->add('GET', '/fgkirs-admin/championships/{id}/grid', 'Admin\RegistrationController@grid');
+$router->add('GET', '/fgkirs-admin/championships/{id}/grid/suggest', 'Admin\RegistrationController@suggest');
+$router->add('POST', '/fgkirs-admin/championships/{id}/grid/save', 'Admin\RegistrationController@save');
+$router->add('POST', '/fgkirs-admin/championships/{id}/grid/submit', 'Admin\RegistrationController@submit');
+$router->add('POST', '/fgkirs-admin/championships/{id}/registrations/confirm', 'Admin\RegistrationPanelController@confirm');
+$router->add('GET', '/fgkirs-admin/championships/{id}/registrations/export', 'Admin\RegistrationPanelController@export');
+$router->add('POST', '/fgkirs-admin/championships/{id}/registrations/{registrationId}/cancel', 'Admin\RegistrationController@cancel');
+$router->add('POST', '/fgkirs-admin/championships/{id}/registrations/{registrationId}/override', 'Admin\RegistrationPanelController@override');
+$router->add('GET', '/fgkirs-admin/championships/{id}/registrations/{registrationId}/log', 'Admin\RegistrationPanelController@log');
+$router->add('POST', '/fgkirs-admin/championships/{id}/teams/create', 'Admin\RegistrationController@storeTeam');
+$router->add('POST', '/fgkirs-admin/championships/{id}/teams/{teamId}/cancel', 'Admin\RegistrationController@cancelTeam');
+
 // Regulamentos (divisões e gerador de categorias — só admin)
 $router->add('GET', '/fgkirs-admin/rulesets', 'Admin\RulesetController@index');
 $router->add('GET', '/fgkirs-admin/rulesets/create', 'Admin\RulesetController@create');

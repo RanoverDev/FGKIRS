@@ -31,6 +31,11 @@ class ChampionshipRegistrationController extends Controller
     {
         [$championship, $dojoId] = $this->context($championshipId);
 
+        if (Championship::isV2($championship)) {
+            (new RegistrationController())->gridPage($championship, $dojoId);
+            return;
+        }
+
         $athletes = $dojoId ? ChampionshipAthlete::forDojo($championshipId, $dojoId) : [];
 
         $grouped = ['black' => [], 'colored' => []];
@@ -49,6 +54,11 @@ class ChampionshipRegistrationController extends Controller
     public function teams(int $championshipId): void
     {
         [$championship, $dojoId] = $this->context($championshipId);
+
+        if (Championship::isV2($championship)) {
+            (new RegistrationController())->teamsPage($championship, $dojoId);
+            return;
+        }
 
         $categories = CompetitionCategory::teams($championshipId);
         $counts     = $dojoId ? ChampionshipTeam::countsByCategory($championshipId, $dojoId) : [];
@@ -79,6 +89,11 @@ class ChampionshipRegistrationController extends Controller
     {
         [$championship, $dojoId] = $this->context($championshipId);
 
+        if (Championship::isV2($championship)) {
+            (new RegistrationController())->summaryPage($championship, $dojoId);
+            return;
+        }
+
         $this->render('summary', $championship, $dojoId, array_merge(
             $this->summaryData($championshipId, $dojoId, $championship),
             ['styles' => $this->styles(), 'graduations' => $this->graduations()]
@@ -89,6 +104,11 @@ class ChampionshipRegistrationController extends Controller
     public function summaryPrint(int $championshipId): void
     {
         [$championship, $dojoId] = $this->context($championshipId);
+
+        if (Championship::isV2($championship)) {
+            (new RegistrationController())->printPage($championship, $dojoId);
+            return;
+        }
 
         if (!$dojoId) {
             DojoScope::deny('Selecione um dojo para gerar a versão para impressão.');
@@ -538,6 +558,11 @@ class ChampionshipRegistrationController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && !Csrf::validate($_POST['csrf_token'] ?? null)) {
             $_SESSION['error'] = 'Sessão expirada. Tente novamente.';
             $this->redirect($this->tabUrl($championshipId, 'athletes', $dojoId));
+        }
+
+        // Evento no modelo novo só aceita escrita pelas rotas e serviços novos
+        if (Championship::isV2($championship)) {
+            DojoScope::deny('Este evento usa a nova inscrição. Atualize a página.');
         }
 
         Championship::assertRegistrationOpen($championship);

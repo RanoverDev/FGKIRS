@@ -77,15 +77,18 @@ final class CategoryGenerator
         }
 
         $nameParts[] = $age->label();
+        $shortParts  = [$age->name];
 
         if ($belt !== null) {
             $codeParts[] = $belt->code;
             $nameParts[] = $belt->name;
+            $shortParts[] = $belt->name;
         }
 
         if ($weight !== null) {
             $codeParts[] = $weight->codePart();
             $nameParts[] = $weight->name;
+            $shortParts[] = $weight->name;
         }
 
         return new EventCategoryDraft(
@@ -108,6 +111,9 @@ final class CategoryGenerator
             sortOrder: $order,
             disciplineName: $discipline->name,
             ageLabel: $age->label(),
+            disciplineCode: $discipline->code,
+            shortName: implode(' · ', $shortParts),
+            teamReserves: $discipline->format === 'team' ? $discipline->teamReserves : null,
         );
     }
 }

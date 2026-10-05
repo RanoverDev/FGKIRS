@@ -3,6 +3,7 @@ use Helpers\Csrf;
 use Models\Championship;
 
 $isEdit    = !empty($championship);
+$isV2      = !$isEdit || Championship::isV2($championship);
 $pageTitle = $isEdit ? 'Editar Evento' : 'Novo Evento';
 $action    = $isEdit
     ? '/fgkirs-admin/championships/update/' . (int) $championship['id']
@@ -138,6 +139,74 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
     </div>
 
+    <?php if ($isV2): ?>
+        <div id="regras" class="pt-5 mb-6 border-t border-slate-100">
+            <h2 class="text-lg font-bold text-slate-900 mb-1">Regras de inscrição</h2>
+            <p class="text-xs text-slate-500 mb-4">
+                As categorias do evento são geradas a partir do regulamento. Depois de salvar, use
+                <strong>Categorias do evento</strong> para escolher disciplinas e divisões e gerar.
+            </p>
+
+            <div class="grid md:grid-cols-2 gap-5 mb-5">
+                <div>
+                    <label for="ruleset_id" class="block text-sm font-medium text-slate-700 mb-2">Regulamento *</label>
+                    <select id="ruleset_id" name="ruleset_id" required
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                        <option value="">Selecione...</option>
+                        <?php foreach ($rulesets as $ruleset): ?>
+                            <option value="<?= (int) $ruleset['id'] ?>" data-age-policy="<?= htmlspecialchars($ruleset['age_policy']) ?>"
+                                <?= (int) ($championship['ruleset_id'] ?? $defaultRulesetId ?? 0) === (int) $ruleset['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($ruleset['name']) ?><?= $ruleset['is_default'] ? ' (padrão)' : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="age_policy" class="block text-sm font-medium text-slate-700 mb-2">Como a idade é calculada</label>
+                    <select id="age_policy" name="age_policy"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                        <option value="event_date" <?= ($championship['age_policy'] ?? 'event_date') === 'event_date' ? 'selected' : '' ?>>Idade na data do evento</option>
+                        <option value="year_end" <?= ($championship['age_policy'] ?? '') === 'year_end' ? 'selected' : '' ?>>Idade que completa no ano</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid md:grid-cols-4 gap-5">
+                <div>
+                    <label for="max_individual_entries" class="block text-sm font-medium text-slate-700 mb-2">Categorias por atleta</label>
+                    <input type="number" id="max_individual_entries" name="max_individual_entries" min="1" max="10"
+                        value="<?= (int) ($championship['max_individual_entries'] ?? 2) ?>"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+                <div>
+                    <label for="fee_first_entry" class="block text-sm font-medium text-slate-700 mb-2">Taxa da 1ª categoria (R$)</label>
+                    <input type="text" id="fee_first_entry" name="fee_first_entry" inputmode="decimal" placeholder="Sem taxa"
+                        value="<?= isset($championship['fee_first_entry']) ? number_format((float) $championship['fee_first_entry'], 2, ',', '') : '' ?>"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+                <div>
+                    <label for="fee_extra_entry" class="block text-sm font-medium text-slate-700 mb-2">Taxa das demais (R$)</label>
+                    <input type="text" id="fee_extra_entry" name="fee_extra_entry" inputmode="decimal" placeholder="Igual à 1ª"
+                        value="<?= isset($championship['fee_extra_entry']) ? number_format((float) $championship['fee_extra_entry'], 2, ',', '') : '' ?>"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+                <div>
+                    <label for="weigh_in_tolerance_kg" class="block text-sm font-medium text-slate-700 mb-2">Tolerância na pesagem (kg)</label>
+                    <input type="text" id="weigh_in_tolerance_kg" name="weigh_in_tolerance_kg" inputmode="decimal"
+                        value="<?= number_format((float) ($championship['weigh_in_tolerance_kg'] ?? 0), 2, ',', '') ?>"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                </div>
+            </div>
+
+            <?php if ($isEdit): ?>
+                <a href="/fgkirs-admin/championships/<?= (int) $championship['id'] ?>/categories"
+                    class="inline-flex items-center gap-2 mt-5 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2 px-5 rounded-lg transition">
+                    Categorias do evento (<?= (int) ($categoryCount ?? 0) ?>) →
+                </a>
+            <?php endif; ?>
+        </div>
+    <?php else: ?>
     <?php
     /** Novo evento nasce com tudo marcado; o Presidente desmarca o que nao vale. */
     $enabled = $enabledIds === null
@@ -209,6 +278,7 @@ require_once __DIR__ . '/../layout/header.php';
             <?php endforeach; ?>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="flex flex-wrap gap-3 pt-5 border-t border-slate-100">
         <button type="submit"
@@ -228,6 +298,15 @@ require_once __DIR__ . '/../layout/header.php';
     </div>
 </form>
 
+<?php if ($isV2): ?>
+<script>
+    // Novo evento herda a regra de idade do regulamento escolhido; o Presidente ainda pode trocar
+    document.getElementById('ruleset_id').addEventListener('change', e => {
+        const policy = e.target.selectedOptions[0]?.dataset.agePolicy;
+        if (policy) document.getElementById('age_policy').value = policy;
+    });
+</script>
+<?php else: ?>
 <script>
     (function () {
         const boxes = () => document.querySelectorAll('input[name="category_ids[]"]');
@@ -260,5 +339,6 @@ require_once __DIR__ . '/../layout/header.php';
         }
     })();
 </script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

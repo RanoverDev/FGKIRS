@@ -25,6 +25,9 @@ final readonly class EventCategoryDraft
         public int $sortOrder,
         public string $disciplineName,
         public string $ageLabel,
+        public string $disciplineCode = '',
+        public string $shortName = '',
+        public ?int $teamReserves = null,
     ) {
     }
 }

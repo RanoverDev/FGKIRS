@@ -141,14 +141,19 @@ class Championship
         );
         $params['created_by'] = $userId;
 
+        // Todo evento criado a partir da fase 4 nasce no modelo novo
         $db->query(
             "INSERT INTO championships
                 (title, slug, description, location, event_date,
-                 registration_start, registration_end, status, post_id, created_by)
+                 registration_start, registration_end, status, post_id, created_by,
+                 registration_model, ruleset_id, age_policy, max_individual_entries,
+                 fee_first_entry, fee_extra_entry, weigh_in_tolerance_kg)
              VALUES
                 (:title, :slug, :description, :location, :event_date,
-                 :registration_start, :registration_end, :status, :post_id, :created_by)",
-            $params
+                 :registration_start, :registration_end, :status, :post_id, :created_by,
+                 'v2', :ruleset_id, :age_policy, :max_individual_entries,
+                 :fee_first_entry, :fee_extra_entry, :weigh_in_tolerance_kg)",
+            $params + self::rulesFromInput($data)
         );
 
         return (int) $db->lastInsertId();
@@ -159,13 +164,28 @@ class Championship
         $params = self::sanitize($data);
         $params['id'] = $id;
 
-        Database::getInstance()->query(
+        $db = Database::getInstance();
+
+        $db->query(
             "UPDATE championships SET
                 title = :title, description = :description, location = :location,
                 event_date = :event_date, registration_start = :registration_start,
                 registration_end = :registration_end, status = :status, post_id = :post_id
              WHERE id = :id",
             $params
+        );
+
+        if (!self::isV2(self::find($id) ?? [])) {
+            return;
+        }
+
+        $db->query(
+            "UPDATE championships SET
+                ruleset_id = :ruleset_id, age_policy = :age_policy, max_individual_entries = :max_individual_entries,
+                fee_first_entry = :fee_first_entry, fee_extra_entry = :fee_extra_entry,
+                weigh_in_tolerance_kg = :weigh_in_tolerance_kg
+             WHERE id = :id",
+            self::rulesFromInput($data) + ['id' => $id]
         );
     }
 
@@ -260,10 +280,35 @@ class Championship
 
     public static function delete(int $id): void
     {
-        Database::getInstance()->query(
-            "DELETE FROM championships WHERE id = :id",
-            ['id' => $id]
-        );
+        $db = Database::getInstance();
+
+        // Categorias geradas sem nenhuma inscrição saem junto com o evento vazio; o banco recusa as demais
+        $db->beginTransaction();
+
+        try {
+            if (self::tableExists('event_categories')) {
+                $db->query("DELETE FROM event_categories WHERE championship_id = :id", ['id' => $id]);
+            }
+
+            $db->query("DELETE FROM championships WHERE id = :id", ['id' => $id]);
+            $db->commit();
+        } catch (\Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
+    }
+
+    public static function isV2(array $championship): bool
+    {
+        return ($championship['registration_model'] ?? 'legacy') === 'v2';
+    }
+
+    private static function tableExists(string $table): bool
+    {
+        return (bool) Database::getInstance()->query(
+            "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t",
+            ['t' => $table]
+        )->fetchColumn();
     }
 
     /**
@@ -272,11 +317,21 @@ class Championship
      */
     public static function hasRegistrations(int $id): bool
     {
+        $v2 = self::tableExists('championship_registrations')
+            ? " OR EXISTS(SELECT 1 FROM championship_registrations WHERE championship_id = :v)
+                OR EXISTS(SELECT 1 FROM event_teams WHERE championship_id = :vt)"
+            : '';
+
+        $params = ['a' => $id, 't' => $id, 'r' => $id];
+        if ($v2) {
+            $params += ['v' => $id, 'vt' => $id];
+        }
+
         return (bool) Database::getInstance()->query(
             "SELECT EXISTS(SELECT 1 FROM championship_athletes WHERE championship_id = :a)
                  OR EXISTS(SELECT 1 FROM championship_teams WHERE championship_id = :t)
-                 OR EXISTS(SELECT 1 FROM championship_referees WHERE championship_id = :r)",
-            ['a' => $id, 't' => $id, 'r' => $id]
+                 OR EXISTS(SELECT 1 FROM championship_referees WHERE championship_id = :r)$v2",
+            $params
         )->fetchColumn();
     }
 
@@ -354,6 +409,27 @@ class Championship
             error_log('Championship::agendaPosts error: ' . $e->getMessage());
             return [];
         }
+    }
+
+    /** Regras de inscrição do evento no modelo novo. */
+    private static function rulesFromInput(array $data): array
+    {
+        $money = static function (mixed $v): ?float {
+            $v = trim((string) $v);
+
+            return $v === '' ? null : max(0.0, round((float) str_replace(',', '.', $v), 2));
+        };
+
+        $ruleset = (int) ($data['ruleset_id'] ?? 0);
+
+        return [
+            'ruleset_id'             => $ruleset > 0 ? $ruleset : null,
+            'age_policy'             => ($data['age_policy'] ?? '') === 'year_end' ? 'year_end' : 'event_date',
+            'max_individual_entries' => max(1, min(10, (int) ($data['max_individual_entries'] ?? 2))),
+            'fee_first_entry'        => $money($data['fee_first_entry'] ?? ''),
+            'fee_extra_entry'        => $money($data['fee_extra_entry'] ?? ''),
+            'weigh_in_tolerance_kg'  => min(9.99, (float) ($money($data['weigh_in_tolerance_kg'] ?? '') ?? 0)),
+        ];
     }
 
     private static function sanitize(array $data): array
