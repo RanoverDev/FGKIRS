@@ -65,6 +65,7 @@ class GraduationController extends Controller
         $beltName = trim($_POST['belt_name'] ?? '');
         $beltColor = trim($_POST['belt_color'] ?? '#000000');
         $desc = trim($_POST['requirements'] ?? '');
+        $level = $this->levelFromPost();
 
         $stmt = $this->db->query(
             "SELECT COALESCE(MAX(order_rank), -1) + 1 as next_rank
@@ -74,9 +75,10 @@ class GraduationController extends Controller
         $nextRank = (int) $stmt->fetchColumn();
 
         $this->db->query(
-            "INSERT INTO graduations (style_id, belt_name, belt_color, order_rank, requirements, created_at, updated_at)
-             VALUES (:style_id, :belt_name, :belt_color, :order_rank, :requirements, NOW(), NOW())",
+            "INSERT INTO graduations (style_id, belt_name, belt_color, order_rank, level, requirements, created_at, updated_at)
+             VALUES (:style_id, :belt_name, :belt_color, :order_rank, :level, :requirements, NOW(), NOW())",
             [
+                'level' => $level,
                 'style_id' => $styleId,
                 'belt_name' => $beltName,
                 'belt_color' => $beltColor,
@@ -120,9 +122,10 @@ class GraduationController extends Controller
         $this->db->query(
             "UPDATE graduations
              SET style_id = :style_id, belt_name = :belt_name, belt_color = :belt_color,
-                 requirements = :requirements, updated_at = NOW()
+                 level = :level, requirements = :requirements, updated_at = NOW()
              WHERE id = :id",
             [
+                'level' => $this->levelFromPost(),
                 'style_id' => (int) ($_POST['style_id'] ?? 0),
                 'belt_name' => trim($_POST['belt_name'] ?? ''),
                 'belt_color' => trim($_POST['belt_color'] ?? '#000000'),
@@ -398,5 +401,13 @@ class GraduationController extends Controller
         $readyStudents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view("admin/graduations/ready", ["readyStudents" => $readyStudents]);
+    }
+
+    /** Nível comum entre estilos (1 a 20); vazio ou fora do intervalo vira NULL. */
+    private function levelFromPost(): ?int
+    {
+        $level = (int) ($_POST['level'] ?? 0);
+
+        return $level >= 1 && $level <= 20 ? $level : null;
     }
 }

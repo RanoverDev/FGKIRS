@@ -39,6 +39,7 @@ foreach ($graduations as $g) {
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ordem</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nível</th>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cor</th>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nome da Faixa</th>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Descrição</th>
@@ -52,6 +53,9 @@ foreach ($graduations as $g) {
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                     <?= (int) $faixa['order_rank'] + 1 ?>º
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    <?= isset($faixa['level']) ? (int) $faixa['level'] : '—' ?>
                                 </td>
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="w-8 h-8 rounded-full border-2 border-gray-300"

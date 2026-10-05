@@ -19,6 +19,17 @@ class Format
         };
     }
 
+    public static function cpf(?string $value): string
+    {
+        $d = preg_replace('/\D/', '', (string) $value);
+
+        if (strlen($d) !== 11) {
+            return trim((string) $value);
+        }
+
+        return sprintf('%s.%s.%s-%s', substr($d, 0, 3), substr($d, 3, 3), substr($d, 6, 3), substr($d, 9));
+    }
+
     public static function cnpj(?string $value): string
     {
         $d = preg_replace('/\D/', '', (string) $value);

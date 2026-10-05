@@ -6,6 +6,7 @@ use Controllers\Controller;
 use Core\Database;
 use Helpers\Auth;
 use Helpers\ImageProcessor;
+use Models\Athlete;
 use PDO;
 
 class UserController extends Controller
@@ -146,6 +147,10 @@ class UserController extends Controller
 
             if (in_array($role, self::ATHLETE_ROLES) || $role === 'sensei') {
                 $this->saveAthleteProfile($userId);
+            }
+
+            if (in_array($role, self::ATHLETE_ROLES)) {
+                $this->syncAthlete($userId);
             }
 
             $_SESSION['success'] = 'Usuário cadastrado com sucesso!';
@@ -321,6 +326,10 @@ class UserController extends Controller
                 $this->saveAthleteProfile($id);
             }
 
+            if (in_array($role, self::ATHLETE_ROLES)) {
+                $this->syncAthlete($id);
+            }
+
             $_SESSION['success'] = 'Usuário atualizado com sucesso!';
             header('Location: /fgkirs-admin/users');
             exit;
@@ -468,6 +477,16 @@ class UserController extends Controller
                 "INSERT INTO athlete_profiles (user_id, $cols) VALUES (:user_id, $vals)",
                 $params
             );
+        }
+    }
+
+    /** Mantém athletes alinhado ao perfil do aluno. Falha aqui não pode impedir o salvamento do usuário. */
+    private function syncAthlete(int $userId): void
+    {
+        try {
+            Athlete::syncFromUser($userId, (int) Auth::id());
+        } catch (\Throwable $e) {
+            error_log('UserController::syncAthlete error: ' . $e->getMessage());
         }
     }
 

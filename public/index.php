@@ -189,6 +189,14 @@ $router->add('GET', '/fgkirs-admin/graduations/history/{id}', 'Admin\GraduationC
 $router->add('GET', '/fgkirs-admin/graduations/promote/{id}', 'Admin\GraduationController@promoteForm');
 $router->add('POST', '/fgkirs-admin/graduations/promote', 'Admin\GraduationController@promoteStudent');
 
+// Atletas (cadastro permanente do dojo)
+$router->add('GET', '/fgkirs-admin/athletes', 'Admin\AthleteController@index');
+$router->add('GET', '/fgkirs-admin/athletes/create', 'Admin\AthleteController@create');
+$router->add('POST', '/fgkirs-admin/athletes/store', 'Admin\AthleteController@store');
+$router->add('GET', '/fgkirs-admin/athletes/edit/{id}', 'Admin\AthleteController@edit');
+$router->add('POST', '/fgkirs-admin/athletes/update/{id}', 'Admin\AthleteController@update');
+$router->add('GET', '/fgkirs-admin/athletes/deactivate/{id}', 'Admin\AthleteController@deactivate');
+
 // =====================================================
 // ADMIN - POSTS/NEWS
 // =====================================================

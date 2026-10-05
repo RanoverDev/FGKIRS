@@ -46,6 +46,18 @@ require_once __DIR__ . '/../layout/header.php';
             </div>
         </div>
 
+        <div class="mb-4">
+            <label for="level" class="block text-sm font-medium text-gray-700 mb-2">Nível comum (1 a 20)</label>
+            <input type="number" id="level" name="level" min="1" max="20"
+                   value="<?= htmlspecialchars((string) ($graduation['level'] ?? '')) ?>"
+                   class="w-32 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+            <p class="text-xs text-gray-500 mt-1.5">
+                Serve para comparar faixas de estilos diferentes nas categorias de disputa. Faixas
+                equivalentes em Shotokan, Goju-ryu e Wado-ryu devem ter o mesmo nível
+                (ex.: 1 = branca, 10 = marrom 1º kyu, 11 = preta 1º dan).
+            </p>
+        </div>
+
         <div class="mb-6">
             <label for="requirements" class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
             <textarea id="requirements" name="requirements" rows="4"
