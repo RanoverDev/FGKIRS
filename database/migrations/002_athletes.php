@@ -59,11 +59,11 @@ return function (PDO $pdo): void {
         echo "\n  graduations.level criada";
     }
 
-    // Sugestão para o presidente revisar: posição na ordem do estilo; faixa preta nunca abaixo de 11
+    // Sugestão para o presidente revisar: posição na ordem do estilo; faixa preta nunca abaixo de 11.
+    // is_black_belt só existe depois do auto-fix do Database; sem ela, vale só a posição.
+    $blackBelt = $columnExists('graduations', 'is_black_belt') ? 'IF(is_black_belt = 1, 11, 1)' : '1';
     $suggested = $pdo->exec(
-        "UPDATE graduations
-         SET level = LEAST(20, GREATEST(order_rank + 1, IF(is_black_belt = 1, 11, 1)))
-         WHERE level IS NULL"
+        "UPDATE graduations SET level = LEAST(20, GREATEST(order_rank + 1, $blackBelt)) WHERE level IS NULL"
     );
     echo "\n  graduations.level sugerido em $suggested linha(s)";
 
