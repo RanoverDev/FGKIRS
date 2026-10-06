@@ -1,13 +1,18 @@
 -- =====================================================================================
 -- FGKIRS — Parte 3 de 4 — migrations 003 e 004: regulamento e regulamento atual
 --
+-- Feito para o MariaDB 10.6 da KingHost (usa ADD ... IF NOT EXISTS / DROP ... IF EXISTS), com os nomes
+-- reais das FKs do banco de produção. Só comandos simples: nada de PREPARE nem information_schema
+-- (que travam em servidor compartilhado). Cada parte é idempotente: se algo interromper, rode a mesma
+-- parte de novo.
+--
 -- Rode as quatro partes NESTA ORDEM (01a, 01b, 01c, 01d), uma de cada vez, no phpMyAdmin:
--- selecione o banco > Importar > escolha o arquivo > Executar. Cada parte é idempotente: se algo
--- interromper, pode rodar a mesma parte de novo. Faça o backup (Exportar) antes da 01a.
+-- selecione o banco > Importar > escolha o arquivo > Executar. Faça o backup (Exportar) antes da 01a.
 -- =====================================================================================
 
 SET NAMES utf8mb4;
-SET @db = DATABASE();
+
+SET NAMES utf8mb4;
 
 -- ---------------------------------------------------------------- 003: regulamento
 CREATE TABLE IF NOT EXISTS rulesets (

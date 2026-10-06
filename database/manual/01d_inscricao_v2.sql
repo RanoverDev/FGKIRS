@@ -1,70 +1,31 @@
 -- =====================================================================================
 -- FGKIRS — Parte 4 de 4 — migration 005: categorias do evento e nova inscrição (+ registro das migrations)
 --
+-- Feito para o MariaDB 10.6 da KingHost (usa ADD ... IF NOT EXISTS / DROP ... IF EXISTS), com os nomes
+-- reais das FKs do banco de produção. Só comandos simples: nada de PREPARE nem information_schema
+-- (que travam em servidor compartilhado). Cada parte é idempotente: se algo interromper, rode a mesma
+-- parte de novo.
+--
 -- Rode as quatro partes NESTA ORDEM (01a, 01b, 01c, 01d), uma de cada vez, no phpMyAdmin:
--- selecione o banco > Importar > escolha o arquivo > Executar. Cada parte é idempotente: se algo
--- interromper, pode rodar a mesma parte de novo. Faça o backup (Exportar) antes da 01a.
+-- selecione o banco > Importar > escolha o arquivo > Executar. Faça o backup (Exportar) antes da 01a.
 -- =====================================================================================
 
 SET NAMES utf8mb4;
-SET @db = DATABASE();
 
--- ---------------------------------------------------------------- 005: categorias do evento e nova inscrição
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='registration_model')=0,
-  'ALTER TABLE `championships` ADD COLUMN `registration_model` ENUM(''legacy'',''v2'') NOT NULL DEFAULT ''legacy''', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
+-- Migration 005: categorias do evento, inscrição com status e taxa, equipes e auditoria.
+-- Eventos que já existem continuam 'legacy' (modelo antigo); só os criados daqui em diante nascem 'v2'.
 
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='ruleset_id')=0,
-  'ALTER TABLE `championships` ADD COLUMN `ruleset_id` INT NULL', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
+ALTER TABLE `championships`
+  ADD COLUMN IF NOT EXISTS `registration_model` ENUM('legacy','v2') NOT NULL DEFAULT 'legacy',
+  ADD COLUMN IF NOT EXISTS `ruleset_id` INT NULL,
+  ADD COLUMN IF NOT EXISTS `age_policy` ENUM('event_date','year_end') NOT NULL DEFAULT 'event_date',
+  ADD COLUMN IF NOT EXISTS `max_individual_entries` TINYINT UNSIGNED NOT NULL DEFAULT 2,
+  ADD COLUMN IF NOT EXISTS `fee_first_entry` DECIMAL(8,2) NULL,
+  ADD COLUMN IF NOT EXISTS `fee_extra_entry` DECIMAL(8,2) NULL,
+  ADD COLUMN IF NOT EXISTS `weigh_in_tolerance_kg` DECIMAL(4,2) NOT NULL DEFAULT 0.00;
 
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='age_policy')=0,
-  'ALTER TABLE `championships` ADD COLUMN `age_policy` ENUM(''event_date'',''year_end'') NOT NULL DEFAULT ''event_date''', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
-
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='max_individual_entries')=0,
-  'ALTER TABLE `championships` ADD COLUMN `max_individual_entries` TINYINT UNSIGNED NOT NULL DEFAULT 2', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
-
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='fee_first_entry')=0,
-  'ALTER TABLE `championships` ADD COLUMN `fee_first_entry` DECIMAL(8,2) NULL', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
-
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='fee_extra_entry')=0,
-  'ALTER TABLE `championships` ADD COLUMN `fee_extra_entry` DECIMAL(8,2) NULL', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
-
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='weigh_in_tolerance_kg')=0,
-  'ALTER TABLE `championships` ADD COLUMN `weigh_in_tolerance_kg` DECIMAL(4,2) NOT NULL DEFAULT 0.00', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
-
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=@db AND TABLE_NAME='championships' AND CONSTRAINT_NAME='fk_championships_ruleset')=0,
-  'ALTER TABLE `championships` ADD CONSTRAINT `fk_championships_ruleset` FOREIGN KEY (`ruleset_id`) REFERENCES `rulesets`(`id`) ON DELETE SET NULL', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
+ALTER TABLE `championships`
+  ADD CONSTRAINT `fk_championships_ruleset` FOREIGN KEY IF NOT EXISTS (`ruleset_id`) REFERENCES `rulesets`(`id`) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS event_categories (
     id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -187,12 +148,11 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 INSERT IGNORE INTO schema_migrations (version) VALUES
   ('001_fk_restrict'), ('002_athletes'), ('003_rulesets'), ('004_seed_ruleset_fgkirs'), ('005_event_registration_v2');
 
--- ---------------------------------------------------------------- conferência desta parte
-SELECT 'athletes' AS item, COUNT(*) AS existe FROM information_schema.TABLES WHERE TABLE_SCHEMA=@db AND TABLE_NAME='athletes'
-UNION ALL SELECT 'rulesets', COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=@db AND TABLE_NAME='rulesets'
-UNION ALL SELECT 'event_categories', COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=@db AND TABLE_NAME='event_categories'
-UNION ALL SELECT 'championship_registrations', COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championship_registrations'
-UNION ALL SELECT 'graduations.level', COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='graduations' AND COLUMN_NAME='level'
-UNION ALL SELECT 'championships.registration_model', COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championships' AND COLUMN_NAME='registration_model'
-UNION ALL SELECT 'regulamento padrão (1 linha)', COUNT(*) FROM rulesets WHERE is_default = 1
-UNION ALL SELECT 'divisões etárias do regulamento padrão (8)', (SELECT COUNT(*) FROM age_divisions);
+-- ---------------------------------------------------------------- conferência (as consultas só funcionam se tudo existir)
+SELECT version AS migration_aplicada FROM schema_migrations ORDER BY version;
+SELECT registration_model, COUNT(*) AS eventos FROM championships GROUP BY registration_model;
+SELECT (SELECT COUNT(*) FROM event_categories) AS categorias_de_evento,
+       (SELECT COUNT(*) FROM championship_registrations) AS inscricoes_v2,
+       (SELECT COUNT(*) FROM rulesets WHERE is_default = 1) AS regulamento_padrao,
+       (SELECT COUNT(*) FROM age_divisions) AS divisoes_etarias;
+-- Esperado: 5 migrations listadas; os eventos que já existiam como 'legacy'; 0, 0, 1 e 8 na última consulta

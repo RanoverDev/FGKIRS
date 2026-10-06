@@ -1,15 +1,19 @@
 -- =====================================================================================
 -- FGKIRS — Parte 2 de 4 — migration 002: tabela athletes e nível de faixa
 --
+-- Feito para o MariaDB 10.6 da KingHost (usa ADD ... IF NOT EXISTS / DROP ... IF EXISTS), com os nomes
+-- reais das FKs do banco de produção. Só comandos simples: nada de PREPARE nem information_schema
+-- (que travam em servidor compartilhado). Cada parte é idempotente: se algo interromper, rode a mesma
+-- parte de novo.
+--
 -- Rode as quatro partes NESTA ORDEM (01a, 01b, 01c, 01d), uma de cada vez, no phpMyAdmin:
--- selecione o banco > Importar > escolha o arquivo > Executar. Cada parte é idempotente: se algo
--- interromper, pode rodar a mesma parte de novo. Faça o backup (Exportar) antes da 01a.
+-- selecione o banco > Importar > escolha o arquivo > Executar. Faça o backup (Exportar) antes da 01a.
 -- =====================================================================================
 
 SET NAMES utf8mb4;
-SET @db = DATABASE();
 
--- ---------------------------------------------------------------- 002: atletas e nível de faixa
+-- Migration 002: cadastro permanente de atletas e nível comum de faixa entre estilos.
+
 CREATE TABLE IF NOT EXISTS athletes (
   id                  INT AUTO_INCREMENT PRIMARY KEY,
   dojo_id             INT NOT NULL,
@@ -39,30 +43,18 @@ CREATE TABLE IF NOT EXISTS athletes (
   CONSTRAINT fk_athletes_created_by FOREIGN KEY (created_by)    REFERENCES users(id)               ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='graduations' AND COLUMN_NAME='level')=0,
-  'ALTER TABLE `graduations` ADD COLUMN `level` TINYINT UNSIGNED NULL AFTER `order_rank`, ADD INDEX `idx_level` (`level`)', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
+ALTER TABLE `graduations`
+  ADD COLUMN IF NOT EXISTS `level` TINYINT UNSIGNED NULL AFTER `order_rank`,
+  ADD INDEX IF NOT EXISTS `idx_level` (`level`);
 
--- Sugestão de nível para o presidente revisar (faixa preta nunca abaixo de 11). is_black_belt pode não existir.
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='graduations' AND COLUMN_NAME='is_black_belt')>0,
-  'UPDATE graduations SET level = LEAST(20, GREATEST(order_rank + 1, IF(is_black_belt = 1, 11, 1))) WHERE level IS NULL',
-  'UPDATE graduations SET level = LEAST(20, GREATEST(order_rank + 1, 1)) WHERE level IS NULL');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
+-- Sugestão de nível para o presidente revisar (faixa preta nunca abaixo de 11). Só preenche o que está vazio.
+UPDATE graduations SET level = LEAST(20, GREATEST(order_rank + 1, IF(is_black_belt = 1, 11, 1))) WHERE level IS NULL;
 
-SET @sql = NULL;
-SET @sql = IF((SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=@db AND TABLE_NAME='championship_athletes' AND COLUMN_NAME='athlete_id')=0,
-  'ALTER TABLE `championship_athletes` ADD COLUMN `athlete_id` INT NULL AFTER `user_id`, ADD INDEX `idx_athlete` (`athlete_id`)', 'SELECT 1');
-PREPARE s FROM @sql;
-EXECUTE s;
-DEALLOCATE PREPARE s;
+ALTER TABLE `championship_athletes`
+  ADD COLUMN IF NOT EXISTS `athlete_id` INT NULL AFTER `user_id`,
+  ADD INDEX IF NOT EXISTS `idx_athlete` (`athlete_id`);
 
 -- ---------------------------------------------------------------- conferência desta parte
-SELECT COUNT(*) AS athletes_existe FROM information_schema.TABLES WHERE TABLE_SCHEMA=@db AND TABLE_NAME='athletes';
-SELECT id, belt_name, order_rank, level FROM graduations ORDER BY style_id, order_rank;
--- Esperado: athletes_existe = 1 e todas as faixas com um nível preenchido
+SELECT COUNT(*) AS atletas_cadastrados FROM athletes;
+SELECT id, belt_name, order_rank, is_black_belt, level FROM graduations ORDER BY style_id, order_rank;
+-- Esperado: atletas_cadastrados = 0 (ainda vazio) e todas as faixas com um nível preenchido
