@@ -61,7 +61,7 @@ foreach ($teams as $team) {
                     </div>
                 <?php endforeach; ?>
 
-                <?php if ($canWrite): ?>
+                <?php if ($canWrite && $category->status === 'open'): ?>
                     <details class="px-5 py-3">
                         <summary class="cursor-pointer text-sm font-semibold text-red-700 hover:text-red-800">+ Montar equipe</summary>
 

@@ -509,10 +509,10 @@ class RegistrationService
 
                 $entryCategory = $byId[(int) $entry['event_category_id']] ?? null;
 
-                // Quem já está numa categoria que fechou continua nela: fechar só barra inscrição nova
-                if (!$sameAsSuggestion && !$entry['is_override'] && $entryCategory?->status === 'closed') {
-                    $stillFits = $this->eligibility->evaluate($snapshot, [$entryCategory->asOpen()])['eligible'] !== [];
-                    $sameAsSuggestion = $stillFits;
+                // Categoria fechada ou juntada está congelada: a inscrição que já existe aparece como é,
+                // inclusive em evento histórico migrado. Se ela não servir mais, o salvamento diz o motivo.
+                if (!$sameAsSuggestion && !$entry['is_override'] && $entryCategory !== null && $entryCategory->status !== 'open') {
+                    $sameAsSuggestion = true;
                 }
 
                 // Exceção do Presidente, categoria juntada ou fechada depois: mostra a inscrição como ela está

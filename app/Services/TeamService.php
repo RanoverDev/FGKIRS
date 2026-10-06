@@ -27,12 +27,12 @@ class TeamService
     ) {
     }
 
-    /** @return EventCategory[] categorias de equipe abertas do evento */
-    public function teamCategories(int $championshipId): array
+    /** @return EventCategory[] categorias de equipe do evento (só as abertas, salvo $includeClosed) */
+    public function teamCategories(int $championshipId, bool $includeClosed = false): array
     {
         return array_values(array_filter(
             $this->categories->forChampionship($championshipId),
-            static fn (EventCategory $c) => !$c->isIndividual() && $c->status === 'open'
+            static fn (EventCategory $c) => !$c->isIndividual() && ($includeClosed || $c->status === 'open')
         ));
     }
 

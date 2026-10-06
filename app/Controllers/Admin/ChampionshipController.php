@@ -256,7 +256,10 @@ class ChampionshipController extends Controller
             return 'O fim das inscrições precisa ser depois do início.';
         }
 
-        if ($isV2 && empty($data['ruleset_id'])) {
+        // Evento migrado do modelo antigo é histórico e pode não ter regulamento
+        $hasCategories = $championship !== null && (new EventCategoryRepository())->count((int) $championship['id']) > 0;
+
+        if ($isV2 && empty($data['ruleset_id']) && !$hasCategories) {
             return 'Escolha o regulamento que gera as categorias do evento.';
         }
 

@@ -41,13 +41,21 @@ class RegistrationController extends Controller
 
     public function teamsPage(array $championship, ?int $dojoId): void
     {
-        $categories = $this->teamService->teamCategories((int) $championship['id']);
-        $teams      = $dojoId ? (new EventTeamRepository())->forChampionship((int) $championship['id'], $dojoId) : [];
+        $teams = $dojoId ? (new EventTeamRepository())->forChampionship((int) $championship['id'], $dojoId) : [];
+
+        // Categorias abertas (para montar equipe) e as que já têm equipe do dojo, mesmo fechadas ou de evento migrado
+        $withTeams  = array_flip(array_map(static fn ($t) => (int) $t['event_category_id'], $teams));
+        $categories = array_values(array_filter(
+            $this->teamService->teamCategories((int) $championship['id'], true),
+            static fn ($c) => $c->status === 'open' || isset($withTeams[$c->id])
+        ));
 
         $eligible = [];
         if ($dojoId) {
             foreach ($categories as $category) {
-                $eligible[$category->id] = $this->teamService->eligibleMembers($championship, $dojoId, $category);
+                if ($category->status === 'open') {
+                    $eligible[$category->id] = $this->teamService->eligibleMembers($championship, $dojoId, $category);
+                }
             }
         }
 

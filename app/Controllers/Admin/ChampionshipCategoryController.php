@@ -26,7 +26,9 @@ class ChampionshipCategoryController extends Controller
     public function index(int $id): void
     {
         $championship = $this->championship($id);
-        $ruleset      = $this->rulesetOf($championship);
+
+        // Evento migrado do modelo antigo não tem regulamento: a lista continua visível, sem o gerador
+        $ruleset = empty($championship['ruleset_id']) ? null : $this->rulesetOf($championship);
 
         $this->view('admin/championships/categories', [
             'championship' => $championship,

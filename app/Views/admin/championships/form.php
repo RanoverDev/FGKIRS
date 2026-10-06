@@ -149,8 +149,8 @@ require_once __DIR__ . '/../layout/header.php';
 
             <div class="grid md:grid-cols-2 gap-5 mb-5">
                 <div>
-                    <label for="ruleset_id" class="block text-sm font-medium text-slate-700 mb-2">Regulamento *</label>
-                    <select id="ruleset_id" name="ruleset_id" required
+                    <label for="ruleset_id" class="block text-sm font-medium text-slate-700 mb-2">Regulamento<?= empty($categoryCount) ? ' *' : '' ?></label>
+                    <select id="ruleset_id" name="ruleset_id" <?= empty($categoryCount) ? 'required' : '' ?>
                         class="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-red-700 focus:border-transparent">
                         <option value="">Selecione...</option>
                         <?php foreach ($rulesets as $ruleset): ?>

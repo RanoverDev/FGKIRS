@@ -150,6 +150,19 @@ Eventos:   /fgkirs-admin/championships                        (lista; admin cria
            /fgkirs-admin/championships/{id}/registrations     (consolidado do Presidente)
 ```
 
+### Modelo novo de inscrição (v2) — convive com o antigo até a fase 5 terminar
+
+`championships.registration_model` decide o fluxo: `legacy` (tabelas `championship_athletes/entries/teams` e catálogo `competition_categories`) ou `v2`. **Todo evento criado hoje nasce `v2`.** Não alterar o fluxo `legacy` além de correções.
+
+- **Atleta é do dojo** (`athletes`, independente de login). A inscrição (`championship_registrations`) guarda a foto dos dados do dia, status (`draft → submitted → confirmed`, `cancelled` de qualquer um) e taxa. Nada se apaga: cancelar muda status.
+- **Categorias são do evento** (`event_categories`), geradas de um regulamento (`rulesets` + divisões de idade, faixa e peso + disciplinas). Mudar o regulamento nunca altera evento já criado. `graduations.level` é o nível comum de faixa entre estilos.
+- **Regra num lugar só:** `Domain/Championship/` (`EligibilityService`, `CategoryGenerator`, `AgePolicy`, `FeeCalculator`, `RegistrationStatus`) não acessa banco, sessão nem `$_POST`. `Services/` (`RegistrationService`, `TeamService`, `ChampionshipSetupService`) aplicam `DojoScope`, a trava de prazo (`RegistrationGuard`) e transações; `Repositories/` só têm SQL; controllers só traduzem HTTP.
+- **Migrations em arquivo:** `database/migrations/NNN_*.sql|php`, aplicadas com `php migrate.php` (`--dry-run` lista). Não criar tabela nova em `Core/Database.php`. Toda FK de inscrição, resultado ou dinheiro é `RESTRICT`.
+- **Testes:** `composer install && vendor/bin/phpunit`. A suíte `Integration` só roda com `FGKIRS_TEST_DB_HOST/NAME/USER` apontando para um banco **descartável** com as migrations aplicadas (nunca produção).
+- **Scripts de dados (CLI, todos com `--dry-run`):** `scripts/migrate_athletes.php` (alunos e avulsos → `athletes`) e `scripts/migrate_legacy_events.php` (eventos antigos → v2 como histórico, com conferência de contagens por evento).
+
+Telas v2: `/fgkirs-admin/rulesets` (regulamentos), `/fgkirs-admin/athletes` (cadastro de atletas), `/fgkirs-admin/championships/{id}/categories` (gerar, fechar e juntar), `.../athletes` (grade do sensei), `.../grid` e `.../grid/suggest` (JSON), `.../registrations` (painel do Presidente, `.../export` em CSV).
+
 ### Segurança do módulo de eventos
 
 Três camadas, **todas no backend** — nunca apenas escondendo botão na tela:
