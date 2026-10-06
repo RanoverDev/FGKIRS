@@ -27,8 +27,7 @@ class ChampionshipCategoryController extends Controller
     {
         $championship = $this->championship($id);
 
-        // Evento migrado do modelo antigo não tem regulamento: a lista continua visível, sem o gerador
-        $ruleset = empty($championship['ruleset_id']) ? null : $this->rulesetOf($championship);
+        $ruleset = $this->rulesetOf($championship);
 
         $this->view('admin/championships/categories', [
             'championship' => $championship,
@@ -140,8 +139,8 @@ class ChampionshipCategoryController extends Controller
 
         $championship = Championship::find($id);
 
-        if (!$championship || !Championship::isV2($championship)) {
-            $_SESSION['error'] = 'Evento não encontrado ou no modelo antigo de categorias.';
+        if (!$championship) {
+            $_SESSION['error'] = 'Evento não encontrado.';
             $this->redirect('/fgkirs-admin/championships');
         }
 

@@ -26,14 +26,12 @@ class RegistrationPanelController extends Controller
         $this->registrations = new RegistrationRepository();
     }
 
-    /** Chamado por ChampionshipController::registrations para eventos v2. */
-    public function index(array $championship): void
+    public function index(int $id): void
     {
-        $this->guard();
-        $id      = (int) $championship['id'];
-        $filters = $this->filters();
+        $championship = $this->championship($id);
+        $filters      = $this->filters();
 
-        $this->view('admin/championships/panel_v2', [
+        $this->view('admin/championships/registrations', [
             'championship'  => $championship,
             'filters'       => $filters,
             'registrations' => $this->registrations->forChampionship($id, $filters),
@@ -41,7 +39,7 @@ class RegistrationPanelController extends Controller
             'categories'    => (new EventCategoryRepository())->rows($id),
             'dojos'         => $this->dojos(),
             'totals'        => $this->registrations->totals($id),
-            'referees'      => Championship::totals($id)['referees'],
+            'referees'      => Championship::refereeCount($id),
             'pageTitle'     => 'Inscritos – ' . $championship['title'],
         ]);
     }
@@ -60,10 +58,9 @@ class RegistrationPanelController extends Controller
             : $teams;
     }
 
-    public function printSheet(array $championship): void
+    public function printSheet(int $id): void
     {
-        $this->guard();
-        $id = (int) $championship['id'];
+        $championship = $this->championship($id);
 
         $registrations = array_values(array_filter(
             $this->registrations->forChampionship($id),
@@ -211,7 +208,7 @@ class RegistrationPanelController extends Controller
         $this->guard();
         $championship = Championship::find($id);
 
-        if (!$championship || !Championship::isV2($championship)) {
+        if (!$championship) {
             $_SESSION['error'] = 'Evento não encontrado.';
             $this->redirect('/fgkirs-admin/championships');
         }

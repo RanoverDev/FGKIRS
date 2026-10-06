@@ -72,14 +72,15 @@ class Dojo
         }
     }
 
-    /** Dojo com atleta, equipe ou árbitro inscrito em algum evento. */
+    /** Dojo com atleta cadastrado, ou com inscrição, equipe ou árbitro em algum evento. */
     public static function hasChampionshipRegistrations(int $id): bool
     {
         return (bool) Database::getInstance()->query(
-            "SELECT EXISTS(SELECT 1 FROM championship_athletes WHERE dojo_id = :a)
-                 OR EXISTS(SELECT 1 FROM championship_teams WHERE dojo_id = :t)
-                 OR EXISTS(SELECT 1 FROM championship_referees WHERE dojo_id = :r)",
-            ['a' => $id, 't' => $id, 'r' => $id]
+            "SELECT EXISTS(SELECT 1 FROM championship_registrations WHERE dojo_id = :a)
+                 OR EXISTS(SELECT 1 FROM event_teams WHERE dojo_id = :t)
+                 OR EXISTS(SELECT 1 FROM championship_referees WHERE dojo_id = :r)
+                 OR EXISTS(SELECT 1 FROM athletes WHERE dojo_id = :x)",
+            ['a' => $id, 't' => $id, 'r' => $id, 'x' => $id]
         )->fetchColumn();
     }
 }

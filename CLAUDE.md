@@ -89,12 +89,13 @@ www/
 - **`payments`** — pagamentos (monthly/exam/registration/other; status: pending/paid/overdue/cancelled)
 - **`posts`** — notícias e agenda de eventos (type: `news | event`; event_date, event_location, slug implícito via Slugify)
 
-### Módulo de Eventos de Disputa (auto-migrate em `Core/Database.php`)
-- **`competition_categories`** — catálogo de categorias de kata/kumite (modality, entry_type, gender, age_min/max, belt_group, weight_min/max, team_size). Seed inicial de 88 categorias vem de `CompetitionCategory::defaultCatalog()`
-- **`championships`** — o campeonato (title, event_date, registration_start/end, status, post_id opcional ligando à Agenda de Eventos)
-- **`championship_athletes`** — atleta inscrito no evento; guarda **snapshot** de nome/nascimento/graduação. `user_id` NULL = atleta avulso
-- **`championship_entries`** — inscrição do atleta numa categoria individual (+ peso no kumite)
-- **`championship_teams`** / **`championship_team_members`** — equipes e seus integrantes
+### Módulo de Eventos de Disputa (migrations em `database/migrations/`, nunca em `Core/Database.php`)
+- **`athletes`** — cadastro permanente do atleta no dojo (independe de login; CPF opcional e único)
+- **`rulesets`**, **`age_divisions`**, **`belt_divisions`**, **`weight_classes`**, **`ruleset_disciplines`** (+ `ruleset_discipline_ages`) — regulamento: divisões de idade, faixa e peso e as disciplinas. `graduations.level` é o nível comum de faixa entre estilos
+- **`championships`** — o campeonato (title, event_date, registration_start/end, status, post_id opcional ligando à Agenda de Eventos, `ruleset_id`, `age_policy`, `max_individual_entries`, taxas)
+- **`event_categories`** — categorias do evento, geradas do regulamento e copiadas para ele (mudar o regulamento nunca altera evento criado)
+- **`championship_registrations`** / **`registration_entries`** — o atleta no evento (foto dos dados do dia, status, taxa) e suas categorias; **`registration_log`** audita cada mudança
+- **`event_teams`** / **`event_team_members`** — equipes (titulares e reservas)
 - **`championship_referees`** — árbitros indicados por cada dojo
 
 > A ficha de inscrição (`Views/admin/championships/print.php`) monta o papel timbrado a partir de
@@ -141,28 +142,25 @@ Auth:      /login  /logout  /recuperar-senha  /redefinir-senha
 Admin:     /fgkirs-admin  /fgkirs-admin/users  /fgkirs-admin/dojos
            /fgkirs-admin/styles  /fgkirs-admin/graduations  /fgkirs-admin/posts
            /fgkirs-admin/galleries  /fgkirs-admin/federation-profile
-           /fgkirs-admin/board  /fgkirs-admin/popup  /fgkirs-admin/categories
+           /fgkirs-admin/board  /fgkirs-admin/popup  /fgkirs-admin/rulesets  /fgkirs-admin/athletes
 Eventos:   /fgkirs-admin/championships                        (lista; admin cria, sensei inscreve)
-           /fgkirs-admin/championships/{id}/athletes          (aba Atletas — faixa preta | colorida)
+           /fgkirs-admin/championships/{id}/athletes          (aba Atletas: grade de inscrição)
            /fgkirs-admin/championships/{id}/teams             (aba Equipes)
            /fgkirs-admin/championships/{id}/referees          (aba Árbitros)
            /fgkirs-admin/championships/{id}/summary           (aba Inscritos + impressão)
            /fgkirs-admin/championships/{id}/registrations     (consolidado do Presidente)
 ```
 
-### Modelo novo de inscrição (v2) — convive com o antigo até a fase 5 terminar
-
-`championships.registration_model` decide o fluxo: `legacy` (tabelas `championship_athletes/entries/teams` e catálogo `competition_categories`) ou `v2`. **Todo evento criado hoje nasce `v2`.** Não alterar o fluxo `legacy` além de correções.
+### Como o módulo de eventos funciona
 
 - **Atleta é do dojo** (`athletes`, independente de login). A inscrição (`championship_registrations`) guarda a foto dos dados do dia, status (`draft → submitted → confirmed`, `cancelled` de qualquer um) e taxa. Nada se apaga: cancelar muda status.
-- **Categorias são do evento** (`event_categories`), geradas de um regulamento (`rulesets` + divisões de idade, faixa e peso + disciplinas). Mudar o regulamento nunca altera evento já criado. `graduations.level` é o nível comum de faixa entre estilos.
+- **Categorias são do evento** (`event_categories`), geradas de um regulamento. O catálogo fixo antigo (`competition_categories`) e as tabelas `championship_athletes/entries/teams/categories` foram aposentados.
 - **Regra num lugar só:** `Domain/Championship/` (`EligibilityService`, `CategoryGenerator`, `AgePolicy`, `FeeCalculator`, `RegistrationStatus`) não acessa banco, sessão nem `$_POST`. `Services/` (`RegistrationService`, `TeamService`, `ChampionshipSetupService`) aplicam `DojoScope`, a trava de prazo (`RegistrationGuard`) e transações; `Repositories/` só têm SQL; controllers só traduzem HTTP.
 - **Migrations em arquivo:** `database/migrations/NNN_*.sql|php`, aplicadas com `php migrate.php` (`--dry-run` lista). Não criar tabela nova em `Core/Database.php`. Toda FK de inscrição, resultado ou dinheiro é `RESTRICT`.
+- **Sem terminal no servidor (KingHost, MariaDB 10.6):** `database/manual/` tem o equivalente em SQL simples para o phpMyAdmin (`01a`…`01d`, `02`, `03`, `04`, `05`), sem `information_schema` nem `PREPARE`, que travam na hospedagem. Eles registram as migrations em `schema_migrations`. Migration nova: gerar o equivalente aí também.
 - **Testes:** `composer install && vendor/bin/phpunit`. A suíte `Integration` só roda com `FGKIRS_TEST_DB_HOST/NAME/USER` apontando para um banco **descartável** com as migrations aplicadas (nunca produção).
-- **Sem terminal no servidor (KingHost, MariaDB 10.6):** `database/manual/01a`…`01d` aplicam as migrations 001–005 e `02_atletas_dos_usuarios.sql` cadastra os atletas, direto no phpMyAdmin (SQL simples, idempotente, sem `information_schema`). Eles registram as migrations em `schema_migrations`, então `php migrate.php` depois não repete. Migration nova: gerar o equivalente aí também.
-- **Scripts de dados (CLI, todos com `--dry-run`):** `scripts/migrate_athletes.php` (alunos e avulsos → `athletes`) e `scripts/migrate_legacy_events.php` (eventos antigos → v2 como histórico, com conferência de contagens por evento).
 
-Telas v2: `/fgkirs-admin/rulesets` (regulamentos), `/fgkirs-admin/athletes` (cadastro de atletas), `/fgkirs-admin/championships/{id}/categories` (gerar, fechar e juntar), `.../athletes` (grade do sensei), `.../grid` e `.../grid/suggest` (JSON), `.../registrations` (painel do Presidente, `.../export` em CSV).
+Telas: `/fgkirs-admin/rulesets` (regulamentos), `/fgkirs-admin/athletes` (cadastro de atletas), `/fgkirs-admin/championships/{id}/categories` (gerar, fechar e juntar), `.../athletes` (grade do sensei), `.../grid` e `.../grid/suggest` (JSON), `.../teams`, `.../referees`, `.../summary`, `.../registrations` (painel do Presidente, `.../export` em CSV).
 
 ### Segurança do módulo de eventos
 
@@ -239,7 +237,7 @@ Antes de propor mudanças arquiteturais ou de frontend, consultar:
 - [x] Frontend público: Home, Sobre, Dojos, Notícias, Eventos, Galerias, Contato
 - [x] CSRF em formulários, Rate Limiter, Slugify, Mailer
 - [x] Popup do site gerenciável pelo admin
-- [x] **Módulo de Eventos de disputa** — campeonatos de kata/kumite: catálogo de categorias,
+- [x] **Módulo de Eventos de disputa** — campeonatos de kata/kumite: regulamento que gera as categorias de cada evento,
       inscrição de atletas (cadastrados e avulsos) com matching automático por idade/sexo/graduação,
       faixa de peso no kumite, equipes, árbitros e ficha de inscrição para impressão/PDF
 

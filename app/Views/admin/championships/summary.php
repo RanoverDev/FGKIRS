@@ -1,6 +1,6 @@
 <?php
 use Helpers\Auth;
-use Models\ChampionshipAthlete;
+use Helpers\Csrf;
 
 $pageTitle = $championship['title'];
 require_once __DIR__ . '/../layout/header.php';
@@ -8,14 +8,22 @@ require __DIR__ . '/partials/header.php';
 
 $championshipId = (int) $championship['id'];
 $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $dojoId : '';
+$e              = static fn (mixed $v): string => htmlspecialchars((string) ($v ?? ''));
+
+$statusStyle = ['draft' => 'bg-amber-100 text-amber-800', 'submitted' => 'bg-blue-100 text-blue-800', 'confirmed' => 'bg-green-100 text-green-800'];
+$statusLabel = ['draft' => 'Rascunho', 'submitted' => 'Enviada', 'confirmed' => 'Confirmada'];
+
+$entryCount = array_sum(array_map(static fn ($r) => count($r['entries']), $registrations));
+$feeTotal   = array_sum(array_map(static fn ($r) => (float) ($r['fee_total'] ?? 0), $registrations));
+$hasFee     = $championship['fee_first_entry'] !== null;
 ?>
 
 <?php if (!empty($dojoId)): ?>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div class="grid grid-cols-3 gap-3 flex-1">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
             <div class="bg-white rounded-xl border border-slate-200 p-4">
-                <p class="text-2xl font-bold text-slate-900"><?= count($athletes) ?></p>
+                <p class="text-2xl font-bold text-slate-900"><?= count($registrations) ?></p>
                 <p class="text-xs uppercase tracking-wider text-slate-500 mt-1">Atletas</p>
             </div>
             <div class="bg-white rounded-xl border border-slate-200 p-4">
@@ -26,109 +34,83 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                 <p class="text-2xl font-bold text-slate-900"><?= count($teams) ?></p>
                 <p class="text-xs uppercase tracking-wider text-slate-500 mt-1">Equipes</p>
             </div>
+            <?php if ($hasFee): ?>
+                <div class="bg-white rounded-xl border border-slate-200 p-4">
+                    <p class="text-2xl font-bold text-slate-900">R$ <?= number_format($feeTotal, 2, ',', '.') ?></p>
+                    <p class="text-xs uppercase tracking-wider text-slate-500 mt-1">Enviado</p>
+                </div>
+            <?php endif; ?>
         </div>
 
-        <a href="/fgkirs-admin/championships/<?= $championshipId ?>/summary/print<?= $dojoParam ?>"
-            target="_blank" rel="noopener"
-            class="bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 px-6 rounded-lg transition text-center shrink-0">
-            Versão para impressão
+        <a href="/fgkirs-admin/championships/<?= $championshipId ?>/summary/print<?= $dojoParam ?>" target="_blank"
+            class="inline-flex items-center justify-center border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-2.5 px-5 rounded-lg transition shrink-0">
+            Imprimir ficha / PDF
         </a>
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-        <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
-            <h2 class="font-bold text-slate-900">Atletas individuais</h2>
-        </div>
-
-        <?php if (empty($athletes)): ?>
-            <p class="px-5 py-10 text-center text-sm text-slate-500">Nenhum atleta inscrito ainda.</p>
-        <?php else: ?>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-200">
-                    <thead class="bg-white">
-                        <tr class="text-left text-[11px] uppercase tracking-wider text-slate-500">
-                            <th class="px-5 py-3">Atleta</th>
-                            <th class="px-5 py-3">Idade</th>
-                            <th class="px-5 py-3">Faixa</th>
-                            <th class="px-5 py-3">Categorias</th>
-                            <?php if ($canWrite): ?>
-                                <th class="px-5 py-3 text-right">Ações</th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php foreach ($athletes as $athlete): ?>
-                            <tr class="align-top">
-                                <td class="px-5 py-3">
-                                    <p class="text-sm font-semibold text-slate-900">
-                                        <?= htmlspecialchars($athlete['name']) ?>
-                                    </p>
-                                    <p class="text-xs text-slate-500">
-                                        <?= htmlspecialchars(ChampionshipAthlete::GENDERS[$athlete['gender']]) ?>
-                                        <?php if ($athlete['weight'] !== null): ?>
-                                            · <?= number_format((float) $athlete['weight'], 1, ',', '') ?> kg
-                                        <?php endif; ?>
-                                        <?php if (!empty($athlete['height'])): ?>
-                                            · <?= (int) $athlete['height'] ?> cm
-                                        <?php endif; ?>
-                                    </p>
-                                </td>
-                                <td class="px-5 py-3 text-sm text-slate-700"><?= (int) $athlete['age'] ?></td>
-                                <td class="px-5 py-3 text-sm text-slate-700">
-                                    <?= htmlspecialchars($athlete['belt_name'] ?? '—') ?>
-                                </td>
-                                <td class="px-5 py-3">
-                                    <?php if (empty($athlete['entries'])): ?>
-                                        <span class="text-xs text-amber-700">Sem categoria</span>
-                                    <?php else: ?>
-                                        <ul class="text-xs text-slate-700 space-y-0.5">
-                                            <?php foreach ($athlete['entries'] as $entry): ?>
-                                                <li><?= htmlspecialchars($entry['category_name']) ?></li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    <?php endif; ?>
-                                </td>
-                                <?php if ($canWrite): ?>
-                                    <td class="px-5 py-3">
-                                        <?php $actionsBack = 'summary'; require __DIR__ . '/partials/athlete_row_actions.php'; ?>
-                                    </td>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-900 text-white">
+                    <tr>
+                        <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider">Atleta</th>
+                        <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider">Categorias</th>
+                        <th class="px-5 py-3 text-center text-xs font-medium uppercase tracking-wider">Situação</th>
+                        <th class="px-5 py-3 text-right text-xs font-medium uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <?php if (empty($registrations)): ?>
+                        <tr><td colspan="4" class="px-5 py-10 text-center text-slate-500">Nenhum atleta inscrito ainda. Use a aba Atletas.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($registrations as $r): ?>
+                        <tr class="hover:bg-slate-50 align-top">
+                            <td class="px-5 py-3">
+                                <p class="text-sm font-medium text-slate-900"><?= $e($r['full_name']) ?></p>
+                                <p class="text-xs text-slate-500"><?= (int) $r['age_at_event'] ?> anos · <?= $r['declared_weight'] !== null ? number_format((float) $r['declared_weight'], 1, ',', '') . ' kg' : 'sem peso' ?></p>
+                            </td>
+                            <td class="px-5 py-3 text-sm text-slate-700">
+                                <?php foreach ($r['entries'] as $entry): ?>
+                                    <p><?= $e($entry['category_name']) ?><?= $entry['is_override'] ? ' <em class="text-xs text-amber-700">(exceção)</em>' : '' ?></p>
+                                <?php endforeach; ?>
+                            </td>
+                            <td class="px-5 py-3 text-center whitespace-nowrap">
+                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold <?= $statusStyle[$r['status']] ?? '' ?>">
+                                    <?= $statusLabel[$r['status']] ?? $e($r['status']) ?>
+                                </span>
+                                <?php if ($r['fee_total'] !== null): ?>
+                                    <p class="text-xs text-slate-500 mt-1">R$ <?= number_format((float) $r['fee_total'], 2, ',', '.') ?></p>
                                 <?php endif; ?>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="px-5 py-4 border-b border-slate-200 bg-slate-50">
-            <h2 class="font-bold text-slate-900">Equipes</h2>
+                            </td>
+                            <td class="px-5 py-3 text-right whitespace-nowrap">
+                                <?php if ($canWrite && ($r['status'] !== 'confirmed' || Auth::isAdmin())): ?>
+                                    <form method="POST" action="/fgkirs-admin/championships/<?= $championshipId ?>/registrations/<?= (int) $r['id'] ?>/cancel" class="inline"
+                                        onsubmit="return confirm('Cancelar a inscrição deste atleta?');">
+                                        <?= Csrf::field() ?>
+                                        <?php if (Auth::isAdmin()): ?><input type="hidden" name="dojo_id" value="<?= (int) $dojoId ?>"><?php endif; ?>
+                                        <button type="submit" class="text-red-600 hover:text-red-700 text-sm font-semibold">Cancelar</button>
+                                    </form>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
-
-        <?php if (empty($teams)): ?>
-            <p class="px-5 py-10 text-center text-sm text-slate-500">Nenhuma equipe inscrita ainda.</p>
-        <?php else: ?>
-            <ul class="divide-y divide-slate-100">
-                <?php foreach ($teams as $index => $team): ?>
-                    <li class="px-5 py-4">
-                        <p class="text-sm font-semibold text-slate-900">
-                            <?= htmlspecialchars($team['name'] ?: 'Equipe ' . chr(65 + $index)) ?>
-                            <span class="font-normal text-slate-500">— <?= htmlspecialchars($team['category_name']) ?></span>
-                        </p>
-                        <p class="text-xs text-slate-500 mt-0.5">
-                            <?= htmlspecialchars(implode(', ', array_column($team['members'], 'name'))) ?>
-                        </p>
-                    </li>
-                <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
     </div>
 
-<?php endif; ?>
+    <?php if (!empty($teams)): ?>
+        <h2 class="text-lg font-bold text-slate-900 mb-3">Equipes</h2>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 divide-y divide-slate-100">
+            <?php foreach ($teams as $team): ?>
+                <div class="px-5 py-3 text-sm">
+                    <p class="font-medium text-slate-900"><?= $e($team['category_name']) ?> <span class="text-xs text-slate-500">· <?= $statusLabel[$team['status']] ?? $e($team['status']) ?></span></p>
+                    <p class="text-slate-600"><?= $e(implode(', ', array_column($team['members'], 'name'))) ?></p>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 
-<?php if (!empty($dojoId) && $canWrite): ?>
-    <?php $editBack = 'summary'; require __DIR__ . '/partials/athlete_edit_modal.php'; ?>
 <?php endif; ?>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

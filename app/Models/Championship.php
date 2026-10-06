@@ -141,17 +141,16 @@ class Championship
         );
         $params['created_by'] = $userId;
 
-        // Todo evento criado a partir da fase 4 nasce no modelo novo
         $db->query(
             "INSERT INTO championships
                 (title, slug, description, location, event_date,
                  registration_start, registration_end, status, post_id, created_by,
-                 registration_model, ruleset_id, age_policy, max_individual_entries,
+                 ruleset_id, age_policy, max_individual_entries,
                  fee_first_entry, fee_extra_entry, weigh_in_tolerance_kg)
              VALUES
                 (:title, :slug, :description, :location, :event_date,
                  :registration_start, :registration_end, :status, :post_id, :created_by,
-                 'v2', :ruleset_id, :age_policy, :max_individual_entries,
+                 :ruleset_id, :age_policy, :max_individual_entries,
                  :fee_first_entry, :fee_extra_entry, :weigh_in_tolerance_kg)",
             $params + self::rulesFromInput($data)
         );
@@ -175,10 +174,6 @@ class Championship
             $params
         );
 
-        if (!self::isV2(self::find($id) ?? [])) {
-            return;
-        }
-
         $db->query(
             "UPDATE championships SET
                 ruleset_id = :ruleset_id, age_policy = :age_policy, max_individual_entries = :max_individual_entries,
@@ -189,107 +184,14 @@ class Championship
         );
     }
 
-    /** @return int[] ids das categorias liberadas para o evento */
-    public static function categoryIds(int $id): array
-    {
-        try {
-            return array_map('intval', Database::getInstance()->query(
-                "SELECT category_id FROM championship_categories WHERE championship_id = :id",
-                ['id' => $id]
-            )->fetchAll(PDO::FETCH_COLUMN));
-        } catch (\Exception $e) {
-            error_log('Championship::categoryIds error: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    public static function hasCategory(int $id, int $categoryId): bool
-    {
-        try {
-            return (bool) Database::getInstance()->query(
-                "SELECT 1 FROM championship_categories
-                 WHERE championship_id = :id AND category_id = :category_id LIMIT 1",
-                ['id' => $id, 'category_id' => $categoryId]
-            )->fetchColumn();
-        } catch (\Exception $e) {
-            error_log('Championship::hasCategory error: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Grava as categorias liberadas. Categoria que ja tem atleta ou equipe
-     * inscritos no evento nao sai: retorna os nomes das que foram mantidas
-     * para a tela avisar o Presidente.
-     *
-     * @param int[] $categoryIds
-     * @return string[]
-     */
-    public static function syncCategories(int $id, array $categoryIds): array
-    {
-        $db = Database::getInstance();
-
-        $valid = array_map('intval', array_column(CompetitionCategory::all(['is_active' => 1]), 'id'));
-        $wanted = array_values(array_intersect(array_unique(array_map('intval', $categoryIds)), $valid));
-        $current = self::categoryIds($id);
-
-        $kept = [];
-
-        foreach (array_diff($current, $wanted) as $categoryId) {
-            if (self::categoryInUse($id, $categoryId)) {
-                $category = CompetitionCategory::find($categoryId);
-                $kept[] = $category['name'] ?? "#$categoryId";
-                continue;
-            }
-
-            $db->query(
-                "DELETE FROM championship_categories WHERE championship_id = :id AND category_id = :category_id",
-                ['id' => $id, 'category_id' => $categoryId]
-            );
-        }
-
-        foreach (array_diff($wanted, $current) as $categoryId) {
-            $db->query(
-                "INSERT IGNORE INTO championship_categories (championship_id, category_id)
-                 VALUES (:id, :category_id)",
-                ['id' => $id, 'category_id' => $categoryId]
-            );
-        }
-
-        return $kept;
-    }
-
-    private static function categoryInUse(int $id, int $categoryId): bool
-    {
-        $db = Database::getInstance();
-
-        $entries = (int) $db->query(
-            "SELECT COUNT(*) FROM championship_entries e
-             JOIN championship_athletes a ON a.id = e.championship_athlete_id
-             WHERE a.championship_id = :id AND e.category_id = :category_id",
-            ['id' => $id, 'category_id' => $categoryId]
-        )->fetchColumn();
-
-        $teams = (int) $db->query(
-            "SELECT COUNT(*) FROM championship_teams WHERE championship_id = :id AND category_id = :category_id",
-            ['id' => $id, 'category_id' => $categoryId]
-        )->fetchColumn();
-
-        return $entries + $teams > 0;
-    }
-
+    /** Categorias geradas sem nenhuma inscrição saem junto com o evento vazio; o banco recusa as demais. */
     public static function delete(int $id): void
     {
         $db = Database::getInstance();
-
-        // Categorias geradas sem nenhuma inscrição saem junto com o evento vazio; o banco recusa as demais
         $db->beginTransaction();
 
         try {
-            if (self::tableExists('event_categories')) {
-                $db->query("DELETE FROM event_categories WHERE championship_id = :id", ['id' => $id]);
-            }
-
+            $db->query("DELETE FROM event_categories WHERE championship_id = :id", ['id' => $id]);
             $db->query("DELETE FROM championships WHERE id = :id", ['id' => $id]);
             $db->commit();
         } catch (\Throwable $e) {
@@ -298,101 +200,26 @@ class Championship
         }
     }
 
-    public static function isV2(array $championship): bool
-    {
-        return ($championship['registration_model'] ?? 'legacy') === 'v2';
-    }
-
-    private static function tableExists(string $table): bool
-    {
-        return (bool) Database::getInstance()->query(
-            "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t",
-            ['t' => $table]
-        )->fetchColumn();
-    }
-
     /**
-     * Evento com atleta, equipe ou árbitro inscrito. Não engole exceção como totals():
-     * se a consulta falhar, a exclusão não pode seguir como se o evento estivesse vazio.
+     * Evento com atleta, equipe ou árbitro inscrito. Não engole exceção: se a consulta falhar,
+     * a exclusão não pode seguir como se o evento estivesse vazio.
      */
     public static function hasRegistrations(int $id): bool
     {
-        $v2 = self::tableExists('championship_registrations')
-            ? " OR EXISTS(SELECT 1 FROM championship_registrations WHERE championship_id = :v)
-                OR EXISTS(SELECT 1 FROM event_teams WHERE championship_id = :vt)"
-            : '';
-
-        $params = ['a' => $id, 't' => $id, 'r' => $id];
-        if ($v2) {
-            $params += ['v' => $id, 'vt' => $id];
-        }
-
         return (bool) Database::getInstance()->query(
-            "SELECT EXISTS(SELECT 1 FROM championship_athletes WHERE championship_id = :a)
-                 OR EXISTS(SELECT 1 FROM championship_teams WHERE championship_id = :t)
-                 OR EXISTS(SELECT 1 FROM championship_referees WHERE championship_id = :r)$v2",
-            $params
+            "SELECT EXISTS(SELECT 1 FROM championship_registrations WHERE championship_id = :a)
+                 OR EXISTS(SELECT 1 FROM event_teams WHERE championship_id = :t)
+                 OR EXISTS(SELECT 1 FROM championship_referees WHERE championship_id = :r)",
+            ['a' => $id, 't' => $id, 'r' => $id]
         )->fetchColumn();
     }
 
-    /** Totais do evento inteiro, para o painel do Presidente. */
-    public static function totals(int $id): array
+    public static function refereeCount(int $id): int
     {
-        try {
-            $db = Database::getInstance();
-
-            return [
-                'athletes' => (int) $db->query(
-                    "SELECT COUNT(*) FROM championship_athletes WHERE championship_id = :id",
-                    ['id' => $id]
-                )->fetchColumn(),
-                'entries' => (int) $db->query(
-                    "SELECT COUNT(*) FROM championship_entries e
-                     JOIN championship_athletes a ON a.id = e.championship_athlete_id
-                     WHERE a.championship_id = :id",
-                    ['id' => $id]
-                )->fetchColumn(),
-                'teams' => (int) $db->query(
-                    "SELECT COUNT(*) FROM championship_teams WHERE championship_id = :id",
-                    ['id' => $id]
-                )->fetchColumn(),
-                'dojos' => (int) $db->query(
-                    "SELECT COUNT(DISTINCT dojo_id) FROM championship_athletes WHERE championship_id = :id",
-                    ['id' => $id]
-                )->fetchColumn(),
-                'referees' => (int) $db->query(
-                    "SELECT COUNT(*) FROM championship_referees WHERE championship_id = :id",
-                    ['id' => $id]
-                )->fetchColumn(),
-            ];
-        } catch (\Exception $e) {
-            error_log('Championship::totals error: ' . $e->getMessage());
-            return ['athletes' => 0, 'entries' => 0, 'teams' => 0, 'dojos' => 0, 'referees' => 0];
-        }
-    }
-
-    /** Um resumo por dojo participante, para agrupar o painel do Presidente. */
-    public static function totalsByDojo(int $id): array
-    {
-        try {
-            return Database::getInstance()->query(
-                "SELECT d.id, d.name, d.city, d.logo,
-                        COUNT(DISTINCT a.id) AS athlete_count,
-                        COUNT(DISTINCT e.id) AS entry_count,
-                        (SELECT COUNT(*) FROM championship_teams t
-                          WHERE t.championship_id = :id_teams AND t.dojo_id = d.id) AS team_count
-                 FROM championship_athletes a
-                 JOIN dojos d ON d.id = a.dojo_id
-                 LEFT JOIN championship_entries e ON e.championship_athlete_id = a.id
-                 WHERE a.championship_id = :id
-                 GROUP BY d.id, d.name, d.city, d.logo
-                 ORDER BY d.name ASC",
-                ['id' => $id, 'id_teams' => $id]
-            )->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Exception $e) {
-            error_log('Championship::totalsByDojo error: ' . $e->getMessage());
-            return [];
-        }
+        return (int) Database::getInstance()->query(
+            "SELECT COUNT(*) FROM championship_referees WHERE championship_id = :id",
+            ['id' => $id]
+        )->fetchColumn();
     }
 
     /** Posts da Agenda de Eventos, para amarrar o campeonato a materia do site. */

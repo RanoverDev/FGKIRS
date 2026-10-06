@@ -9,7 +9,6 @@ use Domain\Championship\EventCategoryDraft;
 use Domain\Championship\GenerationRequest;
 use Domain\Championship\Ruleset;
 use Domain\Championship\WeightClass;
-use Models\CompetitionCategory;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\FgkirsRuleset;
 
@@ -37,48 +36,49 @@ final class CategoryGeneratorTest extends TestCase
         };
     }
 
-    /** Chave que descreve uma categoria pelos limites, ignorando ordem e o aviso de peso provisório. */
-    private static function signature(
-        string $name,
-        string $modality,
-        string $format,
-        string $gender,
-        ?int $ageMin,
-        ?int $ageMax,
-        string $beltGroup,
-        ?float $weightMin,
-        ?float $weightMax,
-        ?int $teamSize
-    ): string {
-        return json_encode([
-            str_replace(' (provisório)', '', $name),
-            $modality, $format, $gender, $ageMin, $ageMax, $beltGroup, $weightMin, $weightMax, $teamSize,
-        ], JSON_UNESCAPED_UNICODE);
+    public function testSeedGeneratesTheOfficialSetOf88Categories(): void
+    {
+        $drafts = $this->generateAll(FgkirsRuleset::build());
+
+        $this->assertCount(88, $drafts);
+
+        $byDiscipline = [];
+        foreach ($drafts as $d) {
+            $byDiscipline[$d->disciplineCode] = ($byDiscipline[$d->disciplineCode] ?? 0) + 1;
+        }
+
+        // Kata individual: 2 sexos × 6 idades × 2 faixas. Kumite individual: o mesmo × 2 pesos.
+        // Kata equipe: 2 sexos × 2 idades. Kumite equipe: 2 sexos × 6 idades.
+        $this->assertSame(['KTI' => 24, 'KMI' => 48, 'KTE' => 4, 'KME' => 12], $byDiscipline);
+
+        $names = array_map(static fn (EventCategoryDraft $d) => str_replace(' (provisório)', '', $d->name), $drafts);
+
+        foreach ([
+            'Kata Individual — Masculino — Infantil (11 a 12) — Faixa Colorida',
+            'Kumite Individual — Feminino — Master (36 acima) — Faixa Preta — acima de 50kg',
+            'Kata Equipe — Masculino — Até 14 anos',
+            'Kata Equipe — Feminino — 15 anos acima',
+            'Kumite Equipe (Revezamento) — Masculino — Mirim (7 a 10)',
+        ] as $expected) {
+            $this->assertContains($expected, $names);
+        }
     }
 
-    public function testSeedGeneratesExactlyTheCurrentCatalog(): void
+    public function testLimitsAreCopiedFromTheDivisions(): void
     {
-        $generated = array_map(
-            fn (EventCategoryDraft $d) => self::signature(
-                $d->name, $d->modality, $d->format, $d->gender, $d->ageMin, $d->ageMax,
-                self::beltGroup($d->beltLevelMin), $d->weightMin, $d->weightMax, $d->teamSize
-            ),
-            $this->generateAll(FgkirsRuleset::build())
-        );
+        $byCode = [];
+        foreach ($this->generateAll(FgkirsRuleset::build()) as $d) {
+            $byCode[$d->code] = $d;
+        }
 
-        $catalog = array_map(
-            static fn (array $r) => self::signature(
-                $r['name'], $r['modality'], $r['entry_type'], $r['gender'], $r['age_min'], $r['age_max'],
-                $r['belt_group'],
-                $r['weight_min'] !== null ? (float) $r['weight_min'] : null,
-                $r['weight_max'] !== null ? (float) $r['weight_max'] : null,
-                $r['team_size']
-            ),
-            CompetitionCategory::defaultCatalog()
-        );
+        $kumite = $byCode['KMI-M-INF-COL-50'];
+        $this->assertSame([11, 12, 1, 10, null, 50.0], [$kumite->ageMin, $kumite->ageMax, $kumite->beltLevelMin, $kumite->beltLevelMax, $kumite->weightMin, $kumite->weightMax]);
 
-        $this->assertCount(88, $generated);
-        $this->assertEqualsCanonicalizing($catalog, $generated);
+        $heavy = $byCode['KMI-F-ADU-PRE-50+'];
+        $this->assertSame([11, 20, 50.0, null], [$heavy->beltLevelMin, $heavy->beltLevelMax, $heavy->weightMin, $heavy->weightMax]);
+
+        $team = $byCode['KTE-M-EQ-14'];
+        $this->assertSame([null, 14, null, 3], [$team->ageMin, $team->ageMax, $team->beltLevelMin, $team->teamSize]);
     }
 
     public function testDisciplineWithoutGenderSplitGeneratesGenderX(): void

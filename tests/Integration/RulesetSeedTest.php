@@ -4,12 +4,11 @@ namespace Tests\Integration;
 
 use Domain\Championship\CategoryGenerator;
 use Domain\Championship\GenerationRequest;
-use Models\CompetitionCategory;
 use PHPUnit\Framework\TestCase;
 use Repositories\RulesetRepository;
 
 /**
- * Confere o seed SQL (004) contra o catálogo atual. Precisa de um banco com as migrations
+ * Confere que o seed SQL (004) gera as 88 categorias oficiais. Precisa de um banco com as migrations
  * aplicadas; sem FGKIRS_TEST_DB_HOST o teste é pulado.
  *
  * FGKIRS_TEST_DB_HOST=127.0.0.1\;port=3306 FGKIRS_TEST_DB_NAME=t FGKIRS_TEST_DB_USER=root vendor/bin/phpunit --testsuite Integration
@@ -30,7 +29,7 @@ final class RulesetSeedTest extends TestCase
         defined('DB_PASS') || define('DB_PASS', (string) getenv('FGKIRS_TEST_DB_PASS'));
     }
 
-    public function testSeededRulesetGeneratesTheCurrentCatalog(): void
+    public function testSeededRulesetGeneratesTheOfficialCategories(): void
     {
         $repository = new RulesetRepository();
         $default    = array_values(array_filter($repository->all(), static fn (array $r) => $r['is_default']))[0] ?? null;
@@ -40,24 +39,12 @@ final class RulesetSeedTest extends TestCase
         $ruleset = $repository->load((int) $default['id']);
         $drafts  = (new CategoryGenerator())->generate($ruleset, GenerationRequest::everything($ruleset));
 
-        $signature = static fn (string $name, string $modality, string $format, string $gender, ?int $min, ?int $max, ?float $wMin, ?float $wMax): string
-            => json_encode([str_replace(' (provisório)', '', $name), $modality, $format, $gender, $min, $max, $wMin, $wMax], JSON_UNESCAPED_UNICODE);
-
-        $generated = array_map(
-            static fn ($d) => $signature($d->name, $d->modality, $d->format, $d->gender, $d->ageMin, $d->ageMax, $d->weightMin, $d->weightMax),
-            $drafts
-        );
-
-        $catalog = array_map(
-            static fn (array $r) => $signature(
-                $r['name'], $r['modality'], $r['entry_type'], $r['gender'], $r['age_min'], $r['age_max'],
-                $r['weight_min'] !== null ? (float) $r['weight_min'] : null,
-                $r['weight_max'] !== null ? (float) $r['weight_max'] : null
-            ),
-            CompetitionCategory::defaultCatalog()
-        );
+        $byDiscipline = [];
+        foreach ($drafts as $d) {
+            $byDiscipline[$d->disciplineCode] = ($byDiscipline[$d->disciplineCode] ?? 0) + 1;
+        }
 
         $this->assertCount(88, $drafts);
-        $this->assertEqualsCanonicalizing($catalog, $generated);
+        $this->assertSame(['KTI' => 24, 'KMI' => 48, 'KTE' => 4, 'KME' => 12], $byDiscipline);
     }
 }

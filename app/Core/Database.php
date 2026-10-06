@@ -189,8 +189,7 @@ class Database
             "ALTER TABLE athlete_profiles ADD COLUMN is_para_karate TINYINT(1) NOT NULL DEFAULT 0 AFTER gender",
             "ALTER TABLE federation_profile ADD COLUMN legal_name VARCHAR(180) NULL",
             "ALTER TABLE federation_profile ADD COLUMN cnpj VARCHAR(20) NULL",
-            "ALTER TABLE federation_profile ADD COLUMN website VARCHAR(180) NULL",
-            "ALTER TABLE championship_athletes ADD COLUMN height SMALLINT UNSIGNED NULL AFTER weight"
+            "ALTER TABLE federation_profile ADD COLUMN website VARCHAR(180) NULL"
         ];
 
         foreach ($fixes as $fixSql) {
@@ -237,8 +236,6 @@ class Database
      */
     private function runMigrations(): void
     {
-        $needsCategoryBackfill = !$this->tableExists('championship_categories');
-
         $tables = [
             "CREATE TABLE IF NOT EXISTS martial_arts_styles (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -487,26 +484,6 @@ class Database
                 PRIMARY KEY (id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-            "CREATE TABLE IF NOT EXISTS competition_categories (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(180) NOT NULL,
-                modality ENUM('kata','kumite') NOT NULL,
-                entry_type ENUM('individual','team') NOT NULL DEFAULT 'individual',
-                gender ENUM('M','F','X') NOT NULL DEFAULT 'X',
-                age_min TINYINT UNSIGNED NULL,
-                age_max TINYINT UNSIGNED NULL,
-                age_label VARCHAR(60) NULL,
-                belt_group ENUM('black','colored','any') NOT NULL DEFAULT 'any',
-                weight_min DECIMAL(5,2) NULL,
-                weight_max DECIMAL(5,2) NULL,
-                team_size TINYINT UNSIGNED NULL,
-                sort_order INT NOT NULL DEFAULT 0,
-                is_active TINYINT(1) NOT NULL DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_lookup (entry_type, modality, gender, is_active),
-                INDEX idx_sort (sort_order)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS championships (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -528,81 +505,10 @@ class Database
                 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-            "CREATE TABLE IF NOT EXISTS championship_categories (
-                championship_id INT NOT NULL,
-                category_id INT NOT NULL,
-                PRIMARY KEY (championship_id, category_id),
-                INDEX idx_category (category_id),
-                FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE CASCADE,
-                CONSTRAINT fk_champcat_category FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-            "CREATE TABLE IF NOT EXISTS championship_athletes (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                championship_id INT NOT NULL,
-                dojo_id INT NOT NULL,
-                user_id INT NULL,
-                name VARCHAR(255) NOT NULL,
-                gender ENUM('M','F') NOT NULL,
-                birth_date DATE NOT NULL,
-                style_id INT NULL,
-                graduation_id INT NULL,
-                belt_group ENUM('black','colored') NOT NULL DEFAULT 'colored',
-                weight DECIMAL(5,2) NULL,
-                height SMALLINT UNSIGNED NULL COMMENT 'cm',
-                is_guest TINYINT(1) NOT NULL DEFAULT 0,
-                is_para_karate TINYINT(1) NOT NULL DEFAULT 0,
-                registered_by INT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_championship_dojo (championship_id, dojo_id),
-                INDEX idx_belt_group (belt_group),
-                UNIQUE KEY unique_championship_user (championship_id, user_id),
-                CONSTRAINT fk_champathletes_championship FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE RESTRICT,
-                CONSTRAINT fk_champathletes_dojo FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE RESTRICT,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-                FOREIGN KEY (style_id) REFERENCES martial_arts_styles(id) ON DELETE SET NULL,
-                FOREIGN KEY (graduation_id) REFERENCES graduations(id) ON DELETE SET NULL,
-                FOREIGN KEY (registered_by) REFERENCES users(id) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-            "CREATE TABLE IF NOT EXISTS championship_entries (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                championship_athlete_id INT NOT NULL,
-                category_id INT NOT NULL,
-                weight DECIMAL(5,2) NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY unique_athlete_category (championship_athlete_id, category_id),
-                INDEX idx_category (category_id),
-                FOREIGN KEY (championship_athlete_id) REFERENCES championship_athletes(id) ON DELETE CASCADE,
-                CONSTRAINT fk_entries_category FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-            "CREATE TABLE IF NOT EXISTS championship_teams (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                championship_id INT NOT NULL,
-                dojo_id INT NOT NULL,
-                category_id INT NOT NULL,
-                name VARCHAR(120) NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_championship_dojo (championship_id, dojo_id),
-                INDEX idx_category (category_id),
-                CONSTRAINT fk_teams_championship FOREIGN KEY (championship_id) REFERENCES championships(id) ON DELETE RESTRICT,
-                CONSTRAINT fk_teams_dojo FOREIGN KEY (dojo_id) REFERENCES dojos(id) ON DELETE RESTRICT,
-                CONSTRAINT fk_teams_category FOREIGN KEY (category_id) REFERENCES competition_categories(id) ON DELETE RESTRICT
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
-            "CREATE TABLE IF NOT EXISTS championship_team_members (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                team_id INT NOT NULL,
-                championship_athlete_id INT NOT NULL,
-                position TINYINT UNSIGNED NOT NULL DEFAULT 1,
-                UNIQUE KEY unique_team_athlete (team_id, championship_athlete_id),
-                INDEX idx_athlete (championship_athlete_id),
-                FOREIGN KEY (team_id) REFERENCES championship_teams(id) ON DELETE CASCADE,
-                FOREIGN KEY (championship_athlete_id) REFERENCES championship_athletes(id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS championship_referees (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -662,71 +568,6 @@ class Database
         }
 
         $this->ensureBlackBeltFlag();
-        $this->seedCompetitionCategories();
-
-        if ($needsCategoryBackfill) {
-            $this->backfillChampionshipCategories();
-        }
-    }
-
-    private function tableExists(string $table): bool
-    {
-        try {
-            return (bool) $this->connection->query("SHOW TABLES LIKE " . $this->connection->quote($table))->fetchColumn();
-        } catch (\PDOException $e) {
-            return false;
-        }
-    }
-
-    /**
-     * Eventos criados antes da selecao de categorias por evento continuam com
-     * todas as categorias ativas. Roda so na criacao da tabela: rodar de novo
-     * devolveria categorias que o Presidente ja tirou.
-     */
-    private function backfillChampionshipCategories(): void
-    {
-        try {
-            $this->connection->exec(
-                "INSERT IGNORE INTO championship_categories (championship_id, category_id)
-                 SELECT c.id, k.id FROM championships c
-                 CROSS JOIN competition_categories k WHERE k.is_active = 1"
-            );
-        } catch (\PDOException $e) {
-            error_log('backfillChampionshipCategories error: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Catalogo inicial de categorias. As regras vivem no model; aqui so
-     * persistimos, e apenas quando a tabela ainda esta vazia.
-     */
-    private function seedCompetitionCategories(): void
-    {
-        try {
-            $count = $this->connection->query("SELECT COUNT(*) FROM competition_categories")->fetchColumn();
-            if ((int) $count > 0) {
-                return;
-            }
-        } catch (\PDOException $e) {
-            return;
-        }
-
-        try {
-            $stmt = $this->connection->prepare(
-                "INSERT INTO competition_categories
-                    (name, modality, entry_type, gender, age_min, age_max, age_label,
-                     belt_group, weight_min, weight_max, team_size, sort_order)
-                 VALUES
-                    (:name, :modality, :entry_type, :gender, :age_min, :age_max, :age_label,
-                     :belt_group, :weight_min, :weight_max, :team_size, :sort_order)"
-            );
-
-            foreach (\Models\CompetitionCategory::defaultCatalog() as $row) {
-                $stmt->execute($row);
-            }
-        } catch (\PDOException $e) {
-            error_log('seedCompetitionCategories error: ' . $e->getMessage());
-        }
     }
 
     /**

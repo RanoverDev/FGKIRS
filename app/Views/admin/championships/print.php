@@ -8,7 +8,6 @@
  */
 
 use Helpers\Format;
-use Models\ChampionshipAthlete;
 use Models\ChampionshipReferee;
 
 $isDojoScope = ($scope ?? 'dojo') === 'dojo';
@@ -475,7 +474,7 @@ $teamMemberNames = static function (array $team): string {
                     </thead>
                     <tbody>
                         <?php foreach ($dojoAthletes as $index => $athlete): ?>
-                            <?php $age = $athlete['age'] ?? ChampionshipAthlete::ageOn($athlete['birth_date'], $championship['event_date']); ?>
+                            <?php $age = $athlete['age']; ?>
                             <tr>
                                 <td class="num"><?= $index + 1 ?></td>
                                 <td class="name">

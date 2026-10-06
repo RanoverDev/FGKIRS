@@ -326,7 +326,7 @@ class DojoController extends \Controllers\Controller
 
         try {
             if (Dojo::hasChampionshipRegistrations($id)) {
-                $_SESSION['error'] = 'Este dojo tem inscrições em eventos e não pode ser excluído.';
+                $_SESSION['error'] = 'Este dojo tem atletas ou inscrições em eventos e não pode ser excluído.';
                 header('Location: /fgkirs-admin/dojos');
                 exit;
             }

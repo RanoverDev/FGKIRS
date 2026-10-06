@@ -27,17 +27,12 @@ require_once __DIR__ . '/../layout/header.php';
 
 <h1 class="text-2xl sm:text-3xl font-bold text-slate-900"><?= $e($championship['title']) ?></h1>
 <p class="text-sm text-slate-500 mt-1 mb-6">
-    <?php if ($ruleset): ?>
-        Categorias do evento, geradas do regulamento <strong><?= $e($ruleset->name) ?></strong>.
-        Mudar o regulamento depois não altera as categorias já geradas.
-    <?php else: ?>
-        Evento migrado do modelo antigo: as categorias são o histórico e não há regulamento para gerar novas.
-    <?php endif; ?>
+    Categorias do evento, geradas do regulamento <strong><?= $e($ruleset->name) ?></strong>.
+    Mudar o regulamento depois não altera as categorias já geradas.
 </p>
 
 <?php require __DIR__ . '/partials/flash.php'; ?>
 
-<?php if ($ruleset): ?>
 <form method="GET" action="/fgkirs-admin/championships/<?= $id ?>/categories/preview"
     class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
     <h2 class="text-lg font-bold text-slate-900 mb-1">Gerar categorias</h2>
@@ -78,7 +73,6 @@ require_once __DIR__ . '/../layout/header.php';
 
     <button type="submit" class="mt-5 bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition">Gerar categorias</button>
 </form>
-<?php endif; ?>
 
 <h2 class="text-lg font-bold text-slate-900 mb-3">Categorias do evento <span class="text-slate-500 font-normal">(<?= count($rows) ?>)</span></h2>
 

@@ -39,7 +39,6 @@ class RegistrationService
      */
     public function grid(array $championship, int $dojoId): array
     {
-        RegistrationGuard::assertV2($championship);
         DojoScope::assertDojo($dojoId);
 
         $categories  = $this->categories->forChampionship((int) $championship['id']);
@@ -82,7 +81,6 @@ class RegistrationService
     /** Sugestões de um atleta com outro peso: a grade recalcula a célula sem repetir a regra em JavaScript. */
     public function suggestFor(array $championship, int $dojoId, int $athleteId, ?float $weight): array
     {
-        RegistrationGuard::assertV2($championship);
         DojoScope::assertDojo($dojoId);
 
         $athlete = $this->athletes->find($athleteId);
@@ -373,7 +371,6 @@ class RegistrationService
     public function confirm(array $championship, array $registrationIds, array $teamIds, int $adminId): int
     {
         RegistrationGuard::assertAdmin();
-        RegistrationGuard::assertV2($championship);
 
         $confirmed = 0;
 
@@ -407,7 +404,6 @@ class RegistrationService
     public function override(array $championship, int $registrationId, int $categoryId, string $reason, int $adminId): void
     {
         RegistrationGuard::assertAdmin();
-        RegistrationGuard::assertV2($championship);
 
         $reason       = trim($reason);
         $registration = $this->registrations->find($registrationId);
