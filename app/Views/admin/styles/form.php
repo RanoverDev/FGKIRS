@@ -8,6 +8,8 @@ require_once __DIR__ . '/../layout/header.php';
     <h1 class="text-2xl sm:text-3xl font-bold text-slate-900"><?= $pageTitle ?></h1>
 </div>
 
+<?php require __DIR__ . '/../championships/partials/flash.php'; ?>
+
 <div class="bg-white rounded-lg shadow p-6 sm:p-8 max-w-2xl">
     <form action="<?= $isEdit ? "/fgkirs-admin/styles/update/{$style['id']}" : '/fgkirs-admin/styles/store' ?>"
           method="POST"
@@ -33,6 +35,26 @@ require_once __DIR__ . '/../layout/header.php';
             <input type="file" id="symbol" name="symbol" accept=".jpg,.jpeg,image/jpeg"
                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
             <p class="text-xs text-gray-500 mt-1">Apenas JPG. Será redimensionada para 500px, qualidade 65%.</p>
+        </div>
+
+        <div class="mb-4">
+            <label for="certificate_background" class="block text-sm font-medium text-gray-700 mb-2">Arte de fundo do certificado</label>
+
+            <?php if ($isEdit && !empty($style['certificate_background'])): ?>
+                <div class="mb-2">
+                    <a href="<?= htmlspecialchars(\Helpers\CertificateBackground::url($style['certificate_background'])) ?>" target="_blank" rel="noopener">
+                        <img src="<?= htmlspecialchars(\Helpers\CertificateBackground::url($style['certificate_background'])) ?>"
+                             alt="Arte atual do certificado" class="w-64 rounded border border-gray-200">
+                    </a>
+                </div>
+            <?php endif; ?>
+
+            <input type="file" id="certificate_background" name="certificate_background" accept=".png,.jpg,.jpeg,image/png,image/jpeg"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
+            <p class="text-xs text-gray-500 mt-1">
+                PNG ou JPG em proporção 4:3 (ex.: 1920×1440), até 8 MB, sem os textos do atleta.
+                <?= $isEdit && !empty($style['certificate_background']) ? 'Enviar um arquivo novo substitui a arte atual.' : '' ?>
+            </p>
         </div>
 
         <div class="mb-6">

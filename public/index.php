@@ -240,6 +240,11 @@ $router->add('GET', '/fgkirs-admin/athletes/edit/{id}', 'Admin\AthleteController
 $router->add('POST', '/fgkirs-admin/athletes/update/{id}', 'Admin\AthleteController@update');
 $router->add('GET', '/fgkirs-admin/athletes/deactivate/{id}', 'Admin\AthleteController@deactivate');
 
+// Certificado de graduação (emitido a partir da lista de atletas)
+$router->add('GET', '/fgkirs-admin/athletes/certificate-draft/{id}', 'Admin\CertificateController@draft');
+$router->add('POST', '/fgkirs-admin/athletes/certificate-store/{id}', 'Admin\CertificateController@store');
+$router->add('GET', '/fgkirs-admin/certificates/{id}', 'Admin\CertificateController@show');
+
 // =====================================================
 // ADMIN - POSTS/NEWS
 // =====================================================

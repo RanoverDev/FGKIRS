@@ -9,6 +9,7 @@ use Helpers\Csrf;
 use Helpers\DojoScope;
 use Models\Athlete;
 use PDO;
+use Repositories\CertificateRepository;
 
 /**
  * Cadastro permanente de atletas do dojo. O sensei só enxerga e edita os do próprio
@@ -86,6 +87,7 @@ class AthleteController extends Controller
             'dojos'       => Auth::isAdmin() ? $this->dojos() : [],
             'styles'      => $this->styles(),
             'graduations' => $this->graduations(),
+            'certificates' => (new CertificateRepository())->forAthlete($id),
             'pageTitle'   => 'Editar Atleta',
         ]);
         unset($_SESSION['athlete_old']);

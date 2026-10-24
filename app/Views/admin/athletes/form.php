@@ -148,6 +148,46 @@ require_once __DIR__ . '/../layout/header.php';
     </div>
 </form>
 
+<?php if ($isEdit): ?>
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-3xl mt-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-bold text-slate-900">Certificados de graduação</h2>
+            <?php if (($athlete['status'] ?? '') !== 'inactive'): ?>
+                <button type="button" data-certificate-athlete="<?= (int) $athlete['id'] ?>"
+                    data-certificate-name="<?= $value('full_name') ?>"
+                    class="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-2 px-5 rounded-lg transition">
+                    Gerar certificado
+                </button>
+            <?php endif; ?>
+        </div>
+
+        <?php if (empty($certificates)): ?>
+            <p class="text-sm text-slate-500">Nenhum certificado emitido para este atleta.</p>
+        <?php else: ?>
+            <ul class="divide-y divide-slate-100">
+                <?php foreach ($certificates as $c): ?>
+                    <li class="flex items-center justify-between gap-4 py-3">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-900">
+                                <?= htmlspecialchars($c['graduation_label']) ?> · <?= htmlspecialchars($c['style_name']) ?>
+                            </p>
+                            <p class="text-xs text-slate-500">
+                                Graduação em <?= date('d/m/Y', strtotime($c['graduation_date'])) ?>
+                                · emitido em <?= date('d/m/Y H:i', strtotime($c['created_at'])) ?>
+                                por <?= htmlspecialchars($c['issued_by_name']) ?>
+                            </p>
+                        </div>
+                        <a href="/fgkirs-admin/certificates/<?= (int) $c['id'] ?>" target="_blank" rel="noopener"
+                            class="text-blue-600 hover:text-blue-700 text-sm font-semibold shrink-0">Abrir</a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
+
+    <?php require __DIR__ . '/partials/certificate_modal.php'; ?>
+<?php endif; ?>
+
 <script>
     // Faixas filtradas pelo estilo escolhido; escolher uma faixa também define o estilo
     const styleSelect = document.getElementById('style_id');

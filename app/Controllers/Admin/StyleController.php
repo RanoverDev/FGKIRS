@@ -5,6 +5,7 @@ namespace Controllers\Admin;
 use Controllers\Controller;
 use Core\Database;
 use Helpers\Auth;
+use Helpers\CertificateBackground;
 use Helpers\ImageProcessor;
 use PDO;
 
@@ -68,6 +69,8 @@ class StyleController extends Controller
             ]
         );
 
+        $this->saveCertificateBackground((int) $this->db->lastInsertId());
+
         header('Location: /fgkirs-admin/styles');
         exit;
     }
@@ -127,6 +130,8 @@ class StyleController extends Controller
             ]
         );
 
+        $this->saveCertificateBackground($id);
+
         header('Location: /fgkirs-admin/styles');
         exit;
     }
@@ -138,18 +143,52 @@ class StyleController extends Controller
             exit;
         }
 
-        $stmt = $this->db->query("SELECT symbol FROM martial_arts_styles WHERE id = :id", ['id' => $id]);
+        $stmt = $this->db->query(
+            "SELECT symbol, certificate_background FROM martial_arts_styles WHERE id = :id",
+            ['id' => $id]
+        );
         $style = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        try {
+            $this->db->query(
+                "DELETE FROM martial_arts_styles WHERE id = :id",
+                ['id' => $id]
+            );
+        } catch (\PDOException $e) {
+            // FK RESTRICT: o estilo tem certificados emitidos (histórico não se apaga)
+            error_log('StyleController::delete error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Este estilo não pode ser excluído porque já tem certificados emitidos ou atletas vinculados.';
+            header('Location: /fgkirs-admin/styles');
+            exit;
+        }
+
         if ($style && $style['symbol']) {
             ImageProcessor::delete(__DIR__ . '/../../../public/uploads/styles/' . $style['symbol']);
         }
-
-        $this->db->query(
-            "DELETE FROM martial_arts_styles WHERE id = :id",
-            ['id' => $id]
-        );
+        CertificateBackground::delete($style['certificate_background'] ?? null);
 
         header('Location: /fgkirs-admin/styles');
         exit;
+    }
+
+    /** Arte do certificado: sobe um arquivo, substitui o anterior. Erro de validação vira aviso, o estilo já foi salvo. */
+    private function saveCertificateBackground(int $styleId): void
+    {
+        $file = $_FILES['certificate_background'] ?? null;
+        if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return;
+        }
+
+        [$filename, $error] = CertificateBackground::store($file, $styleId);
+
+        if ($error !== null) {
+            $_SESSION['error'] = 'Estilo salvo, mas a arte do certificado não foi atualizada: ' . $error;
+            return;
+        }
+
+        $this->db->query(
+            "UPDATE martial_arts_styles SET certificate_background = :file WHERE id = :id",
+            ['file' => $filename, 'id' => $styleId]
+        );
     }
 }

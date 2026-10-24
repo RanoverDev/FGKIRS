@@ -126,6 +126,11 @@ $statusBadge = [
                                 </span>
                             </td>
                             <td class="px-5 py-3 text-right whitespace-nowrap">
+                                <?php if ($a['status'] !== 'inactive'): ?>
+                                    <button type="button" data-certificate-athlete="<?= (int) $a['id'] ?>"
+                                        data-certificate-name="<?= htmlspecialchars($a['full_name']) ?>"
+                                        class="text-emerald-700 hover:text-emerald-800 text-sm font-semibold px-2">Certificado</button>
+                                <?php endif; ?>
                                 <a href="/fgkirs-admin/athletes/edit/<?= (int) $a['id'] ?>"
                                     class="text-blue-600 hover:text-blue-700 text-sm font-semibold px-2">Editar</a>
                                 <?php if ($a['status'] !== 'inactive'): ?>
@@ -141,5 +146,7 @@ $statusBadge = [
         </table>
     </div>
 </div>
+
+<?php require __DIR__ . '/partials/certificate_modal.php'; ?>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

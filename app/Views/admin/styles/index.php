@@ -15,6 +15,8 @@ require_once __DIR__ . '/../layout/header.php';
     <?php endif; ?>
 </div>
 
+<?php require __DIR__ . '/../championships/partials/flash.php'; ?>
+
 <div class="bg-white rounded-lg shadow overflow-hidden">
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -24,13 +26,14 @@ require_once __DIR__ . '/../layout/header.php';
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Nome</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider hidden md:table-cell">Descrição</th>
                     <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider">Faixas</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider">Certificado</th>
                     <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider">Ações</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
                 <?php if (empty($styles)): ?>
                     <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
                             Nenhum estilo cadastrado.
                         </td>
                     </tr>
@@ -62,6 +65,13 @@ require_once __DIR__ . '/../layout/header.php';
                                 <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">
                                     <?= (int) $style['graduation_count'] ?>
                                 </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <?php if (!empty($style['certificate_background'])): ?>
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Arte enviada</span>
+                                <?php else: ?>
+                                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">Sem arte</span>
+                                <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 <a href="/fgkirs-admin/styles/edit/<?= $style['id'] ?>" title="Editar"

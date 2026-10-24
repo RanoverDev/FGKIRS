@@ -162,6 +162,13 @@ Eventos:   /fgkirs-admin/championships                        (lista; admin cria
 
 Telas: `/fgkirs-admin/rulesets` (regulamentos), `/fgkirs-admin/athletes` (cadastro de atletas), `/fgkirs-admin/championships/{id}/categories` (gerar, fechar e juntar), `.../athletes` (grade do sensei), `.../grid` e `.../grid/suggest` (JSON), `.../teams`, `.../referees`, `.../summary`, `.../registrations` (painel do Presidente, `.../export` em CSV).
 
+### Certificado de graduação
+
+- **Arte por estilo:** `martial_arts_styles.certificate_background` (PNG/JPG 4:3, ≥1200px, ≤8 MB), enviada no formulário de Estilos. Nome fixo `public/uploads/certificates/style-{id}.png|jpg`: subir outra arte substitui a anterior (`Helpers\CertificateBackground`). A arte não leva os textos do atleta; kanji e nome do estilo ficam nela.
+- **Emissão:** botão "Certificado" na lista de Atletas (e na edição do atleta) abre o pop-up; o texto vem de `Domain\Certificate\CertificateText` (graduação atual do atleta, estilo da graduação, cidade/UF do dojo) e é editável (negrito, itálico, sublinhado, tamanho, cor). `Helpers\RichText` sanitiza por lista branca antes de gravar. Admin emite para qualquer dojo; sensei só para o próprio (403 em JSON).
+- **Histórico:** `athlete_certificates` guarda o texto como foi emitido (mudar o cadastro depois não altera certificados antigos); lista na edição do atleta. Impressão em `/fgkirs-admin/certificates/{id}` (1440×1080 px, "Salvar como PDF" do navegador).
+- Migration `007_certificates.php`; equivalente para o phpMyAdmin em `database/manual/06_certificados.sql`.
+
 ### Segurança do módulo de eventos
 
 Três camadas, **todas no backend** — nunca apenas escondendo botão na tela:
