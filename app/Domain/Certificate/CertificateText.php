@@ -46,8 +46,8 @@ final class CertificateText
             . '<b><span data-var="graduation">' . htmlspecialchars($graduationLabel, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</span></b> '
             . 'no estilo <b><span data-var="style">' . $e($styleName) . '</span></b> em '
             . '<span data-var="date">' . $date->format('d/m/Y') . '</span> na cidade de '
-            . '<span data-var="city">' . $location . '</span>, no dojo '
-            . '<span data-var="dojo">' . $e($dojoName) . '</span>.</p>'
+            . '<b><span data-var="city">' . $location . '</span></b>, no dojo '
+            . '<b><span data-var="dojo">' . $e($dojoName) . '</span></b>.</p>'
             . '<p style="text-align:center;font-size:15px;font-weight:700;margin-top:66px">'
             . 'Homologado por esta Federação de Karatê, entidade estadual de Administração do Desporto.</p>';
     }

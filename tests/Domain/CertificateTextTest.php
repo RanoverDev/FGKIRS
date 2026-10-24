@@ -44,6 +44,8 @@ final class CertificateTextTest extends TestCase
         $this->assertStringContainsString('14/08/2025', $html);
         $this->assertStringContainsString('CAMPO BOM - RS', $html);
         $this->assertStringContainsString('GOJU KAI SUL', $html);
+        $this->assertStringContainsString('<b><span data-var="city">CAMPO BOM - RS</span></b>', $html);
+        $this->assertStringContainsString('<b><span data-var="dojo">GOJU KAI SUL</span></b>', $html);
         $this->assertStringContainsString('Homologado por esta Federação de Karatê', $html);
     }
 

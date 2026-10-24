@@ -9,6 +9,9 @@ use Repositories\CertificateRepository;
 
 class CertificateService
 {
+    /** O servidor não define fuso; "hoje" precisa ser o do usuário, não o do host. */
+    private const TIMEZONE = 'America/Sao_Paulo';
+
     public function __construct(private CertificateRepository $certificates = new CertificateRepository())
     {
     }
@@ -23,7 +26,7 @@ class CertificateService
     {
         $ctx = $this->context($athleteId);
         $label = CertificateText::graduationLabel($ctx['belt_name']);
-        $today = new \DateTimeImmutable('today');
+        $today = $this->today();
 
         return [
             'label'      => $label,
@@ -52,11 +55,12 @@ class CertificateService
     {
         $ctx = $this->context($athleteId);
 
-        $parsed = \DateTimeImmutable::createFromFormat('Y-m-d', $date);
+        // "!" zera a hora: sem ele a data vem com o horário atual e "hoje" seria maior que a meia-noite de hoje
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date, new \DateTimeZone(self::TIMEZONE));
         if (!$parsed || $parsed->format('Y-m-d') !== $date) {
             throw new \DomainException('Informe uma data de graduação válida.');
         }
-        if ($parsed > new \DateTimeImmutable('today')) {
+        if ($parsed > $this->today()) {
             throw new \DomainException('A data da graduação não pode ser futura.');
         }
 
@@ -79,6 +83,11 @@ class CertificateService
             'body_html'        => $body,
             'issued_by'        => $userId,
         ]);
+    }
+
+    private function today(): \DateTimeImmutable
+    {
+        return new \DateTimeImmutable('today', new \DateTimeZone(self::TIMEZONE));
     }
 
     /** @throws \DomainException */
