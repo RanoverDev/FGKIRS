@@ -89,11 +89,11 @@ class EventCategoryRepository
                 "INSERT INTO event_categories
                     (championship_id, code, name, short_name, discipline_code, discipline_name, modality, format, gender,
                      age_min, age_max, belt_level_min, belt_level_max, weight_min, weight_max, team_size, team_reserves,
-                     discipline_id, age_division_id, belt_division_id, weight_class_id, sort_order)
+                     discipline_id, age_division_id, belt_division_id, weight_class_id, sort_order, measure)
                  VALUES
                     (:championship_id, :code, :name, :short_name, :discipline_code, :discipline_name, :modality, :format, :gender,
                      :age_min, :age_max, :belt_min, :belt_max, :weight_min, :weight_max, :team_size, :team_reserves,
-                     :discipline_id, :age_id, :belt_id, :weight_id, :sort_order)",
+                     :discipline_id, :age_id, :belt_id, :weight_id, :sort_order, :measure)",
                 [
                     'championship_id' => $championshipId, 'code' => $d->code, 'name' => $d->name,
                     'short_name' => $d->shortName, 'discipline_code' => $d->disciplineCode,
@@ -104,7 +104,7 @@ class EventCategoryRepository
                     'team_size' => $d->teamSize, 'team_reserves' => $d->teamReserves,
                     'discipline_id' => $d->disciplineId, 'age_id' => $d->ageDivisionId,
                     'belt_id' => $d->beltDivisionId, 'weight_id' => $d->weightClassId,
-                    'sort_order' => ++$nextOrder,
+                    'sort_order' => ++$nextOrder, 'measure' => $d->measure,
                 ]
             );
             $inserted++;

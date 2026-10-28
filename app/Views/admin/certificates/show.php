@@ -55,7 +55,7 @@ $title = htmlspecialchars($pageTitle ?? 'Certificado');
 
 <body>
     <div class="toolbar">
-        <a href="/fgkirs-admin/athletes/edit/<?= (int) $certificate['athlete_id'] ?>">← Voltar ao atleta</a>
+        <a href="/fgkirs-admin/athletes/edit/<?= (int) $certificate['athlete_id'] ?>" id="close">Fechar aba</a>
         <span>No diálogo de impressão, escolha “Salvar como PDF” e desative cabeçalhos e rodapés.</span>
         <button type="button" id="print">Imprimir / Salvar PDF</button>
     </div>
@@ -86,6 +86,14 @@ $title = htmlspecialchars($pageTitle ?? 'Certificado');
 
         window.addEventListener('resize', fit);
         fit();
+
+        // Aberta em nova aba: fecha e a administração continua na aba de origem. Sem janela-mãe, segue o link.
+        document.getElementById('close').addEventListener('click', e => {
+            if (window.opener) {
+                e.preventDefault();
+                window.close();
+            }
+        });
 
         document.getElementById('print').addEventListener('click', () => {
             (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => window.print());

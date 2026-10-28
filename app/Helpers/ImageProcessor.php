@@ -4,9 +4,14 @@ namespace Helpers;
 
 class ImageProcessor
 {
+    /** Extensões aceitas nos uploads (HEIC/HEIF = fotos do iPhone). */
+    public const ACCEPTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
+
+    private const HEIC_BRANDS = ['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1', 'heif'];
+
     /**
      * Process an uploaded image file: resize and save as WebP.
-     * Supports JPEG, PNG, WebP sources via GD; HEIC via Imagick (if available).
+     * Supports JPEG, PNG, WebP sources via GD; HEIC/HEIF (iPhone) via Imagick with libheif.
      *
      * @param array  $uploadedFile  Entry from $_FILES (single file)
      * @param string $targetDir     Absolute directory to save the processed image
@@ -25,37 +30,12 @@ class ImageProcessor
             return false;
         }
 
-        $ext = strtolower(pathinfo($uploadedFile['name'] ?? '', PATHINFO_EXTENSION));
-        $tmpPath = $uploadedFile['tmp_name'];
-
-        if ($ext === 'heic') {
-            return self::processHeic($tmpPath, $targetDir, $maxWidth, $quality);
-        }
-
-        $imageInfo = getimagesize($tmpPath);
-        if ($imageInfo === false) {
-            error_log('Invalid image file');
-            return false;
-        }
-
-        $sourceImage = match ($imageInfo['mime']) {
-            'image/jpeg' => imagecreatefromjpeg($tmpPath),
-            'image/png'  => imagecreatefrompng($tmpPath),
-            'image/webp' => imagecreatefromwebp($tmpPath),
-            default      => false,
-        };
-
-        if ($sourceImage === false) {
-            error_log('Unsupported or unreadable image format: ' . $imageInfo['mime']);
-            return false;
-        }
-
-        return self::resizeAndSave($sourceImage, $targetDir, $maxWidth, $quality);
+        return self::processFromPath($uploadedFile['tmp_name'], $targetDir, $maxWidth, $quality);
     }
 
     /**
-     * Process a local image file path (e.g. extracted from ZIP): resize and save as WebP.
-     * Supports JPEG, PNG, WebP, HEIC sources.
+     * Process a local image file path (upload tmp file or extracted from ZIP): resize and save as WebP.
+     * The format is detected from the file content, never from the extension.
      */
     public static function processFromPath(
         string $sourcePath,
@@ -67,27 +47,31 @@ class ImageProcessor
             return false;
         }
 
-        $ext = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
+        $maxWidth = $maxWidth > 0 ? $maxWidth : IMG_MAX_WIDTH;
 
-        if ($ext === 'heic') {
-            return self::processHeic($sourcePath, $targetDir, $maxWidth, $quality);
+        if (self::isHeic($sourcePath)) {
+            $sourceImage = self::loadHeic($sourcePath, $maxWidth);
+        } else {
+            $imageInfo = @getimagesize($sourcePath);
+            if ($imageInfo === false) {
+                error_log("ImageProcessor: invalid image file $sourcePath");
+                return false;
+            }
+
+            $sourceImage = match ($imageInfo['mime']) {
+                'image/jpeg' => self::applyExifOrientation(@imagecreatefromjpeg($sourcePath), $sourcePath),
+                'image/png'  => @imagecreatefrompng($sourcePath),
+                'image/webp' => @imagecreatefromwebp($sourcePath),
+                default      => false,
+            };
+
+            if ($sourceImage === false) {
+                error_log("ImageProcessor: unsupported or unreadable mime={$imageInfo['mime']} file=$sourcePath");
+                return false;
+            }
         }
-
-        $imageInfo = @getimagesize($sourcePath);
-        if ($imageInfo === false) {
-            error_log("ImageProcessor: getimagesize failed for $sourcePath");
-            return false;
-        }
-
-        $sourceImage = match ($imageInfo['mime']) {
-            'image/jpeg' => imagecreatefromjpeg($sourcePath),
-            'image/png'  => imagecreatefrompng($sourcePath),
-            'image/webp' => imagecreatefromwebp($sourcePath),
-            default      => false,
-        };
 
         if ($sourceImage === false) {
-            error_log("ImageProcessor: unsupported or unreadable mime={$imageInfo['mime']} file=$sourcePath");
             return false;
         }
 
@@ -102,47 +86,116 @@ class ImageProcessor
         return false;
     }
 
+    /**
+     * True when the server can decode HEIC/HEIF (Imagick built with libheif).
+     * When false, the admin forms convert HEIC in the browser before uploading.
+     */
+    public static function supportsHeic(): bool
+    {
+        if (!extension_loaded('imagick')) {
+            return false;
+        }
+
+        try {
+            return \Imagick::queryFormats('HEIC') !== [];
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     // ── private helpers ───────────────────────────────────────────────────────
 
+    private static function isHeic(string $path): bool
+    {
+        $handle = @fopen($path, 'rb');
+        if ($handle === false) {
+            return false;
+        }
+        $head = fread($handle, 12);
+        fclose($handle);
+
+        return $head !== false
+            && strlen($head) === 12
+            && substr($head, 4, 4) === 'ftyp'
+            && \in_array(strtolower(substr($head, 8, 4)), self::HEIC_BRANDS, true);
+    }
+
     /**
-     * Process a HEIC file using the Imagick extension (must be installed with libheif).
+     * Decode HEIC via Imagick into a GD image (JPEG in memory), already rotated
+     * and shrunk to $maxWidth, so the rest of the pipeline is identical to other formats.
      */
-    private static function processHeic(
-        string $sourcePath,
-        string $targetDir,
-        int $maxWidth,
-        int $quality
-    ): string|false {
-        if (!extension_loaded('imagick')) {
+    private static function loadHeic(string $path, int $maxWidth): \GdImage|false
+    {
+        if (!self::supportsHeic()) {
             error_log('HEIC upload requires the Imagick PHP extension with libheif support');
             return false;
         }
 
         try {
-            $imagick = new \Imagick($sourcePath);
-            $imagick->setImageFormat('webp');
+            $imagick = new \Imagick($path);
+            $imagick->setIteratorIndex(0);
+            self::orientImagick($imagick);
 
-            $maxWidth = $maxWidth > 0 ? $maxWidth : IMG_MAX_WIDTH;
             if ($imagick->getImageWidth() > $maxWidth) {
                 $imagick->resizeImage($maxWidth, 0, \Imagick::FILTER_LANCZOS, 1);
             }
 
-            $quality = $quality > 0 ? $quality : IMG_QUALITY;
-            $imagick->setImageCompressionQuality($quality);
+            $imagick->setImageBackgroundColor('white');
+            $imagick->setImageFormat('jpeg');
+            $imagick->setImageCompressionQuality(92);
+            $blob = $imagick->getImageBlob();
+            $imagick->clear();
 
-            if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0755, true);
-            }
-
-            $filename = self::generateRandomFilename();
-            $imagick->writeImage(rtrim($targetDir, '/') . '/' . $filename);
-            $imagick->destroy();
-
-            return $filename;
-        } catch (\Exception $e) {
+            return imagecreatefromstring($blob);
+        } catch (\Throwable $e) {
             error_log('HEIC processing error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    private static function orientImagick(\Imagick $imagick): void
+    {
+        if (method_exists($imagick, 'autoOrient')) {
+            $imagick->autoOrient();
+            return;
+        }
+
+        $degrees = match ($imagick->getImageOrientation()) {
+            \Imagick::ORIENTATION_BOTTOMRIGHT => 180,
+            \Imagick::ORIENTATION_RIGHTTOP    => 90,
+            \Imagick::ORIENTATION_LEFTBOTTOM  => 270,
+            default                           => 0,
+        };
+        if ($degrees !== 0) {
+            $imagick->rotateImage('white', $degrees);
+            $imagick->setImageOrientation(\Imagick::ORIENTATION_TOPLEFT);
+        }
+    }
+
+    /**
+     * Phone JPEGs store rotation in EXIF instead of in the pixels; GD ignores it,
+     * so photos taken in portrait would come out sideways.
+     */
+    private static function applyExifOrientation(\GdImage|false $image, string $path): \GdImage|false
+    {
+        if ($image === false || !function_exists('exif_read_data')) {
+            return $image;
+        }
+
+        $exif = @exif_read_data($path);
+        $degrees = match ((int) ($exif['Orientation'] ?? 1)) {
+            3       => 180,
+            6       => -90,
+            8       => 90,
+            default => 0,
+        };
+
+        if ($degrees === 0) {
+            return $image;
+        }
+
+        $rotated = imagerotate($image, $degrees, 0);
+        return $rotated === false ? $image : $rotated;
     }
 
     /**
@@ -158,7 +211,6 @@ class ImageProcessor
         $originalWidth  = imagesx($sourceImage);
         $originalHeight = imagesy($sourceImage);
 
-        $maxWidth = $maxWidth > 0 ? $maxWidth : IMG_MAX_WIDTH;
         if ($originalWidth > $maxWidth) {
             $ratio     = $maxWidth / $originalWidth;
             $newWidth  = $maxWidth;

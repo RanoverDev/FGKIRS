@@ -87,21 +87,62 @@ class CertificateController extends Controller
         ]);
     }
 
-    /** Versão JSON de DojoScope::assertDojo: o pop-up consome estas rotas via fetch. */
+    /**
+     * Apaga de vez (não há lixeira): serve para o certificado impresso por engano. Admin e sensei do
+     * dojo do atleta; não existe edição de certificado emitido.
+     */
+    public function delete(int $id): void
+    {
+        $this->authorizeDojo(null);
+
+        if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
+            $this->json(['ok' => false, 'message' => 'Sessão expirada. Recarregue a página e tente de novo.'], 419);
+        }
+
+        $certificate = $this->certificates->find($id);
+
+        if (!$certificate) {
+            $this->json(['ok' => false, 'message' => 'Certificado não encontrado.'], Auth::isAdmin() ? 404 : 403);
+        }
+
+        $this->authorizeDojo((int) $certificate['dojo_id']);
+
+        $this->certificates->delete($id);
+        error_log(sprintf(
+            'Certificate %d (athlete %d, %s) deleted by user %d',
+            $id,
+            $certificate['athlete_id'],
+            $certificate['graduation_label'],
+            (int) Auth::id()
+        ));
+
+        $this->json(['ok' => true]);
+    }
+
     private function authorizeAthlete(int $athleteId): void
+    {
+        $athlete = Auth::isAdmin() ? null : Athlete::find($athleteId);
+
+        $this->authorizeDojo($athlete ? (int) $athlete['dojo_id'] : 0);
+    }
+
+    /**
+     * Versão JSON de DojoScope::assertDojo (o pop-up consome estas rotas via fetch).
+     * Sem dojo informado (null) só confere o papel; dojo inexistente (0) nega ao sensei.
+     */
+    private function authorizeDojo(?int $dojoId): void
     {
         if (!Auth::authorize(['admin', 'sensei'])) {
             $this->json(['ok' => false, 'message' => 'Acesso negado.'], 403);
         }
 
-        if (Auth::isAdmin()) {
+        if (Auth::isAdmin() || $dojoId === null) {
             return;
         }
 
-        $athlete = Athlete::find($athleteId);
-        $dojoId  = DojoScope::senseiDojoId();
+        $current = DojoScope::senseiDojoId();
 
-        if (!$athlete || $dojoId === null || (int) $athlete['dojo_id'] !== $dojoId) {
+        if ($current === null || $dojoId !== $current) {
             $this->json(['ok' => false, 'message' => 'Você não tem permissão para acessar este atleta.'], 403);
         }
     }

@@ -69,6 +69,9 @@ class GalleryController extends Controller
         $status = \in_array($_POST['status'] ?? '', ['draft', 'published']) ? $_POST['status'] : 'published';
 
         if (empty($title) || empty($eventDate)) {
+            if ($this->wantsJson()) {
+                $this->json(['error' => 'Título e data do evento são obrigatórios.']);
+            }
             $_SESSION['error'] = 'Título e data do evento são obrigatórios.';
             header('Location: /fgkirs-admin/galleries/create');
             exit;
@@ -93,7 +96,11 @@ class GalleryController extends Controller
 
         $galleryId = (int) $this->db->lastInsertId();
 
-        $_SESSION['success'] = 'Galeria criada! Agora faça o upload das imagens em ZIP.';
+        if ($this->wantsJson()) {
+            $this->json(['id' => $galleryId]);
+        }
+
+        $_SESSION['success'] = 'Galeria criada! Agora adicione as imagens.';
         header("Location: /fgkirs-admin/galleries/edit/$galleryId");
         exit;
     }
@@ -222,21 +229,7 @@ class GalleryController extends Controller
                 continue;
             }
 
-            $relativePath = $dateFolder . '/' . $filename;
-            $isCover = $hasCover ? 0 : 1;
-
-            $this->db->query(
-                "INSERT INTO gallery_images (gallery_id, filename, is_cover) VALUES (:gallery_id, :filename, :is_cover)",
-                ['gallery_id' => $id, 'filename' => $relativePath, 'is_cover' => $isCover]
-            );
-
-            if (!$hasCover) {
-                $this->db->query(
-                    "UPDATE galleries SET cover_image = :cover WHERE id = :id",
-                    ['cover' => $relativePath, 'id' => $id]
-                );
-                $hasCover = true;
-            }
+            $this->attachImage($id, $dateFolder . '/' . $filename, $hasCover);
 
             $processedCount++;
         }
@@ -245,7 +238,7 @@ class GalleryController extends Controller
 
         if ($processedCount === 0) {
             $detail = empty($files)
-                ? 'Nenhuma imagem encontrada no ZIP (formatos aceitos: JPG, PNG, WebP).'
+                ? 'Nenhuma imagem encontrada no ZIP (formatos aceitos: JPG, PNG, WebP, HEIC).'
                 : "Todas as $failedCount imagem(ns) falharam no processamento. Verifique o log do servidor.";
             $_SESSION['error'] = "Nenhuma imagem foi adicionada. $detail";
         } else {
@@ -317,7 +310,7 @@ class GalleryController extends Controller
 
         if (empty($files)) {
             $this->deleteDir($tempDir);
-            echo json_encode(['error' => 'Nenhuma imagem encontrada no ZIP. Formatos aceitos: JPG, PNG, WebP.']);
+            echo json_encode(['error' => 'Nenhuma imagem encontrada no ZIP. Formatos aceitos: JPG, PNG, WebP, HEIC.']);
             exit;
         }
 
@@ -386,21 +379,7 @@ class GalleryController extends Controller
                 continue;
             }
 
-            $relativePath = $dateFolder . '/' . $filename;
-            $isCover = $hasCover ? 0 : 1;
-
-            $this->db->query(
-                "INSERT INTO gallery_images (gallery_id, filename, is_cover) VALUES (:gallery_id, :filename, :is_cover)",
-                ['gallery_id' => $id, 'filename' => $relativePath, 'is_cover' => $isCover]
-            );
-
-            if (!$hasCover) {
-                $this->db->query(
-                    "UPDATE galleries SET cover_image = :cover WHERE id = :id",
-                    ['cover' => $relativePath, 'id' => $id]
-                );
-                $hasCover = true;
-            }
+            $this->attachImage($id, $dateFolder . '/' . $filename, $hasCover);
 
             $processed++;
         }
@@ -422,6 +401,71 @@ class GalleryController extends Controller
             'done'      => $done,
         ]);
         exit;
+    }
+
+    /**
+     * Upload de uma ou várias imagens avulsas (JPG, PNG, WebP, HEIC/HEIF), convertidas como as do ZIP.
+     * Returns JSON: { processed: N, failed: N } or { error: "..." }
+     */
+    public function uploadImages(int $id): void
+    {
+        @set_time_limit(120);
+        @ini_set('memory_limit', '512M');
+
+        if (!Auth::authorize(['admin', 'sensei', 'aluno-colaborador'])) {
+            $this->json(['error' => 'Acesso negado.']);
+        }
+
+        $this->getGalleryOrDeny($id);
+
+        $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+        $postMaxBytes  = self::iniBytes('post_max_size');
+        if ($contentLength > 0 && $postMaxBytes > 0 && $contentLength > $postMaxBytes) {
+            $this->json(['error' => 'A imagem excede o limite de envio do servidor (' . self::formatBytes($postMaxBytes) . ').']);
+        }
+
+        $files = $_FILES['images'] ?? [];
+        $count = is_array($files['name'] ?? null) ? count($files['name']) : 0;
+        if ($count === 0) {
+            $this->json(['error' => 'Nenhuma imagem recebida.']);
+        }
+
+        $dateFolder = date('Y/m/d');
+        $uploadDir  = __DIR__ . '/../../../public/uploads/galleries/' . $dateFolder;
+
+        $hasCover = (int) $this->db->query(
+            "SELECT COUNT(*) FROM gallery_images WHERE gallery_id = :id AND is_cover = 1",
+            ['id' => $id]
+        )->fetchColumn() > 0;
+
+        $processed = 0;
+        $failed    = 0;
+
+        for ($i = 0; $i < $count; $i++) {
+            $filename = $files['error'][$i] === UPLOAD_ERR_OK
+                ? ImageProcessor::process([
+                    'name'     => $files['name'][$i],
+                    'type'     => $files['type'][$i],
+                    'tmp_name' => $files['tmp_name'][$i],
+                    'error'    => $files['error'][$i],
+                    'size'     => $files['size'][$i],
+                ], $uploadDir)
+                : false;
+
+            if (!$filename) {
+                $failed++;
+                continue;
+            }
+
+            $this->attachImage($id, $dateFolder . '/' . $filename, $hasCover);
+            $processed++;
+        }
+
+        if ($processed === 0) {
+            $this->json(['error' => 'Formato não suportado ou arquivo inválido. Use JPG, PNG, WebP ou HEIC.']);
+        }
+
+        $this->json(['processed' => $processed, 'failed' => $failed]);
     }
 
     public function removeImage(int $imageId): void
@@ -500,6 +544,27 @@ class GalleryController extends Controller
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    private function attachImage(int $galleryId, string $relativePath, bool &$hasCover): void
+    {
+        $this->db->query(
+            "INSERT INTO gallery_images (gallery_id, filename, is_cover) VALUES (:gallery_id, :filename, :is_cover)",
+            ['gallery_id' => $galleryId, 'filename' => $relativePath, 'is_cover' => $hasCover ? 0 : 1]
+        );
+
+        if (!$hasCover) {
+            $this->db->query(
+                "UPDATE galleries SET cover_image = :cover WHERE id = :id",
+                ['cover' => $relativePath, 'id' => $galleryId]
+            );
+            $hasCover = true;
+        }
+    }
+
+    private function wantsJson(): bool
+    {
+        return str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+    }
+
     private function getGalleryOrDeny(int $id): array
     {
         $gallery = $this->db->query(
@@ -555,7 +620,7 @@ class GalleryController extends Controller
             }
 
             $ext = strtolower($file->getExtension());
-            if (\in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'heic'])) {
+            if (\in_array($ext, ImageProcessor::ACCEPTED_EXTENSIONS)) {
                 $files[] = $pathname;
             }
         }

@@ -3,6 +3,7 @@
 namespace Repositories;
 
 use Core\Database;
+use Models\Athlete;
 use PDO;
 
 /** SQL das inscrições do evento (atleta no evento, categorias e auditoria). */
@@ -58,11 +59,15 @@ class RegistrationRepository
             $params['cat'] = (int) $filters['category_id'];
         }
 
+        // Convidado vem do cadastro do atleta; sem o SQL do convidado a coluna não existe e o resto segue igual
+        $guest = Athlete::supportsGuests() ? ', a.is_guest, a.guest_origin' : '';
+
         $rows = $this->db->query(
-            "SELECT r.*, d.name AS dojo_name, g.belt_name
+            "SELECT r.*, d.name AS dojo_name, g.belt_name $guest
              FROM championship_registrations r
              JOIN dojos d ON d.id = r.dojo_id
              LEFT JOIN graduations g ON g.id = r.graduation_id
+             LEFT JOIN athletes a ON a.id = r.athlete_id
              WHERE " . implode(' AND ', $where) . "
              ORDER BY d.name ASC, r.full_name ASC",
             $params
@@ -83,7 +88,7 @@ class RegistrationRepository
 
     public function save(?int $id, array $data): int
     {
-        $update = ['dojo_id', 'full_name', 'gender', 'birth_date', 'age_at_event', 'graduation_id', 'belt_level', 'declared_weight', 'is_para_karate'];
+        $update = ['dojo_id', 'full_name', 'gender', 'birth_date', 'age_at_event', 'graduation_id', 'belt_level', 'declared_weight', 'declared_height', 'is_para_karate'];
 
         if ($id !== null) {
             $data = array_intersect_key($data, array_flip($update));
@@ -92,7 +97,7 @@ class RegistrationRepository
                 "UPDATE championship_registrations SET
                     dojo_id = :dojo_id, full_name = :full_name, gender = :gender, birth_date = :birth_date,
                     age_at_event = :age_at_event, graduation_id = :graduation_id, belt_level = :belt_level,
-                    declared_weight = :declared_weight, is_para_karate = :is_para_karate
+                    declared_weight = :declared_weight, declared_height = :declared_height, is_para_karate = :is_para_karate
                  WHERE id = :id",
                 $data + ['id' => $id]
             );
@@ -103,10 +108,10 @@ class RegistrationRepository
         $this->db->query(
             "INSERT INTO championship_registrations
                 (championship_id, athlete_id, dojo_id, full_name, gender, birth_date, age_at_event, graduation_id,
-                 belt_level, declared_weight, is_para_karate, registered_by)
+                 belt_level, declared_weight, declared_height, is_para_karate, registered_by)
              VALUES
                 (:championship_id, :athlete_id, :dojo_id, :full_name, :gender, :birth_date, :age_at_event, :graduation_id,
-                 :belt_level, :declared_weight, :is_para_karate, :registered_by)",
+                 :belt_level, :declared_weight, :declared_height, :is_para_karate, :registered_by)",
             $data
         );
 

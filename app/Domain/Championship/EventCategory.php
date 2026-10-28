@@ -26,6 +26,7 @@ final readonly class EventCategory
         public ?int $maxEntries,
         public string $status,
         public int $enrolled = 0,
+        public string $measure = 'weight',
     ) {
     }
 
@@ -39,7 +40,8 @@ final readonly class EventCategory
             $r['discipline_code'], $r['discipline_name'], $r['modality'], $r['format'], $r['gender'],
             $int($r['age_min']), $int($r['age_max']), $int($r['belt_level_min']), $int($r['belt_level_max']),
             $float($r['weight_min']), $float($r['weight_max']), $int($r['team_size']), $int($r['team_reserves']),
-            (bool) $r['is_para_karate'], $int($r['max_entries']), $r['status'], (int) ($r['enrolled'] ?? 0)
+            (bool) $r['is_para_karate'], $int($r['max_entries']), $r['status'], (int) ($r['enrolled'] ?? 0),
+            $r['measure'] ?? 'weight'
         );
     }
 
@@ -50,7 +52,8 @@ final readonly class EventCategory
             $this->id, $this->code, $this->name, $this->shortName, $this->disciplineCode, $this->disciplineName,
             $this->modality, $this->format, $this->gender, $this->ageMin, $this->ageMax,
             $this->beltLevelMin, $this->beltLevelMax, $this->weightMin, $this->weightMax,
-            $this->teamSize, $this->teamReserves, $this->isParaKarate, $this->maxEntries, $this->status, $enrolled
+            $this->teamSize, $this->teamReserves, $this->isParaKarate, $this->maxEntries, $this->status, $enrolled,
+            $this->measure
         );
     }
 
@@ -62,7 +65,7 @@ final readonly class EventCategory
             $this->modality, $this->format, $this->gender, $this->ageMin, $this->ageMax,
             $this->beltLevelMin, $this->beltLevelMax, $this->weightMin, $this->weightMax,
             $this->teamSize, $this->teamReserves, $this->isParaKarate, $this->maxEntries,
-            $this->status === 'closed' ? 'open' : $this->status, $this->enrolled
+            $this->status === 'closed' ? 'open' : $this->status, $this->enrolled, $this->measure
         );
     }
 
@@ -96,19 +99,37 @@ final readonly class EventCategory
 
     public function requiresWeight(): bool
     {
-        return $this->weightMin !== null || $this->weightMax !== null;
+        return $this->measure === 'weight' && $this->hasMeasureLimit();
+    }
+
+    public function requiresHeight(): bool
+    {
+        return $this->measure === 'height' && $this->hasMeasureLimit();
     }
 
     /** Mínimo exclusivo e máximo inclusivo: 50,00 cabe em "até 50" e não em "acima de 50". */
     public function acceptsWeight(?float $weight): bool
     {
-        if (!$this->requiresWeight()) {
-            return true;
-        }
+        return !$this->requiresWeight() || $this->withinLimits($weight);
+    }
 
-        return $weight !== null
-            && ($this->weightMin === null || $weight > $this->weightMin)
-            && ($this->weightMax === null || $weight <= $this->weightMax);
+    /** Mesma regra do peso, em centímetros: 155 cabe em "até 1,55 m" e 156 em "acima de 1,55 m". */
+    public function acceptsHeight(?float $height): bool
+    {
+        return !$this->requiresHeight() || $this->withinLimits($height);
+    }
+
+    /** weightMin/weightMax guardam o limite da medida da categoria (kg ou cm). */
+    private function hasMeasureLimit(): bool
+    {
+        return $this->weightMin !== null || $this->weightMax !== null;
+    }
+
+    private function withinLimits(?float $value): bool
+    {
+        return $value !== null
+            && ($this->weightMin === null || $value > $this->weightMin)
+            && ($this->weightMax === null || $value <= $this->weightMax);
     }
 
     public function isFull(): bool

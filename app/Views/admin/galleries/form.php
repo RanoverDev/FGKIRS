@@ -3,6 +3,9 @@ $isEdit = isset($gallery) && $gallery;
 $images = $images ?? [];
 $pageTitle = $isEdit ? 'Editar Galeria' : 'Nova Galeria';
 require_once __DIR__ . '/../layout/header.php';
+
+$serverHeic = \Helpers\ImageProcessor::supportsHeic();
+$imageAccept = '.jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif';
 ?>
 
 <div class="mb-6 flex items-center gap-3">
@@ -16,7 +19,8 @@ require_once __DIR__ . '/../layout/header.php';
 
 <!-- Dados da galeria -->
 <div class="bg-white rounded-lg shadow p-6 sm:p-8 max-w-2xl mb-8">
-    <form action="<?= $isEdit ? "/fgkirs-admin/galleries/update/{$gallery['id']}" : '/fgkirs-admin/galleries/store' ?>"
+    <form id="galleryForm"
+        action="<?= $isEdit ? "/fgkirs-admin/galleries/update/{$gallery['id']}" : '/fgkirs-admin/galleries/store' ?>"
         method="POST">
 
         <div class="mb-4">
@@ -49,9 +53,32 @@ require_once __DIR__ . '/../layout/header.php';
             </select>
         </div>
 
+        <?php if (!$isEdit): ?>
+            <div class="mb-6">
+                <label for="createImages" class="block text-sm font-medium text-gray-700 mb-2">
+                    Imagens <span class="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <input type="file" id="createImages" accept="<?= $imageAccept ?>" multiple
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent text-sm">
+                <p class="text-xs text-gray-500 mt-1">
+                    JPG, PNG, WebP ou HEIC (iPhone). Selecione várias de uma vez; são convertidas e otimizadas
+                    automaticamente. A primeira será a capa. Para enviar muitas fotos em arquivo ZIP, crie a galeria e use a tela de edição.
+                </p>
+            </div>
+        <?php endif; ?>
+
+        <div id="createProgress" class="hidden mb-4">
+            <div class="flex justify-between text-xs text-slate-500 font-medium mb-1">
+                <span id="createProgressLabel">Enviando...</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2.5">
+                <div id="createProgressFill" class="bg-red-600 h-2.5 rounded-full transition-all duration-300" style="width:0%"></div>
+            </div>
+            <div id="createResult" class="hidden mt-3 p-3 rounded-lg text-sm font-medium bg-red-50 text-red-800"></div>
+        </div>
+
         <div class="flex flex-col sm:flex-row gap-3">
             <button type="submit" id="dataSubmitBtn"
-                onclick="this.disabled=true; this.textContent='Salvando...'; this.closest('form').submit();"
                 class="bg-red-700 hover:bg-red-800 text-white font-semibold py-2 px-6 rounded-lg transition disabled:opacity-60">
                 <?= $isEdit ? 'Salvar Alterações' : 'Criar Galeria' ?>
             </button>
@@ -64,36 +91,36 @@ require_once __DIR__ . '/../layout/header.php';
 </div>
 
 <?php if ($isEdit): ?>
-    <!-- Upload de imagens em ZIP -->
+    <!-- Upload de imagens (avulsas ou ZIP) -->
     <div class="max-w-4xl mb-6">
         <div class="bg-white rounded-lg shadow p-6 sm:p-8">
             <h2 class="text-lg font-bold text-slate-900 mb-1">Adicionar Imagens</h2>
             <p class="text-sm text-gray-500 mb-6">
-                Compacte as fotos do evento em um arquivo <strong>.zip</strong> e faça o upload.
-                Formatos aceitos dentro do ZIP: JPG, PNG, WebP. As imagens serão redimensionadas e otimizadas
+                Envie uma ou várias fotos de uma vez, ou um arquivo <strong>.zip</strong> com as fotos do evento.
+                Formatos aceitos: JPG, PNG, WebP e HEIC (iPhone). Todas são convertidas, redimensionadas e otimizadas
                 automaticamente.
             </p>
 
             <div id="dropZone"
                 class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 hover:border-red-400 hover:bg-red-50 transition-colors cursor-pointer"
-                onclick="document.getElementById('zipInput').click()">
+                onclick="document.getElementById('fileInput').click()">
                 <svg class="w-12 h-12 text-slate-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
-                <p class="text-sm font-semibold text-slate-600 mb-1" id="dropLabel">Clique ou arraste o arquivo ZIP aqui</p>
+                <p class="text-sm font-semibold text-slate-600 mb-1" id="dropLabel">Clique ou arraste fotos ou um ZIP aqui</p>
                 <?php
                     $postMax   = ini_get('post_max_size');
                     $uploadMax = ini_get('upload_max_filesize');
                 ?>
-                <p class="text-xs text-slate-400">Limite do servidor: <strong><?= htmlspecialchars($postMax) ?></strong> (post) · <strong><?= htmlspecialchars($uploadMax) ?></strong> (upload)</p>
-                <input type="file" id="zipInput" accept=".zip" class="hidden">
+                <p class="text-xs text-slate-400">Limite do servidor para o ZIP: <strong><?= htmlspecialchars($postMax) ?></strong> (post) · <strong><?= htmlspecialchars($uploadMax) ?></strong> (upload)</p>
+                <input type="file" id="fileInput" accept=".zip,<?= $imageAccept ?>" multiple class="hidden">
             </div>
 
             <!-- Progresso -->
             <div id="progressWrap" class="hidden mt-4 space-y-2">
                 <div class="flex justify-between text-xs text-slate-500 font-medium">
-                    <span id="progressLabel">Enviando ZIP...</span>
+                    <span id="progressLabel">Enviando...</span>
                     <span id="progressPct">0%</span>
                 </div>
                 <div class="w-full bg-slate-200 rounded-full h-2.5">
@@ -127,7 +154,7 @@ require_once __DIR__ . '/../layout/header.php';
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p class="text-sm text-slate-400">Nenhuma imagem ainda. Faça upload de um ZIP acima.</p>
+                    <p class="text-sm text-slate-400">Nenhuma imagem ainda. Envie fotos ou um ZIP acima.</p>
                 </div>
             <?php else: ?>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -165,20 +192,32 @@ require_once __DIR__ . '/../layout/header.php';
         </div>
     </div>
 
+    <script src="/assets/js/image-upload.js"></script>
     <script>
-        const GALLERY_ID = <?= (int) $gallery['id'] ?>;
-        const zipInput   = document.getElementById('zipInput');
-        const dropZone   = document.getElementById('dropZone');
+        const GALLERY_ID  = <?= (int) $gallery['id'] ?>;
+        const SERVER_HEIC = <?= $serverHeic ? 'true' : 'false' ?>;
+        const fileInput   = document.getElementById('fileInput');
+        const dropZone    = document.getElementById('dropZone');
+        const submitBtn   = document.getElementById('submitBtn');
+        let selected      = [];
 
-        zipInput.addEventListener('change', () => updateDropLabel(zipInput));
+        const isZip = f => /\.zip$/i.test(f.name);
+        const isAccepted = f => isZip(f) || FgkImages.isHeic(f) || /^image\/(jpeg|png|webp)$/.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name);
 
-        function updateDropLabel(input) {
-            if (input.files && input.files[0]) {
-                const size = (input.files[0].size / 1024 / 1024).toFixed(1);
-                document.getElementById('dropLabel').innerHTML =
-                    '<span class="text-red-700 font-bold">' + input.files[0].name + ' (' + size + ' MB)</span>';
+        function setFiles(list) {
+            selected = Array.from(list).filter(isAccepted);
+            const label = document.getElementById('dropLabel');
+            if (selected.length === 0) {
+                label.textContent = 'Clique ou arraste fotos ou um ZIP aqui';
+                return;
             }
+            const mb = (selected.reduce((t, f) => t + f.size, 0) / 1024 / 1024).toFixed(1);
+            const text = selected.length === 1 ? selected[0].name : selected.length + ' arquivos';
+            label.innerHTML = '<span class="text-red-700 font-bold"></span>';
+            label.firstChild.textContent = text + ' (' + mb + ' MB)';
         }
+
+        fileInput.addEventListener('change', () => setFiles(fileInput.files));
 
         function setProgress(pct, label) {
             document.getElementById('progressWrap').classList.remove('hidden');
@@ -194,69 +233,90 @@ require_once __DIR__ . '/../layout/header.php';
             el.textContent = msg;
         }
 
-        async function startUpload() {
-            if (!zipInput.files || !zipInput.files[0]) {
-                alert('Selecione um arquivo ZIP antes de enviar.');
-                return;
-            }
-
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Enviando...';
-            document.getElementById('uploadResult').classList.add('hidden');
-            setProgress(0, 'Enviando ZIP para o servidor...');
-
-            // ── Step 1: upload + extract ──────────────────────────────────────
+        // ZIP: envia e extrai, depois processa em lotes. Lança Error com mensagem para o usuário.
+        async function uploadZipFile(file, onProgress) {
             const formData = new FormData();
-            formData.append('zip_file', zipInput.files[0]);
+            formData.append('zip_file', file);
 
-            let total;
+            let data;
             try {
-                const res  = await fetch('/fgkirs-admin/galleries/upload-zip-extract/' + GALLERY_ID, {
-                    method: 'POST', body: formData
-                });
-                const data = await res.json();
-                if (data.error) { showResult(false, data.error); btn.disabled = false; btn.textContent = 'Enviar e Processar'; return; }
-                total = data.total;
+                const res = await fetch('/fgkirs-admin/galleries/upload-zip-extract/' + GALLERY_ID, { method: 'POST', body: formData });
+                data = await res.json();
             } catch (e) {
-                showResult(false, 'Erro ao enviar o arquivo. Verifique a conexão e tente novamente.');
-                btn.disabled = false; btn.textContent = 'Enviar e Processar';
+                throw new Error('Erro ao enviar o arquivo. Verifique a conexão e tente novamente.');
+            }
+            if (data.error) throw new Error(data.error);
+
+            const total = data.total;
+            let offset = 0, processed = 0, failed = 0;
+            while (offset < total) {
+                let batch;
+                try {
+                    const res = await fetch('/fgkirs-admin/galleries/process-batch/' + GALLERY_ID, { method: 'POST' });
+                    batch = await res.json();
+                } catch (e) {
+                    throw new Error('Erro durante o processamento do ZIP. Recarregue a página.');
+                }
+                if (batch.error) throw new Error(batch.error);
+                offset = batch.offset;
+                processed += batch.processed;
+                failed += batch.failed;
+                onProgress(offset, total);
+                if (batch.done) break;
+            }
+            return { processed, failed };
+        }
+
+        async function startUpload() {
+            if (selected.length === 0) {
+                alert('Selecione fotos ou um arquivo ZIP antes de enviar.');
                 return;
             }
 
-            setProgress(5, 'ZIP recebido. Processando ' + total + ' imagem(ns)...');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+            document.getElementById('uploadResult').classList.add('hidden');
 
-            // ── Step 2: process in batches ────────────────────────────────────
-            let offset = 0, totalProcessed = 0, totalFailed = 0;
+            const zips   = selected.filter(isZip);
+            const images = selected.filter(f => !isZip(f));
+            const units  = images.length + zips.length;
+            let done = 0, processed = 0, failed = 0;
+            const errors = [];
 
-            while (offset < total) {
+            setProgress(0, 'Enviando...');
+
+            if (images.length > 0) {
+                const r = await FgkImages.uploadAll(images, '/fgkirs-admin/galleries/upload-images/' + GALLERY_ID, {
+                    serverHeic: SERVER_HEIC,
+                    onProgress: (i, n, name) => setProgress((i / units) * 100, name ? 'Enviando ' + (i + 1) + ' / ' + n + ': ' + name : 'Fotos enviadas'),
+                });
+                processed += r.processed; failed += r.failed; errors.push(...r.errors);
+                done = images.length;
+            }
+
+            for (const zip of zips) {
                 try {
-                    const res  = await fetch('/fgkirs-admin/galleries/process-batch/' + GALLERY_ID, { method: 'POST' });
-                    const data = await res.json();
-                    if (data.error) { showResult(false, data.error); btn.disabled = false; btn.textContent = 'Enviar e Processar'; return; }
-
-                    offset         = data.offset;
-                    totalProcessed += data.processed;
-                    totalFailed    += data.failed;
-
-                    const pct = 5 + Math.round((offset / total) * 95);
-                    setProgress(pct, 'Processando... ' + offset + ' / ' + total + ' imagens');
-
-                    if (data.done) break;
+                    const r = await uploadZipFile(zip, (offset, total) =>
+                        setProgress(((done + offset / total) / units) * 100, 'Processando ' + zip.name + ': ' + offset + ' / ' + total));
+                    processed += r.processed; failed += r.failed;
                 } catch (e) {
-                    showResult(false, 'Erro durante o processamento. ' + totalProcessed + ' imagem(ns) já salva(s). Recarregue a página.');
-                    btn.disabled = false; btn.textContent = 'Enviar e Processar';
-                    return;
+                    errors.push(zip.name + ': ' + e.message);
                 }
+                done++;
             }
 
             setProgress(100, 'Concluído!');
-            let msg = totalProcessed + ' imagem(ns) adicionada(s) com sucesso!';
-            if (totalFailed > 0) msg += ' (' + totalFailed + ' falhou)';
-            showResult(true, msg);
+            let msg = processed + ' imagem(ns) adicionada(s)' + (failed > 0 ? ' (' + failed + ' falhou)' : '') + '.';
+            if (errors.length > 0) msg += ' ' + errors.join(' ');
+            showResult(processed > 0 && errors.length === 0, msg);
 
-            btn.textContent = 'Concluído!';
-            setTimeout(() => location.reload(), 1500);
+            if (processed > 0 && errors.length === 0) {
+                submitBtn.textContent = 'Concluído!';
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enviar e Processar';
+            }
         }
 
         // Drag-and-drop
@@ -265,14 +325,75 @@ require_once __DIR__ . '/../layout/header.php';
         dropZone.addEventListener('drop', e => {
             e.preventDefault();
             dropZone.classList.remove('border-red-500', 'bg-red-50');
-            const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.zip')) {
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                zipInput.files = dt.files;
-                updateDropLabel(zipInput);
-            }
+            setFiles(e.dataTransfer.files);
         });
+    </script>
+<?php endif; ?>
+
+<?php if (!$isEdit): ?>
+    <script src="/assets/js/image-upload.js"></script>
+    <script>
+        (function () {
+            const form     = document.getElementById('galleryForm');
+            const input    = document.getElementById('createImages');
+            const button   = document.getElementById('dataSubmitBtn');
+            const progress = document.getElementById('createProgress');
+            const fill     = document.getElementById('createProgressFill');
+            const label    = document.getElementById('createProgressLabel');
+            const result   = document.getElementById('createResult');
+            const serverHeic = <?= $serverHeic ? 'true' : 'false' ?>;
+
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                button.disabled = true;
+                button.textContent = 'Salvando...';
+
+                const files = Array.from(input.files || []);
+                if (files.length === 0) {
+                    form.submit();
+                    return;
+                }
+
+                progress.classList.remove('hidden');
+                label.textContent = 'Criando galeria...';
+
+                let id;
+                try {
+                    const res  = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error);
+                    id = data.id;
+                } catch (err) {
+                    label.textContent = '';
+                    result.textContent = err.message || 'Não foi possível criar a galeria.';
+                    result.classList.remove('hidden');
+                    button.disabled = false;
+                    button.textContent = 'Criar Galeria';
+                    return;
+                }
+
+                const r = await FgkImages.uploadAll(files, '/fgkirs-admin/galleries/upload-images/' + id, {
+                    serverHeic,
+                    onProgress: (i, n, name) => {
+                        fill.style.width = (i / n * 100) + '%';
+                        label.textContent = name ? 'Enviando ' + (i + 1) + ' / ' + n + ': ' + name : 'Concluído!';
+                    },
+                });
+
+                if (r.errors.length > 0) {
+                    result.textContent = 'Galeria criada, mas ' + r.failed + ' imagem(ns) falharam. ' + r.errors.join(' ');
+                    result.classList.remove('hidden');
+                    button.textContent = 'Ir para a galeria';
+                    button.disabled = false;
+                    button.type = 'button';
+                    button.onclick = () => { location.href = '/fgkirs-admin/galleries/edit/' + id; };
+                    return;
+                }
+
+                location.href = '/fgkirs-admin/galleries/edit/' + id;
+            });
+
+        })();
     </script>
 <?php endif; ?>
 

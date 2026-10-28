@@ -5,6 +5,8 @@ $pageTitle = $isEdit ? 'Editar Postagem' : 'Nova Postagem';
 require_once __DIR__ . '/../layout/header.php';
 
 $currentType = $post['type'] ?? 'news';
+$serverHeic = \Helpers\ImageProcessor::supportsHeic();
+$imageAccept = '.jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif';
 ?>
 
 <div class="mb-6">
@@ -131,11 +133,12 @@ $currentType = $post['type'] ?? 'news';
         <?php if (!$isEdit): ?>
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Imagens</label>
-                <input type="file" name="images[]"
-                    accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp"
+                <input type="file" name="images[]" data-image-input
+                    accept="<?= $imageAccept ?>"
                     multiple
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent">
-                <p class="text-xs text-gray-500 mt-1">JPG, PNG, WebP ou HEIC. Selecione várias de uma vez. A primeira será a imagem de destaque. Convertidas para WebP automaticamente.</p>
+                <p class="text-xs text-gray-500 mt-1">JPG, PNG, WebP ou HEIC (iPhone). Selecione várias de uma vez. A primeira será a imagem de destaque. Convertidas para WebP automaticamente.</p>
+                <p data-image-status class="text-xs text-red-700 mt-1"></p>
             </div>
         <?php endif; ?>
 
@@ -193,8 +196,8 @@ $currentType = $post['type'] ?? 'news';
         <form action="/fgkirs-admin/posts/add-image/<?= $post['id'] ?>" method="POST" enctype="multipart/form-data">
             <label class="block text-sm font-medium text-gray-700 mb-2">Adicionar Imagens</label>
             <div class="flex gap-3 items-start">
-                <input type="file" name="images[]"
-                    accept=".jpg,.jpeg,.png,.webp,.heic,image/jpeg,image/png,image/webp"
+                <input type="file" name="images[]" data-image-input
+                    accept="<?= $imageAccept ?>"
                     multiple required
                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-700 focus:border-transparent text-sm">
                 <button type="submit"
@@ -202,12 +205,21 @@ $currentType = $post['type'] ?? 'news';
                     Enviar
                 </button>
             </div>
-            <p class="text-xs text-gray-500 mt-1">JPG, PNG, WebP ou HEIC. Selecione várias de uma vez. Convertidas para WebP automaticamente.</p>
+            <p class="text-xs text-gray-500 mt-1">JPG, PNG, WebP ou HEIC (iPhone). Selecione várias de uma vez. Convertidas para WebP automaticamente.</p>
+            <p data-image-status class="text-xs text-red-700 mt-1"></p>
         </form>
     </div>
 <?php endif; ?>
 
+<script src="/assets/js/image-upload.js"></script>
 <script>
+    document.querySelectorAll('[data-image-input]').forEach(input => {
+        FgkImages.bindInput(input, {
+            serverHeic: <?= $serverHeic ? 'true' : 'false' ?>,
+            statusEl: input.closest('form').querySelector('[data-image-status]'),
+        });
+    });
+
     function extractYouTubeId(url) {
         const m = url.match(/(?:youtube\.com\/(?:watch\?.*v=|live\/|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
         return m ? m[1] : null;

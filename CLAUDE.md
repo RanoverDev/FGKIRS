@@ -149,6 +149,10 @@ Eventos:   /fgkirs-admin/championships                        (lista; admin cria
            /fgkirs-admin/championships/{id}/referees          (aba Árbitros)
            /fgkirs-admin/championships/{id}/summary           (aba Inscritos + impressão)
            /fgkirs-admin/championships/{id}/registrations     (consolidado do Presidente)
+           /fgkirs-admin/championships/{id}/brackets          (aba Chaves: categorias e andamento)
+           /fgkirs-admin/championships/{id}/brackets/{categoryId}   (chave de uma categoria)
+           /fgkirs-admin/championships/{id}/results           (aba Resultados: pódio e quadro de medalhas)
+           /fgkirs-admin/ranking                              (ranking de atletas e dojos entre eventos)
 ```
 
 ### Como o módulo de eventos funciona
@@ -168,6 +172,37 @@ Telas: `/fgkirs-admin/rulesets` (regulamentos), `/fgkirs-admin/athletes` (cadast
 - **Emissão:** botão "Certificado" na lista de Atletas (e na edição do atleta) abre o pop-up; o texto vem de `Domain\Certificate\CertificateText` (graduação atual do atleta, estilo da graduação, cidade/UF do dojo) e é editável (negrito, itálico, sublinhado, tamanho, cor). `Helpers\RichText` sanitiza por lista branca antes de gravar. Admin emite para qualquer dojo; sensei só para o próprio (403 em JSON).
 - **Histórico:** `athlete_certificates` guarda o texto como foi emitido (mudar o cadastro depois não altera certificados antigos); lista na edição do atleta. Impressão em `/fgkirs-admin/certificates/{id}` (1440×1080 px, "Salvar como PDF" do navegador).
 - Migration `007_certificates.php`; equivalente para o phpMyAdmin em `database/manual/06_certificados.sql`.
+
+### Lista de atletas (`/fgkirs-admin/athletes`)
+
+- **Ações em ícones e modais, sem sair da lista:** olho = ficha completa (dados, status, certificados), lápis = editar, faixa = gerar certificado; "+ Novo Atleta" também é modal. Os modais carregam HTML de `athletes/fragment/{new,edit/{id},view/{id}}` (views em `Views/admin/athletes/fragments/`) e salvam por `fetch` com `Accept: application/json` — o mesmo controller devolve JSON ou redireciona, conforme o cabeçalho. Campos do formulário em `partials/form_fields.php` (compartilhado com a página `form.php`); comportamento em `public/assets/js/athlete-form.js`.
+- **Status:** o selo é o botão (POST `athletes/toggle-status/{id}`; ativo → inativo, inativo/pendente → ativo). Não há exclusão de atleta.
+- **Ordenação:** cabeçalhos clicáveis (nome, idade, sexo, faixa, peso, status) por lista branca em `Athlete::orderBy`; filtros e ordem sobrevivem às ações.
+- **Foto:** `athletes.photo` (migration `008_athlete_photo.php`, SQL em `database/manual/07_foto_do_atleta.sql`), `Helpers\AthletePhoto`: até 2 MB, JPG/PNG/WebP, reduzida a 400 px de largura, em `public/uploads/athletes/`. A lista usa `a.*` de propósito: sem a coluna (SQL ainda não rodado) a tela continua funcionando.
+- **Remover certificado:** `POST certificates/delete/{id}` (admin e sensei do dojo), exclusão definitiva com confirmação; não existe edição de certificado emitido.
+
+### Chaves, resultados e ranking (migration 009, SQL em `database/manual/08_chaves.sql`)
+
+- **Tabelas:** `brackets` (uma por categoria do evento), `bracket_matches` (lutas por rodada/posição), `event_results` (colocação final de cada participante, com pontos). Participante é polimórfico (`registration` ou `team`), por isso sem FK; nada usa CASCADE. Sem o SQL as telas avisam em vez de quebrar (`BracketRepository::tablesExist`).
+- **Regra num lugar só:** `Domain/Bracket/BracketTree` (eliminatória simples, byes, avanço, desfazer, trocas, colocação) e `BracketGenerator` (tamanho, ordem de cabeças, byes para os primeiros sorteados, dojos separados na 1ª rodada) são puros e testados; `Domain/Ranking/PointsTable` define os pontos (1º=10, 2º=7, 3º=5, 5º=3, participação=1; categoria com um só atleta não pontua).
+- **Quem entra:** inscrições `submitted`/`confirmed` com entrada ativa (individual) ou equipes `submitted`/`confirmed`. Rascunho e cancelado ficam de fora.
+- **Colocação:** campeão 1º, vice 2º, derrotados da semifinal 3º (os dois, como no karatê), quartas 5º, oitavas 9º. `event_results` é refeito a cada mudança na chave (`BracketService::finalize`), então nunca diverge dela.
+- **Permissão:** ver chave/resultado/ranking é de admin e sensei; sortear, trocar atletas, lançar resultado, mudar atleta de categoria é só do Presidente (`RegistrationGuard::assertAdmin` no serviço). Mudança de sorteio só sem resultados lançados (limpar resultados destrava).
+- **Mudar de categoria (peso na pesagem):** `RegistrationService::moveEntry` (admin, motivo obrigatório, grava `registration_log`) e o `BracketService::moveParticipant` acerta as duas chaves (`sync`).
+- **Cuidado:** o cabeçalho das abas (`championships/partials/header.php`) usa a variável `$state`; views que o incluem não podem chamar nada de `$state` (a tela da chave usa `$bracketState`).
+
+### Peso e altura (migration 012, SQL em `database/manual/12_peso_e_altura.sql`)
+
+- `weight_classes.measure` e `event_categories.measure` (`weight` | `height`): os limites continuam em `weight_min/weight_max` (kg ou cm; mínimo exclusivo, máximo inclusivo). Menores de 15 (Mirim, Infantil, Infanto Juvenil) usam altura, até 155 cm | acima de 155 cm; de 15 em diante, peso (cortes em 50/65/75 kg masc. e 50/55/65 kg fem.).
+- `championship_registrations.declared_height` (cm) é a foto do dia, gravada só quando o atleta cai numa categoria por altura. `AthleteSnapshot::$height`, `EventCategory::requiresHeight()/acceptsHeight()`; a grade mostra um campo só ("Peso / Altura") conforme `measure` da linha.
+- Sem o SQL o código novo quebra (insert em `event_categories`, save da inscrição): rodar o SQL antes de subir.
+
+### Inscrição: atleta convidado e edição na grade
+
+A grade de inscrição (`championships/grid.php`) tem "+ Novo atleta" (convidado ou esquecido: entra no cadastro permanente do dojo e já aparece na grade) e um lápis ao lado do nome que edita o atleta num modal, sem sair da tela e sem perder o que já foi marcado. O modal é o mesmo da lista de atletas (`athletes/partials/athlete_form_modal.php`, `openAthleteForm(id, {dojoId, onSaved})`). Depois de editar, "Salvar rascunho" atualiza a foto dos dados da inscrição.
+
+- **Fluxo do sensei:** digita o nome na busca (sem acento) para achar o atleta da lista do dojo; se não existe, a própria busca oferece "Cadastrar como atleta do dojo" ou "Cadastrar como convidado" já com o nome digitado.
+- **Convidado** (no modelo antigo se chamava "atleta avulso", `is_guest`): atleta de outro dojo ou clube que o sensei inscreve na hora. Fica no cadastro do dojo que o inscreveu (`athletes.is_guest = 1`, `athletes.guest_origin` obrigatório), aparece com o selo "Convidado" na lista, na ficha, na grade e na ficha impressa, e é reaproveitado em outros eventos. Migration `010_athlete_guest.php`, SQL em `database/manual/09_atleta_convidado.sql`; sem as colunas, a opção some (`Athlete::supportsGuests`) e nada quebra.
 
 ### Segurança do módulo de eventos
 

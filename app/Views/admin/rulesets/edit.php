@@ -60,9 +60,14 @@ $weightRow = static function (string $i, int|string $ageId, string $gender, ?obj
         <input type="hidden" name="rows[<?= $i ?>][gender]" value="<?= $e($gender) ?>">
         <label class="flex-1 min-w-[8rem] text-xs text-slate-500">Nome
             <input type="text" name="rows[<?= $i ?>][name]" required maxlength="60" value="<?= $e($w?->name) ?>" placeholder="Ex: até 45kg" class="<?= $in ?>"></label>
-        <label class="w-24 text-xs text-slate-500">Acima de (kg)
+        <label class="w-28 text-xs text-slate-500">Medida
+            <select name="rows[<?= $i ?>][measure]" class="<?= $in ?>">
+                <option value="weight" <?= ($w?->measure ?? 'weight') === 'weight' ? 'selected' : '' ?>>Peso (kg)</option>
+                <option value="height" <?= ($w?->measure ?? 'weight') === 'height' ? 'selected' : '' ?>>Altura (cm)</option>
+            </select></label>
+        <label class="w-24 text-xs text-slate-500">Acima de
             <input type="text" inputmode="decimal" name="rows[<?= $i ?>][weight_min]" value="<?= $num($w?->weightMin) ?>" class="<?= $in ?>"></label>
-        <label class="w-24 text-xs text-slate-500">Até (kg)
+        <label class="w-24 text-xs text-slate-500">Até
             <input type="text" inputmode="decimal" name="rows[<?= $i ?>][weight_max]" value="<?= $num($w?->weightMax) ?>" class="<?= $in ?>"></label>
         <?= $controls() ?>
     </div>
@@ -205,9 +210,10 @@ require_once __DIR__ . '/../layout/header.php';
 <!-- Divisões de peso -->
 <form id="weights" method="POST" action="/fgkirs-admin/rulesets/<?= $id ?>/weights" data-block class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-6">
     <?= Csrf::field() ?>
-    <h2 class="text-lg font-bold text-slate-900">Divisões de peso</h2>
+    <h2 class="text-lg font-bold text-slate-900">Divisões de peso e altura</h2>
     <p class="text-xs text-slate-500 mb-4">
         Uma tabela por idade e sexo, usada pelas disciplinas que separam por peso. "Acima de" é exclusivo e "Até" é inclusivo.
+        Escolha "Altura (cm)" para dividir por altura (ex.: até 155 e acima de 155); o atleta informa a altura na inscrição.
         Idade e sexo sem divisão geram a categoria sem limite de peso.
     </p>
 
@@ -232,7 +238,7 @@ require_once __DIR__ . '/../layout/header.php';
         <?php endforeach; ?>
     </div>
 
-    <button type="submit" class="<?= $saveButton ?> mt-5">Salvar divisões de peso</button>
+    <button type="submit" class="<?= $saveButton ?> mt-5">Salvar divisões de peso e altura</button>
 </form>
 
 <!-- Disciplinas -->

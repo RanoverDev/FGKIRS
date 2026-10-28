@@ -468,7 +468,7 @@ $teamMemberNames = static function (array $team): string {
                             <th class="center">Idade</th>
                             <th class="center">Sexo</th>
                             <th>Graduação</th>
-                            <th class="center">Peso</th>
+                            <th class="center">Peso / Altura</th>
                             <th>Categorias inscritas</th>
                         </tr>
                     </thead>
@@ -483,7 +483,7 @@ $teamMemberNames = static function (array $team): string {
                                         <span class="tag">Para-karatê</span>
                                     <?php endif; ?>
                                     <?php if (!empty($athlete['is_guest'])): ?>
-                                        <span class="tag">Avulso</span>
+                                        <span class="tag">Convidado<?= !empty($athlete['guest_origin']) ? ' · ' . htmlspecialchars($athlete['guest_origin']) : '' ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="center"><?= date('d/m/Y', strtotime($athlete['birth_date'])) ?></td>
@@ -491,7 +491,7 @@ $teamMemberNames = static function (array $team): string {
                                 <td class="center"><?= $athlete['gender'] === 'M' ? 'M' : 'F' ?></td>
                                 <td><?= htmlspecialchars($athlete['belt_name'] ?? '—') ?></td>
                                 <td class="center">
-                                    <?= htmlspecialchars(Format::weight($athlete['weight'] !== null ? (float) $athlete['weight'] : null)) ?>
+                                    <?= htmlspecialchars(Format::measure($athlete['weight'], $athlete['height'] ?? null, '—')) ?>
                                 </td>
                                 <td>
                                     <?php if (empty($athlete['entries'])): ?>

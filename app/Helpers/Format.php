@@ -66,4 +66,20 @@ class Format
     {
         return $kg !== null ? number_format($kg, 1, ',', '') . ' kg' : $empty;
     }
+
+    /** 155 -> "1,55 m"; null -> "—" */
+    public static function height(?int $cm, string $empty = '—'): string
+    {
+        return $cm !== null ? number_format($cm / 100, 2, ',', '') . ' m' : $empty;
+    }
+
+    /** Medida do dia da inscrição: altura (menores de 15) quando existe, senão o peso. */
+    public static function measure(mixed $weight, mixed $height, string $empty = 'sem peso'): string
+    {
+        return match (true) {
+            $height !== null => self::height((int) $height),
+            $weight !== null => self::weight((float) $weight),
+            default          => $empty,
+        };
+    }
 }

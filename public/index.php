@@ -207,6 +207,21 @@ $router->add('GET', '/fgkirs-admin/championships/{id}/categories/preview', 'Admi
 $router->add('POST', '/fgkirs-admin/championships/{id}/categories/store', 'Admin\ChampionshipCategoryController@store');
 $router->add('POST', '/fgkirs-admin/championships/{id}/categories/merge', 'Admin\ChampionshipCategoryController@merge');
 $router->add('POST', '/fgkirs-admin/championships/{id}/categories/{categoryId}/status', 'Admin\ChampionshipCategoryController@status');
+// Chaves, resultados e ranking
+$router->add('GET', '/fgkirs-admin/championships/{id}/brackets', 'Admin\BracketController@index');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/generate-all', 'Admin\BracketController@generateAll');
+$router->add('GET', '/fgkirs-admin/championships/{id}/brackets/{categoryId}', 'Admin\BracketController@show');
+$router->add('GET', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/data', 'Admin\BracketController@data');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/generate', 'Admin\BracketController@generate');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/swap', 'Admin\BracketController@swap');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/winner', 'Admin\BracketController@winner');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/clear-winner', 'Admin\BracketController@clearWinner');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/clear-results', 'Admin\BracketController@clearResults');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/sync', 'Admin\BracketController@sync');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/delete', 'Admin\BracketController@delete');
+$router->add('POST', '/fgkirs-admin/championships/{id}/brackets/{categoryId}/move', 'Admin\BracketController@move');
+$router->add('GET', '/fgkirs-admin/championships/{id}/results', 'Admin\BracketController@results');
+$router->add('GET', '/fgkirs-admin/ranking', 'Admin\RankingController@index');
 $router->add('GET', '/fgkirs-admin/championships/{id}/grid', 'Admin\RegistrationController@grid');
 $router->add('GET', '/fgkirs-admin/championships/{id}/grid/suggest', 'Admin\RegistrationController@suggest');
 $router->add('POST', '/fgkirs-admin/championships/{id}/grid/save', 'Admin\RegistrationController@save');
@@ -238,12 +253,16 @@ $router->add('GET', '/fgkirs-admin/athletes/create', 'Admin\AthleteController@cr
 $router->add('POST', '/fgkirs-admin/athletes/store', 'Admin\AthleteController@store');
 $router->add('GET', '/fgkirs-admin/athletes/edit/{id}', 'Admin\AthleteController@edit');
 $router->add('POST', '/fgkirs-admin/athletes/update/{id}', 'Admin\AthleteController@update');
-$router->add('GET', '/fgkirs-admin/athletes/deactivate/{id}', 'Admin\AthleteController@deactivate');
+$router->add('POST', '/fgkirs-admin/athletes/toggle-status/{id}', 'Admin\AthleteController@toggleStatus');
+$router->add('GET', '/fgkirs-admin/athletes/fragment/new', 'Admin\AthleteController@fragmentForm');
+$router->add('GET', '/fgkirs-admin/athletes/fragment/edit/{id}', 'Admin\AthleteController@fragmentForm');
+$router->add('GET', '/fgkirs-admin/athletes/fragment/view/{id}', 'Admin\AthleteController@fragmentView');
 
 // Certificado de graduação (emitido a partir da lista de atletas)
 $router->add('GET', '/fgkirs-admin/athletes/certificate-draft/{id}', 'Admin\CertificateController@draft');
 $router->add('POST', '/fgkirs-admin/athletes/certificate-store/{id}', 'Admin\CertificateController@store');
 $router->add('GET', '/fgkirs-admin/certificates/{id}', 'Admin\CertificateController@show');
+$router->add('POST', '/fgkirs-admin/certificates/delete/{id}', 'Admin\CertificateController@delete');
 
 // =====================================================
 // ADMIN - POSTS/NEWS
@@ -272,6 +291,7 @@ $router->add('GET', '/fgkirs-admin/galleries/delete/{id}', 'Admin\GalleryControl
 $router->add('POST', '/fgkirs-admin/galleries/upload-zip/{id}', 'Admin\GalleryController@uploadZip');
 $router->add('POST', '/fgkirs-admin/galleries/upload-zip-extract/{id}', 'Admin\GalleryController@uploadZipExtract');
 $router->add('POST', '/fgkirs-admin/galleries/process-batch/{id}', 'Admin\GalleryController@processBatch');
+$router->add('POST', '/fgkirs-admin/galleries/upload-images/{id}', 'Admin\GalleryController@uploadImages');
 $router->add('GET', '/fgkirs-admin/galleries/remove-image/{id}', 'Admin\GalleryController@removeImage');
 $router->add('GET', '/fgkirs-admin/galleries/set-cover/{id}', 'Admin\GalleryController@setCover');
 

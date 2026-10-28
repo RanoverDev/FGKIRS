@@ -7,6 +7,7 @@
 use Helpers\Auth;
 use Models\Championship;
 
+$eventLevel = $eventLevel ?? false; // abas do evento inteiro (chaves, resultados): sem seletor de dojo
 $state      = Championship::registrationState($championship);
 $stateLabel = Championship::REGISTRATION_STATES[$state];
 $dojoQuery  = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $dojoId : '';
@@ -22,6 +23,8 @@ $tabs = [
     'teams'    => 'Equipes',
     'referees' => 'Árbitros',
     'summary'  => 'Inscritos',
+    'brackets' => 'Chaves',
+    'results'  => 'Resultados',
 ];
 ?>
 
@@ -62,7 +65,7 @@ $tabs = [
         </div>
     </div>
 
-    <?php if (Auth::isAdmin()): ?>
+    <?php if (Auth::isAdmin() && !$eventLevel): ?>
         <form method="GET" class="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-3">
             <label for="dojo_id" class="text-sm font-medium text-slate-700">Operando como dojo:</label>
             <select name="dojo_id" id="dojo_id" onchange="this.form.submit()"
@@ -81,7 +84,7 @@ $tabs = [
         </form>
     <?php endif; ?>
 
-    <?php if (Auth::isAdmin() && $state !== 'open'): ?>
+    <?php if (Auth::isAdmin() && !$eventLevel && $state !== 'open'): ?>
         <div class="mt-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
             <strong>Atenção:</strong> as inscrições não estão abertas. Você está editando como Presidente —
             os senseis não conseguem alterar nada neste evento agora.
@@ -105,7 +108,7 @@ $tabs = [
 
 <?php require __DIR__ . '/flash.php'; ?>
 
-<?php if (empty($dojoId)): ?>
+<?php if (empty($dojoId) && !$eventLevel): ?>
     <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-10 text-center">
         <p class="text-slate-500">Selecione um dojo acima para ver e gerenciar as inscrições.</p>
     </div>

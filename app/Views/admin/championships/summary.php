@@ -67,7 +67,7 @@ $hasFee     = $championship['fee_first_entry'] !== null;
                         <tr class="hover:bg-slate-50 align-top">
                             <td class="px-5 py-3">
                                 <p class="text-sm font-medium text-slate-900"><?= $e($r['full_name']) ?></p>
-                                <p class="text-xs text-slate-500"><?= (int) $r['age_at_event'] ?> anos · <?= $r['declared_weight'] !== null ? number_format((float) $r['declared_weight'], 1, ',', '') . ' kg' : 'sem peso' ?></p>
+                                <p class="text-xs text-slate-500"><?= (int) $r['age_at_event'] ?> anos · <?= $e(\Helpers\Format::measure($r['declared_weight'], $r['declared_height'] ?? null)) ?></p>
                             </td>
                             <td class="px-5 py-3 text-sm text-slate-700">
                                 <?php foreach ($r['entries'] as $entry): ?>

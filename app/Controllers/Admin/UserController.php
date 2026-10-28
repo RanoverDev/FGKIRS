@@ -8,6 +8,7 @@ use Helpers\Auth;
 use Helpers\ImageProcessor;
 use Models\Athlete;
 use PDO;
+use Repositories\CertificateRepository;
 
 class UserController extends Controller
 {
@@ -406,7 +407,7 @@ class UserController extends Controller
             return;
         }
 
-        $sql = "SELECT u.id, u.name, u.email, u.role, u.photo, u.status,
+        $sql = "SELECT u.id, u.name, u.email, u.role, u.photo, u.status, u.created_at,
                        d.name AS dojo_name, d.city AS dojo_city,
                        ap.birth_date, ap.email AS athlete_email, ap.phone_whatsapp,
                        ap.gender, ap.is_para_karate, ap.weight, ap.height,
@@ -432,6 +433,17 @@ class UserController extends Controller
             $this->json(['error' => 'Usuário não encontrado'], 404);
             return;
         }
+
+        // Cadastro de atleta ligado ao usuário (athletes é mantido em sincronia com o perfil): CPF e certificados
+        $athlete = $this->db->query(
+            "SELECT id, document, status FROM athletes WHERE user_id = :id",
+            ['id' => $id]
+        )->fetch(PDO::FETCH_ASSOC);
+
+        $data['athlete_id']       = $athlete ? (int) $athlete['id'] : null;
+        $data['athlete_status']   = $athlete['status'] ?? null;
+        $data['athlete_document'] = $athlete['document'] ?? null;
+        $data['certificates']     = $athlete ? (new CertificateRepository())->forAthlete((int) $athlete['id']) : [];
 
         $this->json($data);
     }

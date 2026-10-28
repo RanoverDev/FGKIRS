@@ -208,17 +208,19 @@ class RegistrationController extends Controller
         $this->guarded(fn () => $this->json($this->registrations->grid($championship, $this->requireDojo($dojoId))));
     }
 
-    /** GET /championships/{id}/grid/suggest?athlete_id=&weight= */
+    /** GET /championships/{id}/grid/suggest?athlete_id=&weight=&height= */
     public function suggest(int $championshipId): void
     {
         [$championship, $dojoId] = $this->context($championshipId);
 
         $weight = trim((string) ($_GET['weight'] ?? ''));
         $weight = $weight === '' ? null : (float) str_replace(',', '.', $weight);
+        $height = trim((string) ($_GET['height'] ?? ''));
+        $height = $height === '' ? null : (float) str_replace(',', '.', $height);
 
         $this->guarded(fn () => $this->json([
             'cells' => $this->registrations->suggestFor(
-                $championship, $this->requireDojo($dojoId), (int) ($_GET['athlete_id'] ?? 0), $weight
+                $championship, $this->requireDojo($dojoId), (int) ($_GET['athlete_id'] ?? 0), $weight, $height
             ),
         ]));
     }

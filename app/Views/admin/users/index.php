@@ -1,5 +1,6 @@
 <?php
 use Helpers\Auth;
+use Helpers\Csrf;
 
 $pageTitle = 'Usuários';
 require_once __DIR__ . '/../layout/header.php';
@@ -449,7 +450,17 @@ applyFilters();
 
 // ── Modal Ficha do Atleta ────────────────────────────────────────────────────
 // Elementos buscados dentro das funções para garantir que o DOM está pronto
+let currentProfileId = null;
+const csrfToken = <?= json_encode(Csrf::token()) ?>;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function fmtCpf(v) {
+    const d = String(v || '').replace(/\D/g, '');
+    return d.length === 11 ? `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}` : (v || '');
+}
+
 async function openProfile(userId) {
+    currentProfileId = userId;
     const profileModal   = document.getElementById('profileModal');
     const profileLoading = document.getElementById('profileLoading');
     const profileContent = document.getElementById('profileContent');
@@ -474,6 +485,7 @@ async function openProfile(userId) {
 }
 
 function closeProfile() {
+    currentProfileId = null;
     const profileModal = document.getElementById('profileModal');
     if (profileModal) {
         profileModal.classList.add('hidden');
@@ -481,7 +493,32 @@ function closeProfile() {
     }
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
+document.addEventListener('keydown', e => {
+    const cert = document.getElementById('certModal');
+    if (e.key === 'Escape' && !(cert && !cert.classList.contains('hidden'))) closeProfile();
+});
+
+// Certificado gerado no pop-up: atualiza a ficha aberta
+document.addEventListener('certificate:issued', () => { if (currentProfileId) openProfile(currentProfileId); });
+
+// Remover certificado (definitivo; o aviso fica no data-confirm)
+document.addEventListener('click', async e => {
+    const btn = e.target.closest('[data-remove-certificate]');
+    if (!btn) return;
+    if (!confirm(btn.dataset.confirm)) return;
+
+    const body = new FormData();
+    body.append('csrf_token', csrfToken);
+
+    try {
+        const res = await fetch(`/fgkirs-admin/certificates/delete/${btn.dataset.removeCertificate}`, { method: 'POST', body, headers: { Accept: 'application/json' } });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.message);
+        if (currentProfileId) openProfile(currentProfileId);
+    } catch (ex) {
+        alert(ex.message || 'Não foi possível remover o certificado.');
+    }
+});
 
 function fmtDate(d) {
     if (!d) return '—';
@@ -519,8 +556,8 @@ function buildProfileHTML(d) {
     const ageStr   = age !== null ? ` · ${age} anos` : '';
     const status   = STATUS_CONFIG[d.status] || STATUS_CONFIG.active;
     const roleLabel = ROLE_LABEL_MODAL[d.role] || d.role;
-    const dojoStr  = d.dojo_name ? (d.dojo_city ? `${d.dojo_name} / ${d.dojo_city}` : d.dojo_name) : null;
-    const beltColor = d.belt_color || '';
+    const dojoStr  = d.dojo_name ? esc(d.dojo_city ? `${d.dojo_name} / ${d.dojo_city}` : d.dojo_name) : null;
+    const beltColor = /^#[0-9a-f]{3,8}$/i.test(d.belt_color || '') ? d.belt_color : '';
     const beltBorder = beltColor.toLowerCase() === '#ffffff' || beltColor.toLowerCase() === '#fff'
         ? 'border: 1px solid #d1d5db;' : '';
     const hasMartial = d.style_name || d.belt_name;
@@ -528,8 +565,8 @@ function buildProfileHTML(d) {
     const hasRegs    = d.fgkirs_registration || d.cbki_registration;
 
     const photo = d.photo
-        ? `<img src="/uploads/users/${d.photo}" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow" alt="">`
-        : `<div class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-white text-2xl font-bold shadow">${d.name[0].toUpperCase()}</div>`;
+        ? `<img src="/uploads/users/${esc(d.photo)}" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow" alt="">`
+        : `<div class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center text-white text-2xl font-bold shadow">${esc(d.name[0].toUpperCase())}</div>`;
 
     const row = (label, value) => value
         ? `<div class="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
@@ -544,7 +581,7 @@ function buildProfileHTML(d) {
         ${photo}
         <div class="flex-1 min-w-0">
             <span class="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${status.cls} mb-1">${status.label}</span>
-            <h3 class="text-base font-bold text-slate-900 leading-tight">${d.name}</h3>
+            <h3 class="text-base font-bold text-slate-900 leading-tight">${esc(d.name)}</h3>
             <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 mt-1 inline-block">${roleLabel}</span>
             ${dojoStr ? `<p class="text-xs text-slate-400 mt-1 truncate">${dojoStr}</p>` : ''}
         </div>
@@ -554,12 +591,12 @@ function buildProfileHTML(d) {
     <div class="mb-4">
         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Registros</p>
         <div class="bg-slate-50 rounded-lg px-4 py-1">
-            ${row('FGKIRS', d.fgkirs_registration ? '#' + d.fgkirs_registration : null)}
-            ${row('CBKI', d.cbki_registration || null)}
+            ${row('FGKIRS', d.fgkirs_registration ? '#' + esc(d.fgkirs_registration) : null)}
+            ${row('CBKI', d.cbki_registration ? esc(d.cbki_registration) : null)}
         </div>
     </div>` : ''}
 
-    ${d.birth_date || d.gender || d.weight || d.height ? `
+    ${d.birth_date || d.gender || d.weight || d.height || d.athlete_document ? `
     <div class="mb-4">
         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Dados Pessoais</p>
         <div class="bg-slate-50 rounded-lg px-4 py-1">
@@ -568,6 +605,8 @@ function buildProfileHTML(d) {
             ${row('Para-karatê', Number(d.is_para_karate) === 1 ? 'Sim' : null)}
             ${row('Peso', d.weight ? d.weight + ' kg' : null)}
             ${row('Altura', d.height ? d.height + ' cm' : null)}
+            ${row('CPF', d.athlete_document ? fmtCpf(d.athlete_document) : null)}
+            ${row('Cadastrado em', d.created_at ? fmtDate(d.created_at.slice(0, 10)) : null)}
         </div>
     </div>` : ''}
 
@@ -575,7 +614,7 @@ function buildProfileHTML(d) {
     <div class="mb-4">
         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contato</p>
         <div class="bg-slate-50 rounded-lg px-4 py-1">
-            ${row('E-mail pessoal', d.athlete_email || null)}
+            ${row('E-mail pessoal', d.athlete_email ? esc(d.athlete_email) : null)}
             ${row('WhatsApp', d.phone_whatsapp ? fmtPhone(d.phone_whatsapp) : null)}
         </div>
     </div>` : ''}
@@ -584,22 +623,50 @@ function buildProfileHTML(d) {
     <div class="mb-4">
         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Arte Marcial</p>
         <div class="bg-slate-50 rounded-lg px-4 py-1">
-            ${row('Estilo', d.style_name || null)}
+            ${row('Estilo', d.style_name ? esc(d.style_name) : null)}
             ${d.belt_name ? `
             <div class="flex justify-between gap-4 py-1.5 border-b border-slate-50 last:border-0">
                 <span class="text-xs text-slate-400 whitespace-nowrap">Graduação</span>
                 <span class="text-sm text-slate-800 font-medium text-right flex items-center gap-1.5">
                     ${beltColor ? `<span class="w-3 h-3 rounded-full inline-block shrink-0" style="background:${beltColor};${beltBorder}"></span>` : ''}
-                    ${d.belt_name}
+                    ${esc(d.belt_name)}
                 </span>
             </div>` : ''}
         </div>
     </div>` : ''}
 
+    <div class="mb-4">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Certificados de graduação</p>
+            ${d.athlete_id && d.athlete_status !== 'inactive' ? `
+            <button type="button" data-certificate-athlete="${d.athlete_id}" data-certificate-name="${esc(d.name)}"
+                class="text-xs font-semibold text-emerald-700 hover:text-emerald-800">+ Gerar certificado</button>` : ''}
+        </div>
+        ${!d.athlete_id ? `
+        <p class="text-xs text-slate-400 bg-slate-50 rounded-lg px-4 py-3">Sem cadastro de atleta. Para gerar certificados, preencha dojo, nascimento e sexo no cadastro.</p>`
+        : (d.certificates || []).length === 0 ? `
+        <p class="text-xs text-slate-400 bg-slate-50 rounded-lg px-4 py-3">Nenhum certificado emitido.</p>`
+        : `<ul class="bg-slate-50 rounded-lg divide-y divide-slate-100">
+            ${d.certificates.map(c => `
+            <li class="flex items-center justify-between gap-3 px-4 py-2.5">
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-slate-800">${esc(c.graduation_label)} · ${esc(c.style_name)}</p>
+                    <p class="text-xs text-slate-400">Graduação em ${fmtDate(c.graduation_date)} · emitido por ${esc(c.issued_by_name)}</p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="/fgkirs-admin/certificates/${c.id}" target="_blank" rel="noopener" class="text-xs font-semibold text-blue-600 hover:text-blue-700">Abrir</a>
+                    <button type="button" data-remove-certificate="${c.id}"
+                        data-confirm="Remover o certificado ${esc(c.graduation_label)} de ${fmtDate(c.graduation_date)}?\n\nEsta ação NÃO tem volta: o certificado e todas as informações dele serão apagados definitivamente."
+                        class="text-xs font-semibold text-red-600 hover:text-red-700">Remover</button>
+                </div>
+            </li>`).join('')}
+        </ul>`}
+    </div>
+
     ${d.notes ? `
     <div class="mb-1">
         <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Observações</p>
-        <div class="bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700 whitespace-pre-line">${d.notes}</div>
+        <div class="bg-slate-50 rounded-lg px-4 py-3 text-sm text-slate-700 whitespace-pre-line">${esc(d.notes)}</div>
     </div>` : ''}
 
     <div class="mt-5 pt-4 border-t border-slate-100">
@@ -635,5 +702,7 @@ function buildProfileHTML(d) {
         </div>
     </div>
 </div>
+
+<?php require __DIR__ . '/../athletes/partials/certificate_modal.php'; ?>
 
 <?php require_once __DIR__ . '/../layout/footer.php'; ?>

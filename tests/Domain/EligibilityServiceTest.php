@@ -40,6 +40,7 @@ final class EligibilityServiceTest extends TestCase
             maxEntries: $o['max'] ?? null,
             status: $o['status'] ?? 'open',
             enrolled: $o['enrolled'] ?? 0,
+            measure: $o['measure'] ?? 'weight',
         );
     }
 
@@ -53,12 +54,43 @@ final class EligibilityServiceTest extends TestCase
             isParaKarate: $o['para'] ?? false,
             isBlackBelt: $o['black'] ?? false,
             hasFgkirsRegistration: $o['reg'] ?? true,
+            height: $o['height'] ?? null,
         );
     }
 
     private function reasonFor(AthleteSnapshot $athlete, EventCategory $category): ?string
     {
         return $this->service->evaluate($athlete, [$category])['rejected'][$category->id] ?? null;
+    }
+
+    public function testHeightCategoryUsesHeightAndIgnoresWeight(): void
+    {
+        $upTo155 = $this->category(1, ['measure' => 'height', 'wMax' => 155.0]);
+        $above155 = $this->category(2, ['measure' => 'height', 'wMin' => 155.0]);
+
+        $short = $this->athlete(['weight' => null, 'height' => 155.0]);
+        $tall = $this->athlete(['weight' => null, 'height' => 156.0]);
+
+        $this->assertNull($this->reasonFor($short, $upTo155));
+        $this->assertSame('Altura fora da divisão', $this->reasonFor($short, $above155));
+        $this->assertSame('Altura fora da divisão', $this->reasonFor($tall, $upTo155));
+        $this->assertNull($this->reasonFor($tall, $above155));
+    }
+
+    public function testHeightCategoryAsksForHeightWhenMissing(): void
+    {
+        $this->assertSame(
+            'Informe a altura',
+            $this->reasonFor($this->athlete(['height' => null]), $this->category(1, ['measure' => 'height', 'wMax' => 155.0]))
+        );
+    }
+
+    public function testWeightCategoryIgnoresHeight(): void
+    {
+        $this->assertNull($this->reasonFor(
+            $this->athlete(['weight' => 40.0, 'height' => 190.0]),
+            $this->category(1, ['wMax' => 50.0])
+        ));
     }
 
     public function testEligibleCategoryIsReturned(): void

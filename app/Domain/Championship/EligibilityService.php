@@ -109,6 +109,8 @@ final class EligibilityService
             !$c->acceptsBelt($a->beltLevel)                                => ['belt', 'Graduação fora da divisão'],
             $c->requiresWeight() && $a->weight === null                    => ['weight', 'Informe o peso'],
             !$c->acceptsWeight($a->weight)                                 => ['weight', 'Peso fora da divisão'],
+            $c->requiresHeight() && $a->height === null                    => ['weight', 'Informe a altura'],
+            !$c->acceptsHeight($a->height)                                 => ['weight', 'Altura fora da divisão'],
             $c->isParaKarate && !$a->isParaKarate                          => ['para', 'Exclusiva para-karatê'],
             $c->status !== 'open'                                          => ['status', 'Categoria fechada'],
             $c->isFull()                                                   => ['full', 'Vagas esgotadas'],

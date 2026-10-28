@@ -28,6 +28,7 @@ final readonly class EventCategoryDraft
         public string $disciplineCode = '',
         public string $shortName = '',
         public ?int $teamReserves = null,
+        public string $measure = 'weight',
     ) {
     }
 }

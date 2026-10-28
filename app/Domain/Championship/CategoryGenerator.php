@@ -113,6 +113,7 @@ final class CategoryGenerator
             ageLabel: $age->label(),
             disciplineCode: $discipline->code,
             shortName: implode(' · ', $shortParts),
+            measure: $weight?->measure ?? 'weight',
             teamReserves: $discipline->format === 'team' ? $discipline->teamReserves : null,
         );
     }

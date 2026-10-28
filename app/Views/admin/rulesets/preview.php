@@ -19,7 +19,7 @@ $limits = static function ($d): string {
         $parts[] = "nível {$d->beltLevelMin}–{$d->beltLevelMax}";
     }
     if ($d->weightMin !== null || $d->weightMax !== null) {
-        $parts[] = 'peso ' . ($d->weightMin !== null ? '> ' . (float) $d->weightMin : '')
+        $parts[] = ($d->measure === 'height' ? 'altura ' : 'peso ') . ($d->weightMin !== null ? '> ' . (float) $d->weightMin : '')
             . ($d->weightMin !== null && $d->weightMax !== null ? ' e ' : '')
             . ($d->weightMax !== null ? '≤ ' . (float) $d->weightMax : '');
     }

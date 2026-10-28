@@ -136,7 +136,7 @@ class RegistrationPanelController extends Controller
         echo "\xEF\xBB\xBF";
 
         $out = fopen('php://output', 'w');
-        fputcsv($out, ['Dojo', 'Atleta', 'Nascimento', 'Idade no evento', 'Sexo', 'Graduação', 'Peso (kg)', 'Categorias', 'Status', 'Taxa (R$)', 'Pago em'], ';');
+        fputcsv($out, ['Dojo', 'Atleta', 'Nascimento', 'Idade no evento', 'Sexo', 'Graduação', 'Peso (kg)', 'Altura (cm)', 'Categorias', 'Status', 'Taxa (R$)', 'Pago em'], ';');
 
         $labels = ['draft' => 'Rascunho', 'submitted' => 'Enviada', 'confirmed' => 'Confirmada', 'cancelled' => 'Cancelada'];
 
@@ -149,6 +149,7 @@ class RegistrationPanelController extends Controller
                 $r['gender'],
                 $r['belt_name'] ?? '',
                 $r['declared_weight'] !== null ? number_format((float) $r['declared_weight'], 1, ',', '') : '',
+                $r['declared_height'] ?? '',
                 self::csvSafe(implode(' | ', array_column($r['entries'], 'category_name'))),
                 $labels[$r['status']] ?? $r['status'],
                 $r['fee_total'] !== null ? number_format((float) $r['fee_total'], 2, ',', '') : '',
@@ -169,8 +170,11 @@ class RegistrationPanelController extends Controller
             'birth_date'     => $r['birth_date'],
             'gender'         => $r['gender'],
             'is_para_karate' => $r['is_para_karate'],
+            'is_guest'       => $r['is_guest'] ?? 0,
+            'guest_origin'   => $r['guest_origin'] ?? null,
             'belt_name'      => $r['belt_name'] ?? null,
             'weight'         => $r['declared_weight'],
+            'height'         => $r['declared_height'] ?? null,
             'dojo_name'      => $r['dojo_name'] ?? '',
             'entries'        => array_map(static fn (array $e) => ['category_name' => $e['category_name']], $r['entries']),
         ], $registrations);

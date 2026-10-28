@@ -79,7 +79,8 @@ class RulesetRepository
                 (int) $r['id'], (int) $r['age_division_id'], $r['gender'], $r['name'],
                 $r['weight_min'] !== null ? (float) $r['weight_min'] : null,
                 $r['weight_max'] !== null ? (float) $r['weight_max'] : null,
-                (int) $r['sort_order']
+                (int) $r['sort_order'],
+                $r['measure'] ?? 'weight'
             ),
             $this->db->query(
                 "SELECT * FROM weight_classes WHERE ruleset_id = :id ORDER BY sort_order, id",
@@ -181,11 +182,11 @@ class RulesetRepository
 
             foreach ($source->weightClasses as $w) {
                 $this->db->query(
-                    "INSERT INTO weight_classes (ruleset_id, age_division_id, gender, name, weight_min, weight_max, sort_order)
-                     VALUES (:r, :age, :gender, :name, :min, :max, :sort)",
+                    "INSERT INTO weight_classes (ruleset_id, age_division_id, gender, name, weight_min, weight_max, sort_order, measure)
+                     VALUES (:r, :age, :gender, :name, :min, :max, :sort, :measure)",
                     [
                         'r' => $newId, 'age' => $ageMap[$w->ageDivisionId], 'gender' => $w->gender, 'name' => $w->name,
-                        'min' => $w->weightMin, 'max' => $w->weightMax, 'sort' => $w->sortOrder,
+                        'min' => $w->weightMin, 'max' => $w->weightMax, 'sort' => $w->sortOrder, 'measure' => $w->measure,
                     ]
                 );
             }
@@ -277,9 +278,10 @@ class RulesetRepository
                 throw new \InvalidArgumentException('Divisão de peso ligada a uma idade ou sexo inválido.');
             }
 
+            $measure = ($row['measure'] ?? 'weight') === 'height' ? 'height' : 'weight';
             $min = $this->nullableDecimal($row['weight_min'] ?? null);
             $max = $this->nullableDecimal($row['weight_max'] ?? null);
-            $name = $this->requireText($row['name'] ?? '', 'o nome da divisão de peso', 60);
+            $name = $this->requireText($row['name'] ?? '', 'o nome da divisão de peso ou altura', 60);
 
             if ($min === null && $max === null) {
                 throw new \InvalidArgumentException("A divisão de peso \"$name\" precisa de peso mínimo, máximo ou os dois.");
@@ -293,11 +295,11 @@ class RulesetRepository
 
             $clean[] = [
                 'id' => (int) ($row['id'] ?? 0), 'age_division_id' => $ageId, 'gender' => $gender, 'name' => $name,
-                'weight_min' => $min, 'weight_max' => $max, 'sort_order' => $position[$group],
+                'weight_min' => $min, 'weight_max' => $max, 'sort_order' => $position[$group], 'measure' => $measure,
             ];
         }
 
-        $this->replaceRows($rulesetId, 'weight_classes', $clean, ['age_division_id', 'gender', 'name', 'weight_min', 'weight_max', 'sort_order']);
+        $this->replaceRows($rulesetId, 'weight_classes', $clean, ['age_division_id', 'gender', 'name', 'weight_min', 'weight_max', 'sort_order', 'measure']);
     }
 
     public function saveDisciplines(int $rulesetId, array $rows): void

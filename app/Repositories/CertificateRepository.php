@@ -23,6 +23,11 @@ class CertificateRepository
         return (int) $db->lastInsertId();
     }
 
+    public function delete(int $id): void
+    {
+        Database::getInstance()->query("DELETE FROM athlete_certificates WHERE id = :id", ['id' => $id]);
+    }
+
     /** Certificado com o que a tela de impressão precisa: arte do estilo e atleta (para o escopo do dojo). */
     public function find(int $id): ?array
     {

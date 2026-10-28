@@ -50,7 +50,8 @@ class RegistrationService
         foreach ($this->athletes->activeForDojo($dojoId) as $athlete) {
             $registration = $existing[(int) $athlete['id']] ?? null;
             $weight       = $registration['declared_weight'] ?? $athlete['weight_kg'];
-            $snapshot     = $this->snapshot($athlete, $championship, $weight !== null ? (float) $weight : null);
+            $height       = $registration['declared_height'] ?? $athlete['height_cm'] ?? null;
+            $snapshot     = $this->snapshot($athlete, $championship, $weight !== null ? (float) $weight : null, $height !== null ? (float) $height : null);
 
             $rows[] = [
                 'id'              => (int) $athlete['id'],
@@ -59,7 +60,11 @@ class RegistrationService
                 'belt'            => $athlete['belt_name'],
                 'beltColor'       => $athlete['belt_color'],
                 'weight'          => $weight !== null ? (float) $weight : null,
+                'height'          => $height !== null ? (int) $height : null,
+                'measure'         => $this->measureFor($snapshot, $categories),
                 'isPara'          => (bool) $athlete['is_para_karate'],
+                'isGuest'         => !empty($athlete['is_guest']),
+                'guestOrigin'     => $athlete['guest_origin'] ?? null,
                 'registrationId'  => $registration ? (int) $registration['id'] : null,
                 'status'          => $registration['status'] ?? null,
                 'fee'             => isset($registration['fee_total']) ? (float) $registration['fee_total'] : null,
@@ -75,11 +80,12 @@ class RegistrationService
                 'extra' => $championship['fee_extra_entry'] !== null ? (float) $championship['fee_extra_entry'] : null,
             ],
             'maxEntries'  => (int) $championship['max_individual_entries'],
+            'guests'      => \Models\Athlete::supportsGuests(),
         ];
     }
 
-    /** Sugestões de um atleta com outro peso: a grade recalcula a célula sem repetir a regra em JavaScript. */
-    public function suggestFor(array $championship, int $dojoId, int $athleteId, ?float $weight): array
+    /** Sugestões de um atleta com outro peso ou altura: a grade recalcula a célula sem repetir a regra em JavaScript. */
+    public function suggestFor(array $championship, int $dojoId, int $athleteId, ?float $weight, ?float $height = null): array
     {
         DojoScope::assertDojo($dojoId);
 
@@ -92,7 +98,7 @@ class RegistrationService
         $existing   = $this->registrations->forDojoByAthlete((int) $championship['id'], $dojoId)[$athleteId] ?? null;
 
         return $this->cells(
-            $this->snapshot($athlete, $championship, $weight),
+            $this->snapshot($athlete, $championship, $weight, $height),
             $categories,
             $this->individualDisciplines($categories),
             $existing['entries'] ?? [],
@@ -152,7 +158,8 @@ class RegistrationService
             }
 
             $weight   = $this->decimal($choice['weight'] ?? null) ?? ($registration['declared_weight'] ?? $athlete['weight_kg']);
-            $snapshot = $this->snapshot($athlete, $championship, $weight !== null ? (float) $weight : null);
+            $height   = $this->decimal($choice['height'] ?? null) ?? ($registration['declared_height'] ?? $athlete['height_cm'] ?? null);
+            $snapshot = $this->snapshot($athlete, $championship, $weight !== null ? (float) $weight : null, $height !== null ? (float) $height : null);
             $current  = [];
             foreach ($registration['entries'] ?? [] as $entry) {
                 $current[(int) $entry['event_category_id']] = $entry;
@@ -193,7 +200,7 @@ class RegistrationService
                 $errors[] = "{$athlete['full_name']}: o evento permite no máximo $max categorias individuais por atleta.";
             }
 
-            $plans[] = compact('athlete', 'registration', 'wanted', 'snapshot', 'weight', 'current');
+            $plans[] = compact('athlete', 'registration', 'wanted', 'snapshot', 'weight', 'height', 'current');
         }
 
         if ($errors) {
@@ -205,7 +212,7 @@ class RegistrationService
         $this->transaction(function () use ($plans, $championship, $dojoId, $userId, $byId, &$saved, &$cancelled) {
             foreach ($plans as $plan) {
                 ['athlete' => $athlete, 'registration' => $registration, 'wanted' => $wanted,
-                 'snapshot' => $snapshot, 'weight' => $weight, 'current' => $current] = $plan;
+                 'snapshot' => $snapshot, 'weight' => $weight, 'height' => $height, 'current' => $current] = $plan;
 
                 if ($wanted === []) {
                     $this->cancelRegistration($registration, $userId, 'Atleta removido da grade');
@@ -218,7 +225,7 @@ class RegistrationService
                     'dojo_id' => $dojoId, 'full_name' => $athlete['full_name'], 'gender' => $athlete['gender'],
                     'birth_date' => $athlete['birth_date'], 'age_at_event' => $snapshot->age,
                     'graduation_id' => $athlete['graduation_id'], 'belt_level' => $athlete['belt_level'],
-                    'declared_weight' => $weight, 'is_para_karate' => (int) $athlete['is_para_karate'],
+                    'declared_weight' => $weight, 'declared_height' => $height !== null && $this->measureFor($snapshot, array_values($byId)) === 'height' ? (int) $height : null, 'is_para_karate' => (int) $athlete['is_para_karate'],
                     'registered_by' => $userId,
                 ]);
 
@@ -230,6 +237,12 @@ class RegistrationService
                 if ($registration && (float) ($registration['declared_weight'] ?? 0) !== (float) ($weight ?? 0)) {
                     $this->registrations->log($id, 'weight_changed', $userId, [
                         'from' => $registration['declared_weight'], 'to' => $weight,
+                    ]);
+                    $changed = true;
+                }
+                if ($registration && (int) ($registration['declared_height'] ?? 0) !== (int) ($height ?? 0)) {
+                    $this->registrations->log($id, 'height_changed', $userId, [
+                        'from' => $registration['declared_height'], 'to' => $height,
                     ]);
                     $changed = true;
                 }
@@ -292,6 +305,7 @@ class RegistrationService
                 (bool) $registration['is_para_karate'],
                 (bool) ($athlete['is_black_belt'] ?? false),
                 !empty($athlete['fgkirs_registration']),
+                $registration['declared_height'] !== null ? (float) $registration['declared_height'] : null,
             );
 
             foreach ($registration['entries'] as $entry) {
@@ -433,6 +447,46 @@ class RegistrationService
         });
     }
 
+    /**
+     * Passa o atleta de uma categoria para outra da mesma disciplina (ex.: ajuste de peso na pesagem),
+     * só Presidente, com motivo. A categoria antiga fica como "movida", nada é apagado.
+     */
+    public function moveEntry(array $championship, int $registrationId, int $fromCategoryId, int $toCategoryId, string $reason, int $adminId): void
+    {
+        RegistrationGuard::assertAdmin();
+
+        $reason       = trim($reason);
+        $registration = $this->registrations->find($registrationId);
+        $from         = $this->categories->find($fromCategoryId);
+        $to           = $this->categories->find($toCategoryId);
+
+        if (mb_strlen($reason) < 3) {
+            throw RegistrationException::single('Informe o motivo da mudança de categoria.');
+        }
+        if (!$registration || (int) $registration['championship_id'] !== (int) $championship['id']
+            || !$from || !$to
+            || (int) $from['championship_id'] !== (int) $championship['id'] || (int) $to['championship_id'] !== (int) $championship['id']
+            || $from['format'] !== 'individual' || $to['format'] !== 'individual'
+            || $from['discipline_code'] !== $to['discipline_code']
+            || $fromCategoryId === $toCategoryId) {
+            throw RegistrationException::single('Escolha outra categoria da mesma disciplina neste evento.');
+        }
+        if ($registration['status'] === 'cancelled') {
+            throw RegistrationException::single('A inscrição está cancelada.');
+        }
+        if (!in_array($fromCategoryId, array_map(static fn ($e) => (int) $e['event_category_id'], $this->registrations->activeEntries($registrationId)), true)) {
+            throw RegistrationException::single('O atleta não está mais na categoria de origem.');
+        }
+
+        $this->transaction(function () use ($registrationId, $fromCategoryId, $toCategoryId, $from, $to, $reason, $adminId) {
+            $this->registrations->activateEntry($registrationId, $toCategoryId, true, mb_substr($reason, 0, 255), $adminId);
+            $this->registrations->setEntryStatus($registrationId, $fromCategoryId, 'moved');
+            $this->registrations->log($registrationId, 'entry_moved', $adminId, [
+                'from' => $from['code'], 'to' => $to['code'], 'reason' => $reason,
+            ]);
+        });
+    }
+
     // ───────────────────────────── Internos ─────────────────────────────
 
     /** Depois de gravar: edição de sensei em inscrição enviada volta a rascunho; admin mantém o status e recalcula a taxa. */
@@ -557,7 +611,7 @@ class RegistrationService
         return $map;
     }
 
-    private function snapshot(array $athlete, array $championship, ?float $weight): AthleteSnapshot
+    private function snapshot(array $athlete, array $championship, ?float $weight, ?float $height = null): AthleteSnapshot
     {
         return AthleteSnapshot::of(
             $athlete['gender'],
@@ -569,7 +623,20 @@ class RegistrationService
             (bool) $athlete['is_para_karate'],
             (bool) $athlete['is_black_belt'],
             !empty($athlete['fgkirs_registration']),
+            $height,
         );
+    }
+
+    /** 'height' quando alguma categoria individual da faixa etária do atleta separa por altura (menores de 15), senão 'weight'. */
+    private function measureFor(AthleteSnapshot $snapshot, array $categories): string
+    {
+        foreach ($categories as $category) {
+            if ($category->isIndividual() && $category->requiresHeight() && $category->acceptsAge($snapshot->age)) {
+                return 'height';
+            }
+        }
+
+        return 'weight';
     }
 
     private function decimal(mixed $value): ?float

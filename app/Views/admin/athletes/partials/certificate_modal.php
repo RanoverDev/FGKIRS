@@ -87,7 +87,7 @@ use Helpers\Csrf;
     const $ = id => document.getElementById(id);
     const modal = $('certModal'), editor = $('certEditor'), form = $('certForm');
     const dateInput = $('certDate'), labelInput = $('certLabel'), submit = $('certSubmit');
-    let athleteId = null, savedRange = null;
+    let athleteId = null, savedRange = null, reloadAfter = false;
 
     const showError = msg => { $('certError').textContent = msg || ''; $('certError').classList.toggle('hidden', !msg); };
 
@@ -119,6 +119,7 @@ use Helpers\Csrf;
 
     function open(btn) {
         athleteId = btn.dataset.certificateAthlete;
+        reloadAfter = btn.dataset.certificateReload === '1';
         $('certAthlete').textContent = btn.dataset.certificateName || '';
         $('certEditLink').href = `/fgkirs-admin/athletes/edit/${athleteId}`;
         modal.classList.remove('hidden');
@@ -131,7 +132,11 @@ use Helpers\Csrf;
         document.body.classList.remove('overflow-hidden');
     }
 
-    document.querySelectorAll('[data-certificate-athlete]').forEach(btn => btn.addEventListener('click', () => open(btn)));
+    // Delegado: os botões da ficha do atleta (modal) são criados depois do carregamento da página
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('[data-certificate-athlete]');
+        if (btn) open(btn);
+    });
     modal.querySelectorAll('[data-cert-close]').forEach(btn => btn.addEventListener('click', close));
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
 
@@ -202,6 +207,9 @@ use Helpers\Csrf;
         submit.disabled = true;
         submit.textContent = 'Gerando…';
 
+        // A aba precisa abrir no clique: depois do fetch o navegador bloquearia como pop-up
+        const tab = window.open('', '_blank');
+
         const body = new FormData();
         body.append('csrf_token', csrf);
         body.append('body_html', cleanHtml());
@@ -212,8 +220,20 @@ use Helpers\Csrf;
             const res = await fetch(`/fgkirs-admin/athletes/certificate-store/${athleteId}`, { method: 'POST', body, headers: { Accept: 'application/json' } });
             const data = await res.json();
             if (!data.ok) throw new Error(data.message);
-            window.location.href = data.url;
+
+            if (tab) {
+                tab.location.href = data.url;
+            } else {
+                window.open(data.url, '_blank');
+            }
+
+            close();
+            document.dispatchEvent(new CustomEvent('certificate:issued'));
+            submit.disabled = false;
+            submit.textContent = 'Gerar certificado';
+            if (reloadAfter) window.location.reload();
         } catch (e) {
+            if (tab) tab.close();
             showError(e.message || 'Não foi possível gerar o certificado.');
             submit.disabled = false;
             submit.textContent = 'Gerar certificado';

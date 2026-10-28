@@ -163,6 +163,34 @@ final class CategoryGeneratorTest extends TestCase
         );
     }
 
+    public function testHeightClassesGenerateCategoriesMeasuredInHeight(): void
+    {
+        $ruleset = FgkirsRuleset::build();
+
+        // Infanto Juvenil (id 3), feminino: por altura, até 1,55 m e acima de 1,55 m
+        $weights = array_values(array_filter(
+            $ruleset->weightClasses,
+            static fn (WeightClass $w) => !($w->ageDivisionId === 3 && $w->gender === 'F')
+        ));
+        $weights[] = new WeightClass(911, 3, 'F', 'até 1,55m', null, 155.0, 1, 'height');
+        $weights[] = new WeightClass(912, 3, 'F', 'acima de 1,55m', 155.0, null, 2, 'height');
+
+        $changed = new Ruleset(1, $ruleset->name, 'event_date', $ruleset->ageDivisions, $ruleset->beltDivisions, $weights, $ruleset->disciplines);
+        $drafts  = array_filter(
+            $this->generateAll($changed),
+            static fn (EventCategoryDraft $d) => $d->ageDivisionId === 3 && $d->gender === 'F' && $d->disciplineCode === 'KMI'
+        );
+
+        $this->assertNotEmpty($drafts);
+        foreach ($drafts as $d) {
+            $this->assertSame('height', $d->measure);
+            $this->assertMatchesRegularExpression('/-H155\+?$/', $d->code);
+        }
+
+        $others = array_filter($this->generateAll($changed), static fn (EventCategoryDraft $d) => $d->measure === 'weight');
+        $this->assertNotEmpty($others);
+    }
+
     public function testAddingWeightClassesGrowsOnlyThatAge(): void
     {
         $ruleset = FgkirsRuleset::build();

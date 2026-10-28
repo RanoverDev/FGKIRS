@@ -71,6 +71,14 @@ require_once __DIR__ . '/../layout/header.php';
                             class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold py-2 px-4 rounded-lg transition">
                             Gerenciar inscrições
                         </a>
+                        <a href="/fgkirs-admin/championships/<?= (int) $championship['id'] ?>/brackets"
+                            class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-semibold py-2 px-4 rounded-lg transition">
+                            Chaves
+                        </a>
+                        <a href="/fgkirs-admin/championships/<?= (int) $championship['id'] ?>/results"
+                            class="border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-semibold py-2 px-4 rounded-lg transition">
+                            Resultados
+                        </a>
 
                         <?php if (Auth::isAdmin()): ?>
                             <a href="/fgkirs-admin/championships/<?= (int) $championship['id'] ?>/registrations"

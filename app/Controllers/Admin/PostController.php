@@ -125,6 +125,7 @@ class PostController extends Controller
         $postId = (int) $this->db->lastInsertId();
 
         // Upload images on creation
+        $failedImages = 0;
         $files = $_FILES['images'] ?? [];
         if (is_array($files['name'] ?? null) && count($files['name']) > 0) {
             $dateFolder = date('Y/m/d');
@@ -132,7 +133,11 @@ class PostController extends Controller
             $hasFeatured = false;
 
             for ($i = 0; $i < count($files['name']); $i++) {
+                if ($files['error'][$i] === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
                 if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                    $failedImages++;
                     continue;
                 }
                 $single = [
@@ -144,6 +149,7 @@ class PostController extends Controller
                 ];
                 $filename = ImageProcessor::process($single, $uploadDir);
                 if (!$filename) {
+                    $failedImages++;
                     continue;
                 }
                 $relativePath = $dateFolder . '/' . $filename;
@@ -162,7 +168,11 @@ class PostController extends Controller
             }
         }
 
-        $_SESSION['success'] = 'Post criado com sucesso!';
+        if ($failedImages > 0) {
+            $_SESSION['error'] = "Post criado, mas $failedImages imagem(ns) não puderam ser processadas. Edite o post para reenviar (JPG, PNG, WebP ou HEIC).";
+        } else {
+            $_SESSION['success'] = 'Post criado com sucesso!';
+        }
         header("Location: /fgkirs-admin/posts?type=$type");
         exit;
     }
@@ -292,8 +302,10 @@ class PostController extends Controller
         )->fetchColumn() > 0;
 
         $added = 0;
+        $failed = 0;
         for ($i = 0; $i < $count; $i++) {
             if ($files['error'][$i] !== UPLOAD_ERR_OK) {
+                $failed++;
                 continue;
             }
             $single = [
@@ -305,6 +317,7 @@ class PostController extends Controller
             ];
             $filename = ImageProcessor::process($single, $uploadDir);
             if (!$filename) {
+                $failed++;
                 continue;
             }
             $relativePath = $dateFolder . '/' . $filename;
@@ -324,7 +337,7 @@ class PostController extends Controller
         }
 
         if ($added > 0) {
-            $_SESSION['success'] = "$added imagem(ns) adicionada(s) com sucesso!";
+            $_SESSION['success'] = "$added imagem(ns) adicionada(s) com sucesso!" . ($failed > 0 ? " ($failed falhou)" : '');
         } else {
             $_SESSION['error'] = 'Nenhuma imagem válida foi enviada. Use JPG, PNG, WebP ou HEIC.';
         }

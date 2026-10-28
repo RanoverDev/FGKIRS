@@ -8,7 +8,7 @@ if (!Auth::isSensei() && !Auth::isAdmin()) {
 }
 
 $dojo = ['name' => '—'];
-$students = [];
+$statusCounts = [];
 $gradDistribution = [];
 $recentPromotions = [];
 
@@ -27,19 +27,13 @@ try {
         $dojoId = $dojo['id'];
     }
 
-    $students = $db->query("
-        SELECT u.id, u.name, u.photo, u.role, u.status,
-               ap.gender, ap.birth_date, ap.phone_whatsapp,
-               g.belt_name, g.belt_color, g.order_rank,
-               mas.name AS style_name
+    $statusCounts = $db->query("
+        SELECT u.status, COUNT(*) AS total
         FROM users u
-        LEFT JOIN athlete_profiles ap    ON u.id = ap.user_id
-        LEFT JOIN graduations g          ON ap.graduation_id = g.id
-        LEFT JOIN martial_arts_styles mas ON ap.style_id = mas.id
         WHERE u.dojo_id = :dojo_id
           AND u.role IN ('aluno', 'aluno-colaborador')
-        ORDER BY g.order_rank DESC, u.name ASC
-    ", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_ASSOC);
+        GROUP BY u.status
+    ", ['dojo_id' => $dojoId])->fetchAll(PDO::FETCH_KEY_PAIR);
 
     $gradDistribution = $db->query("
         SELECT g.belt_name, g.belt_color, COUNT(ap.id) AS count
@@ -74,19 +68,12 @@ try {
     error_log('dashboard_sensei: ' . $e->getMessage());
 }
 
-$totalStudents = count($students);
-$activeStudents = count(array_filter($students, fn($s) => $s['status'] === 'active'));
-$inactiveStudents = count(array_filter($students, fn($s) => $s['status'] === 'inactive'));
-$absentStudents = count(array_filter($students, fn($s) => $s['status'] === 'absent'));
+$totalStudents = array_sum($statusCounts);
+$activeStudents = (int) ($statusCounts['active'] ?? 0);
+$inactiveStudents = (int) ($statusCounts['inactive'] ?? 0);
+$absentStudents = (int) ($statusCounts['absent'] ?? 0);
 
 $maxGrad = !empty($gradDistribution) ? max(array_column($gradDistribution, 'count')) : 1;
-
-$statusLabel = ['active' => 'Ativo', 'inactive' => 'Inativo', 'absent' => 'Ausente'];
-$statusClass = [
-    'active' => 'bg-emerald-50 text-emerald-700',
-    'inactive' => 'bg-slate-100 text-slate-500',
-    'absent' => 'bg-amber-50 text-amber-700',
-];
 
 $pageTitle = 'Dashboard – Sensei';
 require_once __DIR__ . '/layout/header.php';
@@ -244,163 +231,5 @@ require_once __DIR__ . '/layout/header.php';
     </div>
 
 </div>
-
-<!-- Student List -->
-<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h2 class="text-base font-bold text-slate-900 uppercase">Alunos do Dojo</h2>
-        <div class="flex flex-wrap gap-2">
-            <select id="filterGraduation"
-                class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-700">
-                <option value="">Todas as Faixas</option>
-                <?php foreach (array_unique(array_filter(array_column($students, 'belt_name'))) as $belt): ?>
-                    <option value="<?= htmlspecialchars($belt) ?>"><?= htmlspecialchars($belt) ?></option>
-                <?php endforeach; ?>
-            </select>
-            <select id="filterStatus"
-                class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-red-700">
-                <option value="">Todos os Status</option>
-                <option value="active">Ativo</option>
-                <option value="inactive">Inativo</option>
-                <option value="absent">Ausente</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="border-b border-slate-100">
-                    <th class="text-left px-3 py-2.5 text-xs font-bold uppercase text-slate-400">Aluno</th>
-                    <th class="text-left px-3 py-2.5 text-xs font-bold uppercase text-slate-400">Estilo / Faixa</th>
-                    <th class="text-left px-3 py-2.5 text-xs font-bold uppercase text-slate-400">Status</th>
-                    <th class="text-right px-3 py-2.5 text-xs font-bold uppercase text-slate-400">Ações</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-50">
-                <?php foreach ($students as $student):
-                    $st = $student['status'] ?? 'active';
-                    $cls = $statusClass[$st] ?? 'bg-slate-100 text-slate-500';
-                    $lbl = $statusLabel[$st] ?? $st;
-                    ?>
-                    <tr class="hover:bg-slate-50 transition student-row"
-                        data-belt="<?= htmlspecialchars($student['belt_name'] ?? '') ?>"
-                        data-status="<?= htmlspecialchars($st) ?>">
-                        <td class="px-3 py-3">
-                            <div class="flex items-center gap-3">
-                                <?php if ($student['photo']): ?>
-                                    <img src="/uploads/users/<?= htmlspecialchars($student['photo']) ?>" alt=""
-                                        class="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0">
-                                <?php else: ?>
-                                    <div
-                                        class="w-9 h-9 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm shrink-0">
-                                        <?= strtoupper(substr($student['name'], 0, 1)) ?>
-                                    </div>
-                                <?php endif; ?>
-                                <div>
-                                    <p class="font-semibold text-slate-800"><?= htmlspecialchars($student['name']) ?></p>
-                                    <?php if ($student['role'] === 'aluno-colaborador'): ?>
-                                        <p class="text-xs text-blue-500 font-medium">Colaborador</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-3 py-3">
-                            <?php if ($student['belt_name']): ?>
-                                <div class="flex items-center gap-2">
-                                    <div class="w-3.5 h-3.5 rounded-full shrink-0 border border-slate-200"
-                                        style="background:<?= htmlspecialchars($student['belt_color'] ?: '#94a3b8') ?>"></div>
-                                    <div>
-                                        <p class="text-xs font-semibold text-slate-700">
-                                            <?= htmlspecialchars($student['belt_name']) ?>
-                                        </p>
-                                        <?php if ($student['style_name']): ?>
-                                            <p class="text-xs text-slate-400"><?= htmlspecialchars($student['style_name']) ?></p>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <span class="text-slate-300 text-xs">—</span>
-                            <?php endif; ?>
-                        </td>
-                        <td class="px-3 py-3">
-                            <span
-                                class="status-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold <?= $cls ?>"
-                                data-raw="<?= $st ?>">
-                                <?= $lbl ?>
-                            </span>
-                        </td>
-                        <td class="px-3 py-3 text-right">
-                            <div class="inline-flex gap-2">
-                                <a href="/fgkirs-admin/users/edit/<?= $student['id'] ?>"
-                                    class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
-                                    Editar
-                                </a>
-                                <button onclick="cycleStatus(<?= $student['id'] ?>, this)"
-                                    class="inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
-                                    Status
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                <?php if (empty($students)): ?>
-                    <tr>
-                        <td colspan="4" class="text-center text-slate-400 py-12 text-sm">
-                            Nenhum aluno cadastrado neste dojo ainda.
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-    const STATUS_CYCLE = ['active', 'inactive', 'absent'];
-    const STATUS_LABEL = { active: 'Ativo', inactive: 'Inativo', absent: 'Ausente' };
-    const STATUS_CLASS = {
-        active: 'bg-emerald-50 text-emerald-700',
-        inactive: 'bg-slate-100 text-slate-500',
-        absent: 'bg-amber-50 text-amber-700',
-    };
-
-    const filterGrad = document.getElementById('filterGraduation');
-    const filterStatus = document.getElementById('filterStatus');
-
-    function applyFilters() {
-        const grad = filterGrad.value.toLowerCase();
-        const status = filterStatus.value;
-        document.querySelectorAll('.student-row').forEach(row => {
-            const ok = (!grad || row.dataset.belt.toLowerCase().includes(grad))
-                && (!status || row.dataset.status === status);
-            row.style.display = ok ? '' : 'none';
-        });
-    }
-
-    filterGrad.addEventListener('change', applyFilters);
-    filterStatus.addEventListener('change', applyFilters);
-
-    function cycleStatus(userId, btn) {
-        const row = btn.closest('tr');
-        const badge = row.querySelector('.status-badge');
-        const cur = badge.dataset.raw;
-        const next = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur) + 1) % STATUS_CYCLE.length];
-
-        fetch(`/fgkirs-admin/users/toggle-status/${userId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: next })
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (!data.success) return;
-                badge.textContent = STATUS_LABEL[next];
-                badge.dataset.raw = next;
-                badge.className = `status-badge inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_CLASS[next]}`;
-                row.dataset.status = next;
-            });
-    }
-</script>
 
 <?php require_once __DIR__ . '/layout/footer.php'; ?>

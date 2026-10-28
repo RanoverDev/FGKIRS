@@ -19,6 +19,8 @@ class Athlete
         'pending'  => 'Pendente',
     ];
 
+    public const SORTABLE = ['name', 'age', 'gender', 'belt', 'weight', 'status'];
+
     private const ACCENTS = [
         'á' => 'a', 'à' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a',
         'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
@@ -56,6 +58,34 @@ class Athlete
         return true;
     }
 
+    /** O SQL do convidado (migration 010) pode ainda não ter rodado: sem as colunas, a opção some e nada quebra. */
+    public static function supportsGuests(): bool
+    {
+        static $supported = null;
+
+        return $supported ??= (bool) Database::getInstance()->query("SHOW COLUMNS FROM athletes LIKE 'is_guest'")->fetchColumn();
+    }
+
+    /**
+     * Convidado: inscrito por um dojo, mas de outro dojo ou clube. Exige a origem.
+     *
+     * @return array{0: array{is_guest: int, guest_origin: ?string}, 1: ?string} [campos, erro]
+     */
+    public static function guestFields(array $input): array
+    {
+        if (($input['is_guest'] ?? '0') !== '1') {
+            return [['is_guest' => 0, 'guest_origin' => null], null];
+        }
+
+        $origin = trim((string) ($input['guest_origin'] ?? ''));
+
+        if ($origin === '') {
+            return [['is_guest' => 1, 'guest_origin' => null], 'Informe o dojo ou clube de origem do atleta convidado.'];
+        }
+
+        return [['is_guest' => 1, 'guest_origin' => mb_substr($origin, 0, 120)], null];
+    }
+
     public static function find(int $id): ?array
     {
         $row = Database::getInstance()->query(
@@ -74,7 +104,7 @@ class Athlete
     }
 
     /**
-     * @param array{q?: string, graduation_id?: int, status?: string, dojo_id?: int} $filters
+     * @param array{q?: string, graduation_id?: int, status?: string, dojo_id?: int, sort?: string, dir?: string} $filters
      */
     public static function search(array $filters): array
     {
@@ -103,8 +133,7 @@ class Athlete
         }
 
         return Database::getInstance()->query(
-            "SELECT a.id, a.full_name, a.gender, a.weight_kg, a.fgkirs_registration, a.status,
-                    a.dojo_id, d.name AS dojo_name,
+            "SELECT a.*, d.name AS dojo_name,
                     g.belt_name, g.belt_color, s.name AS style_name,
                     TIMESTAMPDIFF(YEAR, a.birth_date, CURDATE()) AS age
              FROM athletes a
@@ -112,9 +141,29 @@ class Athlete
              LEFT JOIN graduations g ON g.id = a.graduation_id
              LEFT JOIN martial_arts_styles s ON s.id = a.style_id
              WHERE " . implode(' AND ', $where) . "
-             ORDER BY a.full_name ASC",
+             ORDER BY " . self::orderBy((string) ($filters['sort'] ?? ''), (string) ($filters['dir'] ?? '')),
             $params
         )->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Ordenação por lista branca (nunca interpola o que veio da URL). Empates e vazios terminam por nome. */
+    private static function orderBy(string $sort, string $dir): string
+    {
+        $dir = $dir === 'desc' ? 'DESC' : 'ASC';
+
+        $order = match ($sort) {
+            // mais velho = nascimento mais antigo, então a direção da idade inverte a da data
+            'age'    => 'a.birth_date ' . ($dir === 'ASC' ? 'DESC' : 'ASC'),
+            'gender' => "a.gender $dir",
+            'belt'   => "g.id IS NULL, s.name $dir, g.order_rank $dir",
+            'weight' => "a.weight_kg IS NULL, a.weight_kg $dir",
+            'status' => "FIELD(a.status, 'active', 'pending', 'inactive') $dir",
+            default  => "a.full_name $dir",
+        };
+
+        return $sort === 'name' || !in_array($sort, self::SORTABLE, true)
+            ? $order
+            : $order . ', a.full_name ASC';
     }
 
     public static function documentTaken(string $digits, ?int $exceptId = null): bool
@@ -196,7 +245,15 @@ class Athlete
 
         $status = (string) ($input['status'] ?? 'active');
 
-        return [[
+        $guest = [];
+        if (self::supportsGuests()) {
+            [$guest, $guestError] = self::guestFields($input);
+            if ($guestError !== null) {
+                return [[], $guestError];
+            }
+        }
+
+        return [$guest + [
             'full_name'           => $name,
             'birth_date'          => $birth,
             'gender'              => $gender,
@@ -216,15 +273,17 @@ class Athlete
     {
         $db = Database::getInstance();
 
+        $guest = array_key_exists('is_guest', $data);
+
         $db->query(
             "INSERT INTO athletes
                 (dojo_id, user_id, full_name, birth_date, gender, document, style_id, graduation_id,
                  weight_kg, height_cm, is_para_karate, fgkirs_registration, cbki_registration,
-                 status, created_by)
+                 status, created_by" . ($guest ? ', is_guest, guest_origin' : '') . ")
              VALUES
                 (:dojo_id, :user_id, :full_name, :birth_date, :gender, :document, :style_id, :graduation_id,
                  :weight_kg, :height_cm, :is_para_karate, :fgkirs_registration, :cbki_registration,
-                 :status, :created_by)",
+                 :status, :created_by" . ($guest ? ', :is_guest, :guest_origin' : '') . ")",
             array_merge($data, ['dojo_id' => $dojoId, 'user_id' => $userId, 'created_by' => $createdBy])
         );
 
@@ -250,12 +309,20 @@ class Athlete
                 style_id = :style_id, graduation_id = :graduation_id, weight_kg = :weight_kg,
                 height_cm = :height_cm, is_para_karate = :is_para_karate,
                 fgkirs_registration = :fgkirs_registration, cbki_registration = :cbki_registration,
-                status = :status
+                status = :status" . (array_key_exists('is_guest', $data) ? ', is_guest = :is_guest, guest_origin = :guest_origin' : '') . "
              WHERE id = :id",
             $params
         );
 
         self::writeBackToProfile($id);
+    }
+
+    public static function setPhoto(int $id, ?string $filename): void
+    {
+        Database::getInstance()->query(
+            "UPDATE athletes SET photo = :photo WHERE id = :id",
+            ['photo' => $filename, 'id' => $id]
+        );
     }
 
     public static function setStatus(int $id, string $status): void

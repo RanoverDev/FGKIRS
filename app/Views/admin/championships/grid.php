@@ -28,11 +28,24 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
             <input type="checkbox" id="grid-only-checked" class="rounded border-slate-300 text-red-700">
             Só marcados
         </label>
+        <button type="button" data-new-athlete
+            class="inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+            + Atleta do dojo
+        </button>
+        <button type="button" data-new-athlete data-guest="1" id="btn-new-guest"
+            class="hidden items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+            + Atleta convidado
+        </button>
     </div>
+    <p class="text-xs text-slate-500 -mt-2 mb-4">
+        Comece a digitar o nome para achar o atleta na lista do dojo. Não está na lista? Cadastre aqui mesmo: <strong>atleta do dojo</strong> (aluno novo)
+        ou <strong>atleta convidado</strong> (de outro dojo ou clube, inscrito só para esta competição). O lápis ao lado do nome edita os dados sem sair da grade.
+    </p>
 
     <div id="grid-loading" class="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-500">Carregando atletas…</div>
     <div id="grid-empty" class="hidden bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-500">
-        Nenhum atleta ativo neste dojo. Cadastre os atletas em <a href="/fgkirs-admin/athletes/create" class="text-red-700 font-semibold underline">Atletas</a>.
+        Nenhum atleta ativo neste dojo. Clique em
+        <button type="button" data-new-athlete class="text-red-700 font-semibold underline">Atleta do dojo</button> para cadastrar o primeiro.
     </div>
 
     <div id="grid" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-28">
@@ -63,6 +76,8 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
         </div>
     </div>
 
+    <?php require __DIR__ . '/../athletes/partials/athlete_form_modal.php'; ?>
+
     <script>
         (function () {
             const BASE     = '/fgkirs-admin/championships/<?= $championshipId ?>';
@@ -79,9 +94,10 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
             };
 
             let data = null;
-            const state = {}; // athleteId -> { weight, picks: { disciplineCode: categoryId|null } }
+            const state = {}; // athleteId -> { weight, height, picks: { disciplineCode: categoryId|null } }
             const money = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            const esc = t => { const d = document.createElement('div'); d.textContent = t ?? ''; return d.innerHTML; };
+            // Escapa também aspas: o texto vai para dentro de atributos (title, data-name, aria-label)
+            const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
             const $ = id => document.getElementById(id);
 
             function cols() { return `minmax(14rem,2fr) 4.5rem 7rem repeat(${data.disciplines.length}, minmax(11rem,1.5fr)) 7rem`; }
@@ -95,28 +111,45 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                         const c = a.cells[d.code];
                         picks[d.code] = c.checked ? c.categoryId : null;
                     });
-                    state[a.id] = { weight: a.weight, picks };
+                    state[a.id] = { weight: a.weight, height: a.height, picks };
                 });
             }
 
+            const norm = t => String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
             function render() {
-                const q = $('grid-search').value.trim().toLowerCase();
+                const q = norm($('grid-search').value.trim());
                 const only = $('grid-only-checked').checked;
 
                 $('grid-head').style.gridTemplateColumns = cols();
                 $('grid-head').innerHTML =
-                    '<div class="px-4 py-3">Atleta</div><div class="px-2 py-3">Idade</div><div class="px-2 py-3">Peso (kg)</div>' +
+                    '<div class="px-4 py-3">Atleta</div><div class="px-2 py-3">Idade</div><div class="px-2 py-3">Peso / Altura</div>' +
                     data.disciplines.map(d => `<div class="px-2 py-3">${esc(d.name)}</div>`).join('') +
                     '<div class="px-2 py-3">Situação</div>';
 
                 const rows = data.athletes.filter(a => {
-                    if (q && !a.name.toLowerCase().includes(q)) return false;
+                    if (q && !norm(a.name).includes(q)) return false;
                     if (only && !Object.values(state[a.id].picks).some(Boolean)) return false;
                     return true;
                 });
 
-                $('grid-rows').innerHTML = rows.map(rowHtml).join('');
+                $('grid-rows').innerHTML = rows.length ? rows.map(rowHtml).join('') : noMatchHtml($('grid-search').value.trim());
+                $('btn-new-guest').classList.toggle('hidden', !data.guests);
+                $('btn-new-guest').classList.toggle('inline-flex', !!data.guests);
                 updateSummary();
+            }
+
+            // Busca sem resultado: oferece cadastrar com o nome que acabou de ser digitado
+            function noMatchHtml(typed) {
+                if (!typed) return '<div class="p-8 text-center text-sm text-slate-500">Nenhum atleta marcado.</div>';
+
+                return `<div class="p-8 text-center">
+                    <p class="text-sm text-slate-600 mb-4">Nenhum atleta do dojo com “<strong>${esc(typed)}</strong>”.</p>
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <button type="button" data-new-athlete data-name="${esc(typed)}" class="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">Cadastrar como atleta do dojo</button>
+                        ${data.guests ? `<button type="button" data-new-athlete data-guest="1" data-name="${esc(typed)}" class="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">Cadastrar como convidado</button>` : ''}
+                    </div>
+                </div>`;
             }
 
             function rowHtml(a) {
@@ -137,17 +170,27 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                     return `<div class="px-2 py-2 text-xs text-slate-400"><span class="md:hidden block text-[10px] uppercase">${esc(d.name)}</span>${esc(c.reason ?? '—')}</div>`;
                 }).join('');
 
-                const dim = data.disciplines.every(d => !a.cells[d.code].categoryId && a.cells[d.code].reason !== 'Informe o peso') ? 'opacity-60' : '';
+                const dim = data.disciplines.every(d => !a.cells[d.code].categoryId && !['Informe o peso', 'Informe a altura'].includes(a.cells[d.code].reason)) ? 'opacity-60' : '';
 
                 return `<div class="grid md:items-center gap-1 md:gap-0 p-3 md:p-0 ${dim}" style="grid-template-columns:${window.innerWidth >= 768 ? cols() : '1fr'}" data-row="${a.id}">
                     <div class="md:px-4 md:py-2">
-                        <p class="font-semibold text-slate-900 text-sm">${esc(a.name)}</p>
-                        <p class="text-xs text-slate-500">${a.belt ? esc(a.belt) : 'Sem graduação'}${a.isPara ? ' · Para-karatê' : ''}</p>
+                        <p class="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
+                            <span>${esc(a.name)}</span>
+                            ${a.isGuest ? `<span class="shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800" title="${esc(a.guestOrigin || 'Convidado')}">Convidado</span>` : ''}
+                            <button type="button" data-edit-athlete="${a.id}" title="Editar dados do atleta" aria-label="Editar dados de ${esc(a.name)}"
+                                class="shrink-0 p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.768-6.768a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"/></svg>
+                            </button>
+                        </p>
+                        <p class="text-xs text-slate-500">${a.belt ? esc(a.belt) : 'Sem graduação'}${a.isPara ? ' · Para-karatê' : ''}${a.isGuest && a.guestOrigin ? ' · ' + esc(a.guestOrigin) : ''}</p>
                     </div>
                     <div class="md:px-2 text-sm text-slate-700"><span class="md:hidden text-[10px] uppercase text-slate-400">Idade </span>${a.age}</div>
                     <div class="md:px-2">
-                        <input type="text" inputmode="decimal" data-weight="${a.id}" value="${st.weight === null || st.weight === undefined ? '' : String(st.weight).replace('.', ',')}" ${disabled} placeholder="kg"
-                            class="w-20 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-red-700 focus:border-transparent">
+                        ${a.measure === 'height'
+                            ? `<input type="text" inputmode="numeric" data-height="${a.id}" value="${st.height === null || st.height === undefined ? '' : String(st.height)}" ${disabled} placeholder="cm" title="Altura em centímetros" aria-label="Altura de ${esc(a.name)} em centímetros"
+                                class="w-20 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-red-700 focus:border-transparent">`
+                            : `<input type="text" inputmode="decimal" data-weight="${a.id}" value="${st.weight === null || st.weight === undefined ? '' : String(st.weight).replace('.', ',')}" ${disabled} placeholder="kg" title="Peso em quilos" aria-label="Peso de ${esc(a.name)} em quilos"
+                                class="w-20 px-2 py-1 border border-slate-300 rounded text-sm focus:ring-2 focus:ring-red-700 focus:border-transparent">`}
                     </div>
                     ${cells}
                     <div class="md:px-2 md:py-2">
@@ -190,7 +233,9 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                 $('grid-errors').classList.add('hidden');
             }
 
-            async function load(keepFilters) {
+            // keep: depois de salvar um atleta, o que o sensei já marcou e ainda não gravou continua na tela
+            async function load(keep, focusId) {
+                const previous = keep && data ? { data, state: JSON.parse(JSON.stringify(state)) } : null;
                 const res = await fetch(`${BASE}/grid${DOJO_QS}`, { headers: { Accept: 'application/json' } });
                 const json = await res.json();
 
@@ -200,24 +245,67 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                 initState();
                 $('grid-loading').classList.add('hidden');
 
+                if (previous) {
+                    data.athletes.forEach(a => {
+                        const old = previous.data.athletes.find(o => o.id === a.id);
+                        if (!old) return; // atleta novo: vale o que veio do servidor
+
+                        if (a.id === focusId) {
+                            // Editado: mantém as marcações que continuam válidas com os dados novos
+                            data.disciplines.forEach(d => {
+                                const pick = previous.state[a.id] && previous.state[a.id].picks[d.code];
+                                if (pick && a.cells[d.code].categoryId === pick) state[a.id].picks[d.code] = pick;
+                            });
+                            return;
+                        }
+
+                        a.cells = old.cells;
+                        a.weight = old.weight;
+                        a.height = old.height;
+                        state[a.id] = previous.state[a.id];
+                    });
+                }
+
+                $('grid-empty').classList.add('hidden');
                 if (!data.athletes.length) { $('grid-empty').classList.remove('hidden'); return; }
 
                 $('grid').classList.remove('hidden');
                 render();
+
+                if (focusId) {
+                    const row = document.querySelector(`[data-row="${focusId}"]`);
+                    if (row) {
+                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        row.classList.add('bg-emerald-50');
+                        setTimeout(() => row.classList.remove('bg-emerald-50'), 2500);
+                    }
+                }
             }
 
-            // Peso digitado: recalcula as sugestões do atleta no servidor (a regra mora num lugar só)
+            function athleteForm(id, extra = {}) {
+                openAthleteForm(id, {
+                    dojoId: DOJO_ID,
+                    ...extra,
+                    onSaved: async saved => {
+                        await load(true, saved.id);
+                        showNotice(id ? 'Dados do atleta atualizados. Salve o rascunho para refletir na inscrição.' : 'Atleta cadastrado. Marque as categorias dele na grade.');
+                    },
+                });
+            }
+
+            // Peso ou altura digitados: recalcula as sugestões do atleta no servidor (a regra mora num lugar só)
             let weightTimer = null;
             document.addEventListener('input', ev => {
                 const el = ev.target;
-                if (!el.matches('[data-weight]')) return;
+                if (!el.matches('[data-weight], [data-height]')) return;
 
-                const id = Number(el.dataset.weight);
-                state[id].weight = el.value;
+                const field = el.matches('[data-height]') ? 'height' : 'weight';
+                const id = Number(el.dataset[field]);
+                state[id][field] = el.value;
                 clearTimeout(weightTimer);
 
                 weightTimer = setTimeout(async () => {
-                    const qs = new URLSearchParams({ athlete_id: id, weight: el.value });
+                    const qs = new URLSearchParams({ athlete_id: id, weight: state[id].weight ?? '', height: state[id].height ?? '' });
                     if (DOJO_QS) qs.set('dojo_id', DOJO_ID);
                     const res = await fetch(`${BASE}/grid/suggest?${qs}`, { headers: { Accept: 'application/json' } });
                     if (!res.ok) return;
@@ -225,7 +313,7 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                     const { cells } = await res.json();
                     const athlete = data.athletes.find(a => a.id === id);
                     athlete.cells = cells;
-                    athlete.weight = el.value === '' ? null : Number(el.value.replace(',', '.'));
+                    athlete[field] = el.value === '' ? null : Number(el.value.replace(',', '.'));
 
                     data.disciplines.forEach(d => {
                         const stillValid = state[id].picks[d.code] === cells[d.code].categoryId;
@@ -236,7 +324,7 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                     if (row) {
                         const keep = el.selectionStart;
                         row.outerHTML = rowHtml(athlete);
-                        const again = document.querySelector(`[data-weight="${id}"]`);
+                        const again = document.querySelector(`[data-${field}="${id}"]`);
                         again.focus(); again.setSelectionRange(keep, keep);
                     }
                     updateSummary();
@@ -267,6 +355,7 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                     if (!picks.length && !hadRegistration) return;
 
                     body.append(`selections[${a.id}][weight]`, st.weight ?? '');
+                    body.append(`selections[${a.id}][height]`, st.height ?? '');
                     // Sem nenhuma categoria marcada, a ausência de categories[] cancela a inscrição existente
                     picks.forEach(id => body.append(`selections[${a.id}][categories][]`, id));
                 });
@@ -307,6 +396,18 @@ $dojoParam      = (Auth::isAdmin() && !empty($dojoId)) ? '?dojo_id=' . (int) $do
                     await load();
                 }));
             }
+
+            document.addEventListener('click', ev => {
+                const created = ev.target.closest('[data-new-athlete]');
+                if (created) {
+                    // Sem data-name no botão, usa o que estiver digitado na busca
+                    const typed = created.dataset.name ?? $('grid-search').value.trim();
+                    return athleteForm(null, { name: typed, guest: created.dataset.guest === '1' });
+                }
+
+                const edit = ev.target.closest('[data-edit-athlete]');
+                if (edit) athleteForm(Number(edit.dataset.editAthlete));
+            });
 
             document.addEventListener('click', async ev => {
                 const btn = ev.target.closest('[data-cancel]');

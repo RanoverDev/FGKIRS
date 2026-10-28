@@ -13,6 +13,7 @@ final readonly class AthleteSnapshot
         public bool $isParaKarate = false,
         public bool $isBlackBelt = false,
         public bool $hasFgkirsRegistration = true,
+        public ?float $height = null,
     ) {
     }
 
@@ -26,6 +27,7 @@ final readonly class AthleteSnapshot
         bool $isParaKarate = false,
         bool $isBlackBelt = false,
         bool $hasFgkirsRegistration = true,
+        ?float $height = null,
     ): self {
         return new self(
             $gender,
@@ -35,6 +37,7 @@ final readonly class AthleteSnapshot
             $isParaKarate,
             $isBlackBelt,
             $hasFgkirsRegistration,
+            $height,
         );
     }
 }
