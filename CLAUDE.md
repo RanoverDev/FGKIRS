@@ -197,6 +197,11 @@ Telas: `/fgkirs-admin/rulesets` (regulamentos), `/fgkirs-admin/athletes` (cadast
 - `championship_registrations.declared_height` (cm) é a foto do dia, gravada só quando o atleta cai numa categoria por altura. `AthleteSnapshot::$height`, `EventCategory::requiresHeight()/acceptsHeight()`; a grade mostra um campo só ("Peso / Altura") conforme `measure` da linha.
 - Sem o SQL o código novo quebra (insert em `event_categories`, save da inscrição): rodar o SQL antes de subir.
 
+### Chaves especiais: Até 6 anos e Para-karatê (migration 013, SQL em `database/manual/13_para_e_ate_6_anos.sql`)
+
+- `age_divisions.mixed_gender` (uma categoria X em vez de M e F) e `age_divisions.all_belts` (sem divisão de faixa): a divisão "Até 6 anos" (`U6`) usa os dois. `ruleset_disciplines.para_category` gera uma categoria `{disciplina}-PARA` (`is_para_karate = 1`, sem limite de idade, sexo, faixa ou peso). Ligadas a Kata e Kumite Individual.
+- `EligibilityService::suggest` prefere a categoria Para-karatê para atleta com o selo (senão seria "mais de uma categoria serve"). Evento já criado: rodar o SQL e usar "Gerar categorias" (marcando "Até 6 anos"); só as que faltam são criadas.
+
 ### Inscrição: atleta convidado e edição na grade
 
 A grade de inscrição (`championships/grid.php`) tem "+ Novo atleta" (convidado ou esquecido: entra no cadastro permanente do dojo e já aparece na grade) e um lápis ao lado do nome que edita o atleta num modal, sem sair da tela e sem perder o que já foi marcado. O modal é o mesmo da lista de atletas (`athletes/partials/athlete_form_modal.php`, `openAthleteForm(id, {dojoId, onSaved})`). Depois de editar, "Salvar rascunho" atualiza a foto dos dados da inscrição.

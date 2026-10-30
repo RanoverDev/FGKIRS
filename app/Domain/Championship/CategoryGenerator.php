@@ -18,14 +18,13 @@ final class CategoryGenerator
         $order  = 0;
 
         foreach ($request->disciplines as $discipline) {
-            $genders = $discipline->splitGender ? ['M', 'F'] : ['X'];
-            $belts   = $discipline->splitBelt ? $request->beltDivisions : [null];
-
-            foreach ($genders as $gender) {
+            foreach (['M', 'F', 'X'] as $gender) {
                 foreach ($request->ageDivisions as $age) {
-                    if (!$discipline->usesAgeDivision($age)) {
+                    if (!$discipline->usesAgeDivision($age) || !$this->usesGender($discipline, $age, $gender)) {
                         continue;
                     }
+
+                    $belts = $discipline->splitBelt && !$age->allBelts ? $request->beltDivisions : [null];
 
                     foreach ($belts as $belt) {
                         foreach ($this->weightOptions($ruleset, $discipline, $age, $gender) as $weight) {
@@ -41,9 +40,58 @@ final class CategoryGenerator
                     }
                 }
             }
+
+            if ($discipline->paraCategory) {
+                $draft = $this->paraDraft($discipline, ++$order);
+
+                if (isset($seen[$draft->code])) {
+                    throw new \DomainException("Código de categoria duplicado: {$draft->code}.");
+                }
+
+                $seen[$draft->code] = true;
+                $drafts[]           = $draft;
+            }
         }
 
         return $drafts;
+    }
+
+    /** Divisão de sexo misto (ou disciplina sem separação por sexo) gera só a categoria X; as demais, M e F. */
+    private function usesGender(Discipline $discipline, AgeDivision $age, string $gender): bool
+    {
+        $mixed = !$discipline->splitGender || $age->mixedGender;
+
+        return $mixed ? $gender === 'X' : $gender !== 'X';
+    }
+
+    /** Uma categoria por disciplina, sem limite de idade, sexo, faixa ou peso: só atleta marcado como para-karatê entra. */
+    private function paraDraft(Discipline $discipline, int $order): EventCategoryDraft
+    {
+        return new EventCategoryDraft(
+            code: $discipline->code . '-PARA',
+            name: $discipline->name . ' — Para-karatê',
+            modality: $discipline->modality,
+            format: $discipline->format,
+            gender: 'X',
+            ageMin: null,
+            ageMax: null,
+            beltLevelMin: null,
+            beltLevelMax: null,
+            weightMin: null,
+            weightMax: null,
+            teamSize: $discipline->format === 'team' ? $discipline->teamSize : null,
+            disciplineId: $discipline->id,
+            ageDivisionId: null,
+            beltDivisionId: null,
+            weightClassId: null,
+            sortOrder: $order,
+            disciplineName: $discipline->name,
+            ageLabel: 'Para-karatê',
+            disciplineCode: $discipline->code,
+            shortName: 'Para-karatê',
+            teamReserves: $discipline->format === 'team' ? $discipline->teamReserves : null,
+            isParaKarate: true,
+        );
     }
 
     /**

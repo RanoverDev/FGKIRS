@@ -29,6 +29,7 @@ final readonly class EventCategoryDraft
         public string $shortName = '',
         public ?int $teamReserves = null,
         public string $measure = 'weight',
+        public bool $isParaKarate = false,
     ) {
     }
 }

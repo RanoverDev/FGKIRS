@@ -20,6 +20,7 @@ final readonly class Discipline
         public ?int $teamReserves,
         public array $ageDivisionIds,
         public int $sortOrder = 0,
+        public bool $paraCategory = false,
     ) {
     }
 

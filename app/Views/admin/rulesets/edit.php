@@ -30,6 +30,10 @@ $ageRow = static function (string $i, ?object $a) use ($in, $e, $controls): stri
             <input type="number" min="0" max="120" name="rows[<?= $i ?>][age_min]" value="<?= $e($a?->ageMin) ?>" class="<?= $in ?>"></label>
         <label class="w-24 text-xs text-slate-500">Idade máx.
             <input type="number" min="0" max="120" name="rows[<?= $i ?>][age_max]" value="<?= $e($a?->ageMax) ?>" class="<?= $in ?>"></label>
+        <div class="flex flex-col gap-1 text-xs text-slate-600 pb-1">
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="rows[<?= $i ?>][mixed_gender]" value="1" <?= !empty($a?->mixedGender) ? 'checked' : '' ?> class="rounded border-slate-300 text-red-700"> Sexo misto (uma chave só)</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" name="rows[<?= $i ?>][all_belts]" value="1" <?= !empty($a?->allBelts) ? 'checked' : '' ?> class="rounded border-slate-300 text-red-700"> Todas as faixas juntas</label>
+        </div>
         <?= $controls('Remover esta divisão etária também remove as divisões de peso dela e a tira das disciplinas.') ?>
     </div>
     <?php return ob_get_clean();
@@ -103,6 +107,7 @@ $disciplineRow = static function (string $i, ?object $d) use ($in, $e, $controls
             <label class="flex items-center gap-2"><input type="checkbox" name="rows[<?= $i ?>][split_gender]" value="1" <?= ($d?->splitGender ?? true) ? 'checked' : '' ?> class="rounded border-slate-300 text-red-700"> Separa por sexo</label>
             <label class="flex items-center gap-2"><input type="checkbox" name="rows[<?= $i ?>][split_belt]" value="1" <?= ($d?->splitBelt ?? true) ? 'checked' : '' ?> class="rounded border-slate-300 text-red-700"> Separa por faixa</label>
             <label class="flex items-center gap-2"><input type="checkbox" name="rows[<?= $i ?>][split_weight]" value="1" <?= ($d?->splitWeight ?? false) ? 'checked' : '' ?> class="rounded border-slate-300 text-red-700"> Separa por peso</label>
+            <label class="flex items-center gap-2"><input type="checkbox" name="rows[<?= $i ?>][para_category]" value="1" <?= ($d?->paraCategory ?? false) ? 'checked' : '' ?> class="rounded border-slate-300 text-red-700"> Gera categoria Para-karatê</label>
         </div>
         <div class="mt-3">
             <p class="text-xs text-slate-500 mb-1.5">Divisões etárias desta disciplina (sem nenhuma marcada, ela não gera categorias):</p>

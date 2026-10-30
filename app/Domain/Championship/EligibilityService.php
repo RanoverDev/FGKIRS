@@ -72,6 +72,15 @@ final class EligibilityService
             return new Suggestion($eligible[0], null);
         }
 
+        // Atleta para-karatê compete na categoria Para-karatê, não na da idade dele
+        if (count($eligible) > 1 && $athlete->isParaKarate) {
+            $para = array_values(array_filter($eligible, static fn (EventCategory $c) => $c->isParaKarate));
+
+            if (count($para) === 1) {
+                return new Suggestion($para[0], null);
+            }
+        }
+
         if (count($eligible) > 1) {
             error_log(sprintf(
                 'Regulamento ambíguo: atleta (%s, %d anos) cabe em %d categorias de %s: %s',

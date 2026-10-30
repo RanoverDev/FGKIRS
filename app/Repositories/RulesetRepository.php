@@ -56,7 +56,8 @@ class RulesetRepository
                 (int) $r['id'], $r['code'], $r['name'],
                 $r['age_min'] !== null ? (int) $r['age_min'] : null,
                 $r['age_max'] !== null ? (int) $r['age_max'] : null,
-                (int) $r['sort_order']
+                (int) $r['sort_order'],
+                !empty($r['mixed_gender']), !empty($r['all_belts'])
             ),
             $this->db->query(
                 "SELECT * FROM age_divisions WHERE ruleset_id = :id ORDER BY sort_order, id",
@@ -106,7 +107,8 @@ class RulesetRepository
                 $r['team_size'] !== null ? (int) $r['team_size'] : null,
                 $r['team_reserves'] !== null ? (int) $r['team_reserves'] : null,
                 $links[(int) $r['id']] ?? [],
-                (int) $r['sort_order']
+                (int) $r['sort_order'],
+                !empty($r['para_category'])
             ),
             $this->db->query(
                 "SELECT * FROM ruleset_disciplines WHERE ruleset_id = :id ORDER BY sort_order, id",
@@ -165,9 +167,12 @@ class RulesetRepository
             $ageMap = [];
             foreach ($source->ageDivisions as $a) {
                 $this->db->query(
-                    "INSERT INTO age_divisions (ruleset_id, code, name, age_min, age_max, sort_order)
-                     VALUES (:r, :code, :name, :min, :max, :sort)",
-                    ['r' => $newId, 'code' => $a->code, 'name' => $a->name, 'min' => $a->ageMin, 'max' => $a->ageMax, 'sort' => $a->sortOrder]
+                    "INSERT INTO age_divisions (ruleset_id, code, name, age_min, age_max, sort_order, mixed_gender, all_belts)
+                     VALUES (:r, :code, :name, :min, :max, :sort, :mixed, :belts)",
+                    [
+                        'r' => $newId, 'code' => $a->code, 'name' => $a->name, 'min' => $a->ageMin, 'max' => $a->ageMax,
+                        'sort' => $a->sortOrder, 'mixed' => (int) $a->mixedGender, 'belts' => (int) $a->allBelts,
+                    ]
                 );
                 $ageMap[$a->id] = (int) $this->db->lastInsertId();
             }
@@ -194,12 +199,12 @@ class RulesetRepository
             foreach ($source->disciplines as $d) {
                 $this->db->query(
                     "INSERT INTO ruleset_disciplines
-                        (ruleset_id, code, name, modality, format, split_gender, split_belt, split_weight, team_size, team_reserves, sort_order)
-                     VALUES (:r, :code, :name, :modality, :format, :sg, :sb, :sw, :size, :reserves, :sort)",
+                        (ruleset_id, code, name, modality, format, split_gender, split_belt, split_weight, team_size, team_reserves, sort_order, para_category)
+                     VALUES (:r, :code, :name, :modality, :format, :sg, :sb, :sw, :size, :reserves, :sort, :para)",
                     [
                         'r' => $newId, 'code' => $d->code, 'name' => $d->name, 'modality' => $d->modality, 'format' => $d->format,
                         'sg' => (int) $d->splitGender, 'sb' => (int) $d->splitBelt, 'sw' => (int) $d->splitWeight,
-                        'size' => $d->teamSize, 'reserves' => $d->teamReserves, 'sort' => $d->sortOrder,
+                        'size' => $d->teamSize, 'reserves' => $d->teamReserves, 'sort' => $d->sortOrder, 'para' => (int) $d->paraCategory,
                     ]
                 );
                 $disciplineId = (int) $this->db->lastInsertId();
@@ -232,12 +237,14 @@ class RulesetRepository
                 'code' => $this->requireCode($row['code'] ?? ''),
                 'name' => $this->requireText($row['name'] ?? '', 'o nome da divisão etária', 60),
                 'age_min' => $min, 'age_max' => $max, 'sort_order' => $position + 1,
+                'mixed_gender' => empty($row['mixed_gender']) ? 0 : 1,
+                'all_belts'    => empty($row['all_belts']) ? 0 : 1,
             ];
         }
 
         $this->assertUnique(array_column($clean, 'code'), 'Código de divisão etária repetido');
 
-        $this->replaceRows($rulesetId, 'age_divisions', $clean, ['code', 'name', 'age_min', 'age_max', 'sort_order']);
+        $this->replaceRows($rulesetId, 'age_divisions', $clean, ['code', 'name', 'age_min', 'age_max', 'sort_order', 'mixed_gender', 'all_belts']);
     }
 
     public function saveBeltDivisions(int $rulesetId, array $rows): void
@@ -334,6 +341,7 @@ class RulesetRepository
                 'split_gender' => empty($row['split_gender']) ? 0 : 1,
                 'split_belt'   => empty($row['split_belt']) ? 0 : 1,
                 'split_weight' => empty($row['split_weight']) ? 0 : 1,
+                'para_category' => empty($row['para_category']) ? 0 : 1,
                 'team_size'    => $format === 'team' ? $teamSize : null,
                 'team_reserves' => $format === 'team' ? $this->nullableInt($row['team_reserves'] ?? null) : null,
                 'sort_order'   => $position + 1,
@@ -346,7 +354,7 @@ class RulesetRepository
         $this->transaction(function () use ($rulesetId, $clean, $links) {
             $ids = $this->replaceRows(
                 $rulesetId, 'ruleset_disciplines', $clean,
-                ['code', 'name', 'modality', 'format', 'split_gender', 'split_belt', 'split_weight', 'team_size', 'team_reserves', 'sort_order'],
+                ['code', 'name', 'modality', 'format', 'split_gender', 'split_belt', 'split_weight', 'team_size', 'team_reserves', 'sort_order', 'para_category'],
                 true
             );
 

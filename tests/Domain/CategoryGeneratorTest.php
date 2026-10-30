@@ -191,6 +191,50 @@ final class CategoryGeneratorTest extends TestCase
         $this->assertNotEmpty($others);
     }
 
+    public function testMixedAllBeltsAgeAndParaCategoryGenerateTheTwoExtraBrackets(): void
+    {
+        $base  = FgkirsRuleset::build();
+        $under6 = new AgeDivision(20, 'U6', 'Até 6 anos', null, 6, 0, true, true);
+
+        $disciplines = array_map(
+            static fn (Discipline $d) => in_array($d->code, ['KTI', 'KMI'], true)
+                ? new Discipline($d->id, $d->code, $d->name, $d->modality, $d->format, $d->splitGender, $d->splitBelt, $d->splitWeight,
+                    $d->teamSize, $d->teamReserves, [...$d->ageDivisionIds, 20], $d->sortOrder, true)
+                : $d,
+            $base->disciplines
+        );
+
+        $ruleset = new Ruleset(1, $base->name, 'event_date', [$under6, ...$base->ageDivisions], $base->beltDivisions, $base->weightClasses, $disciplines);
+        $before  = count($this->generateAll($base));
+        $drafts  = $this->generateAll($ruleset);
+
+        $this->assertCount($before + 4, $drafts);
+
+        $byCode = [];
+        foreach ($drafts as $d) {
+            $byCode[$d->code] = $d;
+        }
+
+        foreach (['KTI', 'KMI'] as $code) {
+            $u6 = $byCode["$code-X-U6"];
+            $this->assertSame('X', $u6->gender);
+            $this->assertNull($u6->ageMin);
+            $this->assertSame(6, $u6->ageMax);
+            $this->assertNull($u6->beltLevelMin);
+            $this->assertNull($u6->weightMin);
+            $this->assertFalse($u6->isParaKarate);
+
+            $para = $byCode["$code-PARA"];
+            $this->assertTrue($para->isParaKarate);
+            $this->assertSame('X', $para->gender);
+            $this->assertNull($para->ageMax);
+            $this->assertNull($para->beltLevelMin);
+        }
+
+        $this->assertArrayNotHasKey('KTE-PARA', $byCode);
+        $this->assertArrayNotHasKey('KTI-M-U6', $byCode);
+    }
+
     public function testAddingWeightClassesGrowsOnlyThatAge(): void
     {
         $ruleset = FgkirsRuleset::build();

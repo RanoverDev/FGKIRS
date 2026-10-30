@@ -93,6 +93,18 @@ final class EligibilityServiceTest extends TestCase
         ));
     }
 
+    public function testParaAthleteIsSuggestedTheParaCategoryOverTheAgeOne(): void
+    {
+        $regular = $this->category(1, ['gender' => 'X', 'ageMin' => null, 'ageMax' => 99]);
+        $para    = $this->category(2, ['gender' => 'X', 'ageMin' => null, 'ageMax' => null, 'para' => true]);
+
+        $paraAthlete = $this->service->suggest($this->athlete(['para' => true]), [$regular, $para], 'KMI');
+        $this->assertSame(2, $paraAthlete->category?->id);
+
+        $other = $this->service->suggest($this->athlete(['para' => false]), [$regular, $para], 'KMI');
+        $this->assertSame(1, $other->category?->id);
+    }
+
     public function testEligibleCategoryIsReturned(): void
     {
         $result = $this->service->evaluate($this->athlete(), [$this->category(1)]);

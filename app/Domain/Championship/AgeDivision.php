@@ -11,6 +11,8 @@ final readonly class AgeDivision
         public ?int $ageMin,
         public ?int $ageMax,
         public int $sortOrder = 0,
+        public bool $mixedGender = false,
+        public bool $allBelts = false,
     ) {
     }
 
